@@ -337,9 +337,20 @@ export class ZenExplorerApp extends Application {
       this.iconContainer.setAttribute("data-current-path", this.currentPath);
       // Update autoArrange state from layout
       const layout = await ZenLayoutManager.getLayout(this.currentPath);
-      this.autoArrange = layout.autoArrange;
+      this._autoArrange = layout.autoArrange;
     }
     return result;
+  }
+
+  get autoArrange() {
+    if (this.viewMode === 'list' || this.viewMode === 'details') {
+      return true;
+    }
+    return this._autoArrange;
+  }
+
+  set autoArrange(value) {
+    this._autoArrange = value;
   }
 
   /**
@@ -378,17 +389,18 @@ export class ZenExplorerApp extends Application {
     this.directoryView.renderDirectoryContents(this.currentPath);
   }
 
-  async handleRearrange(sourcePaths, x, y) {
+  async handleRearrange(sourcePaths, x, y, offsets) {
     const layout = await ZenLayoutManager.getLayout(this.currentPath);
 
     if (!layout.autoArrange) {
       // Free-form placement
       sourcePaths.forEach((path, index) => {
         const name = path.split("/").pop();
+        const offset = offsets ? offsets[index] : { x: index * 10, y: index * 10 };
         // Use adjusted coordinates directly
         layout.positions[name] = {
-          x: x + index * 10,
-          y: y + index * 10,
+          x: x + offset.x,
+          y: y + offset.y,
         };
       });
     } else {

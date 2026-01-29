@@ -72,7 +72,8 @@ export class FileOperations {
                 const positions = {};
                 targetPaths.forEach((path, i) => {
                     const name = getPathName(path);
-                    positions[name] = { x: options.dropX + i * 10, y: options.dropY + i * 10 };
+                    const offset = options.offsets ? options.offsets[i] : { x: i * 10, y: i * 10 };
+                    positions[name] = { x: options.dropX + offset.x, y: options.dropY + offset.y };
                 });
                 await ZenLayoutManager.updateItemPositions(destinationPath, positions);
             }
@@ -110,7 +111,8 @@ export class FileOperations {
                 const positions = {};
                 targetPaths.forEach((path, i) => {
                     const name = getPathName(path);
-                    positions[name] = { x: options.dropX + i * 10, y: options.dropY + i * 10 };
+                    const offset = options.offsets ? options.offsets[i] : { x: i * 10, y: i * 10 };
+                    positions[name] = { x: options.dropX + offset.x, y: options.dropY + offset.y };
                 });
                 await ZenLayoutManager.updateItemPositions(destinationPath, positions);
             }

@@ -26,20 +26,24 @@ export class ZenDragDropManager {
     startDrag(iconElements, sourceApp, x, y) {
         if (this.isDragging) return;
         this.isDragging = true;
-        this.draggedItems = iconElements.map(el => ({
-            element: el,
-            path: el.getAttribute('data-path'),
-            type: el.getAttribute('data-type')
-        }));
+        this.draggedItems = iconElements.map(el => {
+            const rect = el.getBoundingClientRect();
+            return {
+                element: el,
+                path: el.getAttribute('data-path'),
+                type: el.getAttribute('data-type'),
+                offsetX: x - rect.left,
+                offsetY: y - rect.top
+            };
+        });
         this.sourceApp = sourceApp;
         this.startX = x;
         this.startY = y;
 
-        // Calculate offset from first icon
-        if (iconElements.length > 0) {
-            const rect = iconElements[0].getBoundingClientRect();
-            this.offsetX = x - rect.left;
-            this.offsetY = y - rect.top;
+        // Base offset from first icon for ghost positioning
+        if (this.draggedItems.length > 0) {
+            this.offsetX = this.draggedItems[0].offsetX;
+            this.offsetY = this.draggedItems[0].offsetY;
         }
 
         this._createGhost(iconElements, x, y);
@@ -68,14 +72,15 @@ export class ZenDragDropManager {
         ghost.style.opacity = '0.6';
 
         iconElements.forEach((el, index) => {
+            const item = this.draggedItems[index];
             const clone = el.cloneNode(true);
             clone.classList.remove('selected');
             clone.classList.add('ghost-item');
 
-            // Reset positioning style from the original icon (important for free-form mode)
-            clone.style.position = index === 0 ? 'static' : 'absolute';
-            clone.style.left = index === 0 ? '' : `${index * 4}px`;
-            clone.style.top = index === 0 ? '' : `${index * 4}px`;
+            // Maintain relative positioning from the original icons
+            clone.style.position = 'absolute';
+            clone.style.left = `${this.offsetX - item.offsetX}px`;
+            clone.style.top = `${this.offsetY - item.offsetY}px`;
             clone.style.margin = '0';
 
             ghost.appendChild(clone);
@@ -180,6 +185,10 @@ export class ZenDragDropManager {
         if (!destinationPath) return;
 
         const sourcePaths = this.draggedItems.map(item => item.path);
+        const offsets = this.draggedItems.map(item => ({
+            x: this.offsetX - item.offsetX,
+            y: this.offsetY - item.offsetY
+        }));
 
         // Calculate coordinates relative to target container
         let dropX = null;
@@ -196,16 +205,16 @@ export class ZenDragDropManager {
         if (!isCopy && destinationPath === sourceDir) {
             // Handle rearrangement
             if (this.sourceApp.handleRearrange) {
-                await this.sourceApp.handleRearrange(sourcePaths, dropX, dropY);
+                await this.sourceApp.handleRearrange(sourcePaths, dropX, dropY, offsets);
             }
             return;
         }
 
         try {
             if (isCopy) {
-                await this.sourceApp.fileOps.copyItemsDirect(sourcePaths, destinationPath, { dropX, dropY });
+                await this.sourceApp.fileOps.copyItemsDirect(sourcePaths, destinationPath, { dropX, dropY, offsets });
             } else {
-                await this.sourceApp.fileOps.moveItemsDirect(sourcePaths, destinationPath, { dropX, dropY });
+                await this.sourceApp.fileOps.moveItemsDirect(sourcePaths, destinationPath, { dropX, dropY, offsets });
             }
         } catch (err) {
             console.error('Drop failed:', err);
