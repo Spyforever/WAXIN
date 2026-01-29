@@ -1,3 +1,5 @@
+import { openApps } from "../../Application.js";
+
 /**
  * ZenDragDropManager - Handles custom drag and drop for ZenExplorer
  */
@@ -70,11 +72,11 @@ export class ZenDragDropManager {
             clone.classList.remove('selected');
             clone.classList.add('ghost-item');
 
-            if (index > 0) {
-                clone.style.position = 'absolute';
-                clone.style.left = `${index * 4}px`;
-                clone.style.top = `${index * 4}px`;
-            }
+            // Reset positioning style from the original icon (important for free-form mode)
+            clone.style.position = index === 0 ? 'static' : 'absolute';
+            clone.style.left = index === 0 ? '' : `${index * 4}px`;
+            clone.style.top = index === 0 ? '' : `${index * 4}px`;
+            clone.style.margin = '0';
 
             ghost.appendChild(clone);
         });
@@ -166,6 +168,9 @@ export class ZenDragDropManager {
         if (!this.dropTarget) return;
 
         let destinationPath = null;
+        let targetWindow = this.dropTarget.closest('.window');
+        let targetApp = targetWindow ? openApps.get(targetWindow.id) : null;
+
         if (this.dropTarget.classList.contains('explorer-icon')) {
             destinationPath = this.dropTarget.getAttribute('data-path');
         } else if (this.dropTarget.classList.contains('explorer-icon-view')) {
@@ -176,17 +181,31 @@ export class ZenDragDropManager {
 
         const sourcePaths = this.draggedItems.map(item => item.path);
 
-        // Prevent dropping on itself or same folder if not copy
+        // Calculate coordinates relative to target container
+        let dropX = null;
+        let dropY = null;
+        if (targetApp && targetApp.iconContainer) {
+            const rect = targetApp.iconContainer.getBoundingClientRect();
+            // Subtract offsetX/offsetY so the icon's top-left is where it was relative to the cursor
+            dropX = e.clientX - rect.left + targetApp.iconContainer.scrollLeft - this.offsetX;
+            dropY = e.clientY - rect.top + targetApp.iconContainer.scrollTop - this.offsetY;
+        }
+
+        // Check if we are dragging into the same folder
         const sourceDir = sourcePaths[0].substring(0, sourcePaths[0].lastIndexOf('/')) || '/';
         if (!isCopy && destinationPath === sourceDir) {
+            // Handle rearrangement
+            if (this.sourceApp.handleRearrange) {
+                await this.sourceApp.handleRearrange(sourcePaths, dropX, dropY);
+            }
             return;
         }
 
         try {
             if (isCopy) {
-                await this.sourceApp.fileOps.copyItemsDirect(sourcePaths, destinationPath);
+                await this.sourceApp.fileOps.copyItemsDirect(sourcePaths, destinationPath, { dropX, dropY });
             } else {
-                await this.sourceApp.fileOps.moveItemsDirect(sourcePaths, destinationPath);
+                await this.sourceApp.fileOps.moveItemsDirect(sourcePaths, destinationPath, { dropX, dropY });
             }
         } catch (err) {
             console.error('Drop failed:', err);

@@ -6,6 +6,7 @@ import { joinPath, normalizePath, getPathName } from "./utils/PathUtils.js";
 import ZenClipboardManager from "./utils/ZenClipboardManager.js";
 import { RecycleBinManager } from "./utils/RecycleBinManager.js";
 import ZenUndoManager from "./utils/ZenUndoManager.js";
+import ZenLayoutManager from "./utils/ZenLayoutManager.js";
 
 /**
  * FileOperations - Handles file system operations with user interaction
@@ -54,8 +55,9 @@ export class FileOperations {
      * Move items directly to a destination
      * @param {Array<string>} sourcePaths
      * @param {string} destinationPath
+     * @param {Object} options
      */
-    async moveItemsDirect(sourcePaths, destinationPath) {
+    async moveItemsDirect(sourcePaths, destinationPath, options = {}) {
         const targetPaths = [];
         try {
             for (const itemPath of sourcePaths) {
@@ -63,6 +65,16 @@ export class FileOperations {
                 const targetPath = await this.getUniquePastePath(destinationPath, itemName, "cut");
                 await fs.promises.rename(itemPath, targetPath);
                 targetPaths.push(targetPath);
+            }
+
+            // Save positions if provided
+            if (options.dropX !== undefined && options.dropY !== undefined) {
+                const positions = {};
+                targetPaths.forEach((path, i) => {
+                    const name = getPathName(path);
+                    positions[name] = { x: options.dropX + i * 10, y: options.dropY + i * 10 };
+                });
+                await ZenLayoutManager.updateItemPositions(destinationPath, positions);
             }
 
             ZenUndoManager.push({
@@ -81,8 +93,9 @@ export class FileOperations {
      * Copy items directly to a destination
      * @param {Array<string>} sourcePaths
      * @param {string} destinationPath
+     * @param {Object} options
      */
-    async copyItemsDirect(sourcePaths, destinationPath) {
+    async copyItemsDirect(sourcePaths, destinationPath, options = {}) {
         const targetPaths = [];
         try {
             for (const itemPath of sourcePaths) {
@@ -90,6 +103,16 @@ export class FileOperations {
                 const targetPath = await this.getUniquePastePath(destinationPath, itemName, "copy");
                 await this.copyRecursive(itemPath, targetPath);
                 targetPaths.push(targetPath);
+            }
+
+            // Save positions if provided
+            if (options.dropX !== undefined && options.dropY !== undefined) {
+                const positions = {};
+                targetPaths.forEach((path, i) => {
+                    const name = getPathName(path);
+                    positions[name] = { x: options.dropX + i * 10, y: options.dropY + i * 10 };
+                });
+                await ZenLayoutManager.updateItemPositions(destinationPath, positions);
             }
 
             ZenUndoManager.push({

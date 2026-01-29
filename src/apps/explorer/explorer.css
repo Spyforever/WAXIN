@@ -77,7 +77,15 @@
 }
 
 .explorer-icon-view.has-absolute-icons {
+    display: block;
     position: relative;
+    min-height: 100%;
+    min-width: 100%;
+}
+
+.explorer-icon-view.has-absolute-icons .explorer-icon {
+    position: absolute;
+    margin: 0;
 }
 
 .explorer-icon {
