@@ -186,8 +186,9 @@ export class ZenDragDropManager {
         let dropY = null;
         if (targetApp && targetApp.iconContainer) {
             const rect = targetApp.iconContainer.getBoundingClientRect();
-            dropX = e.clientX - rect.left + targetApp.iconContainer.scrollLeft;
-            dropY = e.clientY - rect.top + targetApp.iconContainer.scrollTop;
+            // Subtract offsetX/offsetY so the icon's top-left is where it was relative to the cursor
+            dropX = e.clientX - rect.left + targetApp.iconContainer.scrollLeft - this.offsetX;
+            dropY = e.clientY - rect.top + targetApp.iconContainer.scrollTop - this.offsetY;
         }
 
         // Check if we are dragging into the same folder
@@ -195,7 +196,7 @@ export class ZenDragDropManager {
         if (!isCopy && destinationPath === sourceDir) {
             // Handle rearrangement
             if (this.sourceApp.handleRearrange) {
-                await this.sourceApp.handleRearrange(sourcePaths, e.clientX, e.clientY);
+                await this.sourceApp.handleRearrange(sourcePaths, dropX, dropY);
             }
             return;
         }

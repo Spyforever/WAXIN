@@ -346,21 +346,17 @@ export class ZenExplorerApp extends Application {
     this.directoryView.renderDirectoryContents(this.currentPath);
   }
 
-  async handleRearrange(sourcePaths, clientX, clientY) {
+  async handleRearrange(sourcePaths, x, y) {
     const layout = await ZenLayoutManager.getLayout(this.currentPath);
-    const rect = this.iconContainer.getBoundingClientRect();
-    const scrollLeft = this.iconContainer.scrollLeft;
-    const scrollTop = this.iconContainer.scrollTop;
 
     if (!layout.autoArrange) {
       // Free-form placement
       sourcePaths.forEach((path, index) => {
         const name = path.split("/").pop();
-        // Place item at drop coordinates, adjusting for container scroll and offset
-        // We use a small offset for multiple items
+        // Use adjusted coordinates directly
         layout.positions[name] = {
-          x: clientX - rect.left + scrollLeft + index * 10,
-          y: clientY - rect.top + scrollTop + index * 10,
+          x: x + index * 10,
+          y: y + index * 10,
         };
       });
     } else {
@@ -368,14 +364,13 @@ export class ZenExplorerApp extends Application {
       const icons = [...this.iconContainer.querySelectorAll(".explorer-icon")];
       let targetIcon = null;
 
-      // Find icon under the cursor
+      // Find icon under the cursor using container-relative coordinates
       for (const icon of icons) {
-        const iconRect = icon.getBoundingClientRect();
         if (
-          clientX >= iconRect.left &&
-          clientX <= iconRect.right &&
-          clientY >= iconRect.top &&
-          clientY <= iconRect.bottom
+          x >= icon.offsetLeft &&
+          x <= icon.offsetLeft + icon.offsetWidth &&
+          y >= icon.offsetTop &&
+          y <= icon.offsetTop + icon.offsetHeight
         ) {
           targetIcon = icon;
           break;
