@@ -72,11 +72,11 @@ export class ZenDragDropManager {
             clone.classList.remove('selected');
             clone.classList.add('ghost-item');
 
-            if (index > 0) {
-                clone.style.position = 'absolute';
-                clone.style.left = `${index * 4}px`;
-                clone.style.top = `${index * 4}px`;
-            }
+            // Reset positioning style from the original icon (important for free-form mode)
+            clone.style.position = index === 0 ? 'static' : 'absolute';
+            clone.style.left = index === 0 ? '' : `${index * 4}px`;
+            clone.style.top = index === 0 ? '' : `${index * 4}px`;
+            clone.style.margin = '0';
 
             ghost.appendChild(clone);
         });
