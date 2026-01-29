@@ -1,3 +1,5 @@
+import { openApps } from "../../Application.js";
+
 /**
  * ZenDragDropManager - Handles custom drag and drop for ZenExplorer
  */
@@ -166,6 +168,9 @@ export class ZenDragDropManager {
         if (!this.dropTarget) return;
 
         let destinationPath = null;
+        let targetWindow = this.dropTarget.closest('.window');
+        let targetApp = targetWindow ? openApps.get(targetWindow.id) : null;
+
         if (this.dropTarget.classList.contains('explorer-icon')) {
             destinationPath = this.dropTarget.getAttribute('data-path');
         } else if (this.dropTarget.classList.contains('explorer-icon-view')) {
@@ -176,17 +181,30 @@ export class ZenDragDropManager {
 
         const sourcePaths = this.draggedItems.map(item => item.path);
 
-        // Prevent dropping on itself or same folder if not copy
+        // Calculate coordinates relative to target container
+        let dropX = null;
+        let dropY = null;
+        if (targetApp && targetApp.iconContainer) {
+            const rect = targetApp.iconContainer.getBoundingClientRect();
+            dropX = e.clientX - rect.left + targetApp.iconContainer.scrollLeft;
+            dropY = e.clientY - rect.top + targetApp.iconContainer.scrollTop;
+        }
+
+        // Check if we are dragging into the same folder
         const sourceDir = sourcePaths[0].substring(0, sourcePaths[0].lastIndexOf('/')) || '/';
         if (!isCopy && destinationPath === sourceDir) {
+            // Handle rearrangement
+            if (this.sourceApp.handleRearrange) {
+                await this.sourceApp.handleRearrange(sourcePaths, e.clientX, e.clientY);
+            }
             return;
         }
 
         try {
             if (isCopy) {
-                await this.sourceApp.fileOps.copyItemsDirect(sourcePaths, destinationPath);
+                await this.sourceApp.fileOps.copyItemsDirect(sourcePaths, destinationPath, { dropX, dropY });
             } else {
-                await this.sourceApp.fileOps.moveItemsDirect(sourcePaths, destinationPath);
+                await this.sourceApp.fileOps.moveItemsDirect(sourcePaths, destinationPath, { dropX, dropY });
             }
         } catch (err) {
             console.error('Drop failed:', err);

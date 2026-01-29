@@ -21,6 +21,7 @@ import { ZenKeyboardHandler } from "./utils/ZenKeyboardHandler.js";
 import { RecycleBinManager } from "./utils/RecycleBinManager.js";
 import { PropertiesManager } from "./utils/PropertiesManager.js";
 import ZenDragDropManager from "./utils/ZenDragDropManager.js";
+import ZenLayoutManager from "./utils/ZenLayoutManager.js";
 
 export class ZenExplorerApp extends Application {
   static config = {
@@ -127,6 +128,9 @@ export class ZenExplorerApp extends Application {
 
     // 7f. FS change listener
     this._setupFSListener();
+
+    // 7g. Layout change listener
+    this._setupLayoutListener();
 
     // 8. Initial Navigation
     this.navigateTo(this.currentPath);
@@ -282,12 +286,130 @@ export class ZenExplorerApp extends Application {
     document.addEventListener("zen-fs-change", this._fsHandler);
   }
 
+  /**
+   * Setup Layout change listener
+   * @private
+   */
+  _setupLayoutListener() {
+    this._layoutHandler = (e) => {
+      if (e.detail.path === this.currentPath) {
+        this.navigateTo(this.currentPath, true, true);
+      }
+    };
+    document.addEventListener("zen-layout-change", this._layoutHandler);
+  }
+
   async navigateTo(path, isHistoryNav = false, skipMRU = false) {
     const result = await this.navController.navigateTo(path, isHistoryNav, skipMRU);
     if (this.iconContainer) {
       this.iconContainer.setAttribute("data-current-path", this.currentPath);
+      // Update autoArrange state from layout
+      const layout = await ZenLayoutManager.getLayout(this.currentPath);
+      this.autoArrange = layout.autoArrange;
     }
     return result;
+  }
+
+  /**
+   * Handle icon rearrangement within the current folder
+   * @param {string[]} sourcePaths - Paths of dragged items
+   * @param {number} clientX - Drop X coordinate
+   * @param {number} clientY - Drop Y coordinate
+   */
+  /**
+   * Toggle Auto Arrange for the current folder
+   */
+  async toggleAutoArrange() {
+    const layout = await ZenLayoutManager.getLayout(this.currentPath);
+    layout.autoArrange = !layout.autoArrange;
+    if (layout.autoArrange) {
+      layout.positions = {}; // Delete manual positions when turning ON
+    } else {
+      // Capture current grid positions when turning OFF
+      const icons = this.iconContainer.querySelectorAll(".explorer-icon");
+      const containerRect = this.iconContainer.getBoundingClientRect();
+      const scrollLeft = this.iconContainer.scrollLeft;
+      const scrollTop = this.iconContainer.scrollTop;
+
+      icons.forEach((icon) => {
+        const name = icon.getAttribute("data-name");
+        const rect = icon.getBoundingClientRect();
+        layout.positions[name] = {
+          x: rect.left - containerRect.left + scrollLeft,
+          y: rect.top - containerRect.top + scrollTop,
+        };
+      });
+    }
+    await ZenLayoutManager.saveLayout(this.currentPath, layout);
+    this.autoArrange = layout.autoArrange;
+    // Refresh the view to apply changes (e.g., add/remove classes and absolute positioning)
+    this.directoryView.renderDirectoryContents(this.currentPath);
+  }
+
+  async handleRearrange(sourcePaths, clientX, clientY) {
+    const layout = await ZenLayoutManager.getLayout(this.currentPath);
+    const rect = this.iconContainer.getBoundingClientRect();
+    const scrollLeft = this.iconContainer.scrollLeft;
+    const scrollTop = this.iconContainer.scrollTop;
+
+    if (!layout.autoArrange) {
+      // Free-form placement
+      sourcePaths.forEach((path, index) => {
+        const name = path.split("/").pop();
+        // Place item at drop coordinates, adjusting for container scroll and offset
+        // We use a small offset for multiple items
+        layout.positions[name] = {
+          x: clientX - rect.left + scrollLeft + index * 10,
+          y: clientY - rect.top + scrollTop + index * 10,
+        };
+      });
+    } else {
+      // Auto-arrange reordering
+      const icons = [...this.iconContainer.querySelectorAll(".explorer-icon")];
+      let targetIcon = null;
+
+      // Find icon under the cursor
+      for (const icon of icons) {
+        const iconRect = icon.getBoundingClientRect();
+        if (
+          clientX >= iconRect.left &&
+          clientX <= iconRect.right &&
+          clientY >= iconRect.top &&
+          clientY <= iconRect.bottom
+        ) {
+          targetIcon = icon;
+          break;
+        }
+      }
+
+      const draggedNames = sourcePaths.map((p) => p.split("/").pop());
+      // Get current order from DOM if not in layout
+      const currentOrder =
+        layout.order && layout.order.length > 0
+          ? [...layout.order]
+          : icons.map((i) => i.getAttribute("data-name"));
+
+      // Remove dragged items from current order to re-insert them
+      let newOrder = currentOrder.filter(
+        (name) => !draggedNames.includes(name),
+      );
+
+      if (targetIcon) {
+        const targetName = targetIcon.getAttribute("data-name");
+        const targetIndex = newOrder.indexOf(targetName);
+        if (targetIndex !== -1) {
+          newOrder.splice(targetIndex, 0, ...draggedNames);
+        } else {
+          newOrder.push(...draggedNames);
+        }
+      } else {
+        // Drop at end
+        newOrder.push(...draggedNames);
+      }
+      layout.order = newOrder;
+    }
+
+    await ZenLayoutManager.saveLayout(this.currentPath, layout);
   }
 
   enterRenameMode(icon) {
@@ -428,6 +550,9 @@ export class ZenExplorerApp extends Application {
     }
     if (this._fsHandler) {
       document.removeEventListener("zen-fs-change", this._fsHandler);
+    }
+    if (this._layoutHandler) {
+      document.removeEventListener("zen-layout-change", this._layoutHandler);
     }
   }
 }

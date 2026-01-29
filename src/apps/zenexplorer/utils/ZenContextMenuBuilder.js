@@ -189,6 +189,18 @@ export class ZenContextMenuBuilder {
           },
         ],
       },
+      {
+        label: "Arrange Icons",
+        submenu: [
+          {
+            label: "Auto Arrange",
+            checkbox: {
+              check: () => this.app.autoArrange,
+              toggle: () => this.app.toggleAutoArrange(),
+            },
+          },
+        ],
+      },
       "MENU_DIVIDER",
       {
         label: "Paste",
