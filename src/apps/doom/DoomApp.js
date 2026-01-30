@@ -72,15 +72,21 @@ export class DoomApp extends Application {
 
     // Load Doom script
     if (!document.getElementById("doom-script")) {
-        const script = document.createElement("script");
-        script.id = "doom-script";
-        script.src = "games/doom/websockets-doom.js";
-        document.body.appendChild(script);
+      const script = document.createElement("script");
+      script.id = "doom-script";
+      script.src = "games/doom/websockets-doom.js";
+      document.body.appendChild(script);
     } else {
-        // If script already exists (singleton), we might need to re-init
-        if (this.module.onRuntimeInitialized) {
-            this.module.onRuntimeInitialized();
-        }
+      // If script already exists (singleton), resume or re-init
+      if (this.module.resumeMainLoop) {
+        this.module.resumeMainLoop();
+      }
+      if (window.SDL && window.SDL.audioContext) {
+        window.SDL.audioContext.resume();
+      }
+      if (this.module.onRuntimeInitialized) {
+        this.module.onRuntimeInitialized();
+      }
     }
 
     this.win.focus();
@@ -92,36 +98,32 @@ export class DoomApp extends Application {
     const baseLocalPath = "/C:/Program Files/Doom";
 
     if (this.isMounted) {
-        try {
-            fs.umount(baseLocalPath);
-            this.isMounted = false;
-        } catch(e) {}
-    }
-
-    // 1. Copy initial files from ZenFS to Emscripten MEMFS
-    const filesToCopy = ["doom1.wad", "default.cfg"];
-    for (const file of filesToCopy) {
       try {
-        if (fs.existsSync(`${baseLocalPath}/${file}`)) {
-            const data = await fs.promises.readFile(`${baseLocalPath}/${file}`);
-            FS.writeFile(file, new Uint8Array(data));
-        }
-      } catch (e) {
-        console.warn(`Failed to copy ${file} to Doom FS:`, e);
-      }
+        fs.umount(baseLocalPath);
+        this.isMounted = false;
+      } catch (e) {}
     }
 
-    // 2. Load save games from ZenFS
+    // 1. Load all persistent files from ZenFS back into Emscripten MEMFS
     try {
-        const allFiles = await fs.promises.readdir(baseLocalPath);
-        for (const file of allFiles) {
-            if (file.toLowerCase().startsWith("doomsav") && file.toLowerCase().endsWith(".dsg")) {
-                const data = await fs.promises.readFile(`${baseLocalPath}/${file}`);
-                FS.writeFile(file, new Uint8Array(data));
+      const loadRecursive = async (localPath, emPath) => {
+            const entries = await fs.promises.readdir(localPath);
+            for (const entry of entries) {
+                const fullLocalPath = `${localPath}/${entry}`;
+                const fullEmPath = emPath === "/" ? `/${entry}` : `${emPath}/${entry}`;
+                const stat = await fs.promises.stat(fullLocalPath);
+                if (stat.isDirectory()) {
+                    try { FS.mkdir(fullEmPath); } catch(e) {}
+                    await loadRecursive(fullLocalPath, fullEmPath);
+                } else {
+                    const data = await fs.promises.readFile(fullLocalPath);
+                    FS.writeFile(fullEmPath, new Uint8Array(data));
+                }
             }
-        }
+        };
+        await loadRecursive(baseLocalPath, "/");
     } catch (e) {
-        console.warn("Failed to load save games from ZenFS:", e);
+        console.warn("Failed to load persistent files from ZenFS:", e);
     }
 
     // 3. Mount Emscripten FS to ZenFS folder
@@ -153,21 +155,40 @@ export class DoomApp extends Application {
   }
 
   async _onClose() {
+    if (this.module) {
+      if (this.module.pauseMainLoop) {
+        this.module.pauseMainLoop();
+      }
+      // Try to stop audio if SDL is used
+      if (window.SDL && window.SDL.audioContext) {
+        window.SDL.audioContext.suspend();
+      }
+    }
+
     if (this.isMounted) {
       const baseLocalPath = "/C:/Program Files/Doom";
-
-      // 1. Sync files from Emscripten to memory
       const FS = this.module.FS;
-      const filesToSync = FS.readdir("/").filter(f => f !== "." && f !== "..");
+
+      // 1. Sync files from Emscripten to memory recursively
       const syncData = [];
-      for (const file of filesToSync) {
+      const collectFiles = (path) => {
+        const entries = FS.readdir(path).filter((e) => e !== "." && e !== "..");
+        for (const entry of entries) {
+          const fullPath = path === "/" ? `/${entry}` : `${path}/${entry}`;
           try {
-              const stat = FS.stat(file);
-              if (!FS.isDir(stat.mode)) {
-                  syncData.push({ name: file, data: FS.readFile(file) });
-              }
-          } catch(e) {}
-      }
+            const stat = FS.stat(fullPath);
+            if (FS.isDir(stat.mode)) {
+              collectFiles(fullPath);
+            } else {
+              syncData.push({
+                path: fullPath,
+                data: FS.readFile(fullPath),
+              });
+            }
+          } catch (e) {}
+        }
+      };
+      collectFiles("/");
 
       // 2. Unmount
       try {
@@ -179,10 +200,29 @@ export class DoomApp extends Application {
 
       // 3. Write back to ZenFS (IndexedDB)
       for (const item of syncData) {
-          await fs.promises.writeFile(`${baseLocalPath}/${item.name}`, item.data);
+        const targetPath = `${baseLocalPath}${item.path}`;
+        const targetDir = targetPath.substring(0, targetPath.lastIndexOf("/"));
+
+        if (!fs.existsSync(targetDir)) {
+          await this._mkdirRecursive(targetDir);
+        }
+        await fs.promises.writeFile(targetPath, item.data);
       }
 
-      document.dispatchEvent(new CustomEvent("zen-fs-change", { detail: { path: baseLocalPath } }));
+      document.dispatchEvent(
+        new CustomEvent("zen-fs-change", { detail: { path: baseLocalPath } }),
+      );
+    }
+  }
+
+  async _mkdirRecursive(path) {
+    const parts = path.split("/").filter(Boolean);
+    let current = "";
+    for (const part of parts) {
+      current += "/" + part;
+      if (!fs.existsSync(current)) {
+        await fs.promises.mkdir(current);
+      }
     }
   }
 }
