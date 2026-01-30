@@ -1,4 +1,4 @@
-import { Application } from "../Application.js";
+import { Application, openApps } from "../Application.js";
 import { mounts } from "@zenfs/core";
 import { initFileSystem } from "../../utils/zenfs-init.js";
 import { ICONS } from "../../config/icons.js";
@@ -55,6 +55,67 @@ export class ZenExplorerApp extends Application {
     this.driveManager = new ZenDriveManager(this);
     this.contextMenuBuilder = new ZenContextMenuBuilder(this);
     this.keyboardHandler = new ZenKeyboardHandler(this);
+  }
+
+  async launch(data = null) {
+    const targetPath = this._normalizePath(data);
+    let existingAppAtSamePath = null;
+    let anyZenExplorer = false;
+
+    for (const app of openApps.values()) {
+      if (app.config?.id === this.id) {
+        anyZenExplorer = true;
+        if (this._normalizePath(app.currentPath) === targetPath) {
+          existingAppAtSamePath = app;
+          break;
+        }
+      }
+    }
+
+    if (existingAppAtSamePath) {
+      if (existingAppAtSamePath.win) {
+        existingAppAtSamePath.win.focus();
+      }
+      return;
+    }
+
+    // If we have any existing ZenExplorer, we need a unique windowId
+    // to bypass the singleton-like check in Application.launch.
+    if (anyZenExplorer) {
+      const filePath =
+        typeof data === "string"
+          ? data
+          : data?.file || data?.filePath || data?.path || "/";
+
+      // If data was already an object with windowId, respect it
+      if (data && typeof data === "object" && data.windowId) {
+        return super.launch(data);
+      }
+
+      return super.launch({
+        file: filePath,
+        windowId: `${this.id}-${Date.now()}-${Math.random()}`,
+      });
+    }
+
+    // First instance: use default launch behavior (maintains #zenexplorer ID if launched without path)
+    return super.launch(data);
+  }
+
+  _normalizePath(path) {
+    let p = "/";
+    if (typeof path === "string") {
+      p = path;
+    } else if (path && typeof path === "object") {
+      p = path.file || path.filePath || path.path || "/";
+    }
+
+    if (typeof p !== "string") p = "/";
+
+    p = p.replace(/\\/g, "/");
+    if (!p.startsWith("/")) p = "/" + p;
+    if (p.length > 1 && p.endsWith("/")) p = p.slice(0, -1);
+    return p;
   }
 
   async _createWindow(initialPath) {
@@ -312,7 +373,10 @@ export class ZenExplorerApp extends Application {
    * @private
    */
   _setupFSListener() {
-    this._fsHandler = () => {
+    this._fsHandler = (e) => {
+      if (e.detail?.sourceAppId === this.win.element.id) {
+        return;
+      }
       this.navigateTo(this.currentPath, true, true);
     };
     document.addEventListener("zen-fs-change", this._fsHandler);

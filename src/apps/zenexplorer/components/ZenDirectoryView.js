@@ -421,7 +421,8 @@ export class ZenDirectoryView {
         label.textContent = getDisplayName(fullPath);
       }
 
-      await this.app.navController.navigateTo(this.app.currentPath, true, true);
+      await this.app.navigateTo(this.app.currentPath, true, true);
+      document.dispatchEvent(new CustomEvent("zen-fs-change", { detail: { sourceAppId: this.app.win.element.id } }));
     };
 
     textarea.onkeydown = (e) => {
