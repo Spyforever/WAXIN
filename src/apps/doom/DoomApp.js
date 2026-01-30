@@ -52,6 +52,12 @@ export class DoomApp extends Application {
   async _onLaunch() {
     const canvas = this.win.$content.find("canvas")[0];
 
+    // Clean up any existing script/module before fresh launch
+    this._cleanupModule();
+
+    // Ensure we don't have multiple canvases with same ID causing trouble
+    // although we just created a unique one, some engines might hardcode searches
+
     // Prepare Emscripten Module
     window.Module = {
       canvas: canvas,
@@ -71,23 +77,11 @@ export class DoomApp extends Application {
     this.module = window.Module;
 
     // Load Doom script
-    if (!document.getElementById("doom-script")) {
-      const script = document.createElement("script");
-      script.id = "doom-script";
-      script.src = "games/doom/websockets-doom.js";
-      document.body.appendChild(script);
-    } else {
-      // If script already exists (singleton), resume or re-init
-      if (this.module.resumeMainLoop) {
-        this.module.resumeMainLoop();
-      }
-      if (window.SDL && window.SDL.audioContext) {
-        window.SDL.audioContext.resume();
-      }
-      if (this.module.onRuntimeInitialized) {
-        this.module.onRuntimeInitialized();
-      }
-    }
+    const script = document.createElement("script");
+    script.id = "doom-script";
+    // Use cache buster to ensure re-execution
+    script.src = `games/doom/websockets-doom.js?v=${Date.now()}`;
+    document.body.appendChild(script);
 
     this.win.focus();
     canvas.focus();
@@ -107,23 +101,23 @@ export class DoomApp extends Application {
     // 1. Load all persistent files from ZenFS back into Emscripten MEMFS
     try {
       const loadRecursive = async (localPath, emPath) => {
-            const entries = await fs.promises.readdir(localPath);
-            for (const entry of entries) {
-                const fullLocalPath = `${localPath}/${entry}`;
-                const fullEmPath = emPath === "/" ? `/${entry}` : `${emPath}/${entry}`;
-                const stat = await fs.promises.stat(fullLocalPath);
-                if (stat.isDirectory()) {
-                    try { FS.mkdir(fullEmPath); } catch(e) {}
-                    await loadRecursive(fullLocalPath, fullEmPath);
-                } else {
-                    const data = await fs.promises.readFile(fullLocalPath);
-                    FS.writeFile(fullEmPath, new Uint8Array(data));
-                }
-            }
-        };
-        await loadRecursive(baseLocalPath, "/");
+        const entries = await fs.promises.readdir(localPath);
+        for (const entry of entries) {
+          const fullLocalPath = `${localPath}/${entry}`;
+          const fullEmPath = emPath === "/" ? `/${entry}` : `${emPath}/${entry}`;
+          const stat = await fs.promises.stat(fullLocalPath);
+          if (stat.isDirectory()) {
+            try { FS.mkdir(fullEmPath); } catch(e) {}
+            await loadRecursive(fullLocalPath, fullEmPath);
+          } else {
+            const data = await fs.promises.readFile(fullLocalPath);
+            FS.writeFile(fullEmPath, new Uint8Array(data));
+          }
+        }
+      };
+      await loadRecursive(baseLocalPath, "/");
     } catch (e) {
-        console.warn("Failed to load persistent files from ZenFS:", e);
+      console.warn("Failed to load persistent files from ZenFS:", e);
     }
 
     // 3. Mount Emscripten FS to ZenFS folder
@@ -148,9 +142,9 @@ export class DoomApp extends Application {
       "-servername", "doomflare",
     ];
     if (typeof window.callMain === "function") {
-        window.callMain(commonArgs);
+      window.callMain(commonArgs);
     } else if (this.module.callMain) {
-        this.module.callMain(commonArgs);
+      this.module.callMain(commonArgs);
     }
   }
 
@@ -213,6 +207,23 @@ export class DoomApp extends Application {
         new CustomEvent("zen-fs-change", { detail: { path: baseLocalPath } }),
       );
     }
+
+    this._cleanupModule();
+  }
+
+  _cleanupModule() {
+    const script = document.getElementById("doom-script");
+    if (script) script.remove();
+
+    if (this.module && this.module.pauseMainLoop) {
+      this.module.pauseMainLoop();
+    }
+
+    // Clear globals to avoid pollution and leaks
+    delete window.Module;
+    delete window.FS;
+    delete window.callMain;
+    this.module = null;
   }
 
   async _mkdirRecursive(path) {
