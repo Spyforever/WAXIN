@@ -1,5 +1,6 @@
 import { openApps } from "../../Application.js";
 import { getParentPath } from "./PathUtils.js";
+import { RecycleBinManager } from "./RecycleBinManager.js";
 
 /**
  * ZenDragDropManager - Handles custom drag and drop for ZenExplorer
@@ -223,6 +224,25 @@ export class ZenDragDropManager {
         // Prevent moving/copying root items to other folders
         if (sourceDir === "/") {
             console.warn("Cannot move or copy root items to other folders.");
+            return;
+        }
+
+        // Special handling for Recycle Bin source (Restore)
+        if (sourcePaths.some(p => RecycleBinManager.isRecycledItemPath(p))) {
+            await sourceApp.fileOps.restoreItems(sourcePaths);
+            return;
+        }
+
+        // Special handling for Recycle Bin destination (Recycle)
+        if (RecycleBinManager.isRecycleBinPath(destinationPath)) {
+            const { ProgressBarDialogWindow } = await import("../components/ProgressBarDialogWindow.js");
+            const totalSize = await sourceApp.fileOps.getTotalSize(sourcePaths);
+            const dialog = new ProgressBarDialogWindow("recycle", sourcePaths.length, totalSize);
+            try {
+                await RecycleBinManager.moveItemsToRecycleBin(sourcePaths, dialog);
+            } finally {
+                dialog.close();
+            }
             return;
         }
 

@@ -25,7 +25,8 @@ export class ProgressBarDialogWindow {
       move: "Moving...",
       recycle: "Recycling...",
       delete: "Deleting...",
-      empty: "Emptying Recycle Bin..."
+      empty: "Emptying Recycle Bin...",
+      restore: "Restoring..."
     }[this.operation] || "Processing...";
 
     const gifUrl = {
@@ -33,7 +34,8 @@ export class ProgressBarDialogWindow {
       move: new URL("../assets/moving.gif", import.meta.url).href,
       recycle: new URL("../assets/moving.gif", import.meta.url).href,
       delete: new URL("../assets/copying.gif", import.meta.url).href,
-      empty: new URL("../assets/moving.gif", import.meta.url).href
+      empty: new URL("../assets/moving.gif", import.meta.url).href,
+      restore: new URL("../assets/moving.gif", import.meta.url).href
     }[this.operation] || new URL("../assets/moving.gif", import.meta.url).href;
 
     const content = document.createElement("div");
@@ -142,17 +144,20 @@ export class ProgressBarDialogWindow {
         sourceName = sourceName.substring(0, 17) + "...";
       }
 
+      let destName = destPath ? getDisplayName(destPath) : "";
+      if (destName.length > 20) {
+        destName = destName.substring(0, 17) + "...";
+      }
+
       if (this.operation === "delete") {
         this.fromToEl.textContent = `Deleting from '${sourceName}'`;
       } else if (this.operation === "recycle") {
         this.fromToEl.textContent = `From '${sourceName}' to Recycle Bin`;
       } else if (this.operation === "empty") {
         this.fromToEl.textContent = `Emptying Recycle Bin...`;
+      } else if (this.operation === "restore") {
+        this.fromToEl.textContent = `From Recycle Bin to '${destName}'`;
       } else {
-        let destName = destPath ? getDisplayName(destPath) : "";
-        if (destName.length > 20) {
-          destName = destName.substring(0, 17) + "...";
-        }
         this.fromToEl.textContent = `From '${sourceName}' to '${destName}'`;
       }
     }

@@ -40,16 +40,7 @@ export class ZenContextMenuBuilder {
       menuItems = [
         {
           label: "Restore",
-          action: async () => {
-            const busyId = `restore-${Math.random()}`;
-            requestBusyState(busyId, this.app.win.element);
-            try {
-              const ids = selectedPaths.map((p) => getPathName(p));
-              await RecycleBinManager.restoreItems(ids);
-            } finally {
-              releaseBusyState(busyId, this.app.win.element);
-            }
-          },
+          action: () => this.app.fileOps.restoreItems(selectedPaths),
           default: true,
         },
         "MENU_DIVIDER",

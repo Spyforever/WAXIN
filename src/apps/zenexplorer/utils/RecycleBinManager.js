@@ -85,7 +85,7 @@ export class RecycleBinManager {
                 }
             } catch (e) {
                 await this.copyRecursive(path, targetPath, dialog);
-                await this.removeRecursive(path, dialog);
+                await this.removeRecursive(path, dialog, false); // Don't report progress twice
             }
 
             metadata[id] = {
@@ -117,18 +117,24 @@ export class RecycleBinManager {
     /**
      * Restore multiple items from the Recycle Bin
      * @param {string[]} ids
+     * @param {ProgressBarDialogWindow} dialog
      */
-    static async restoreItems(ids) {
+    static async restoreItems(ids, dialog = null) {
         const metadata = await this.getMetadata();
         let changed = false;
 
         for (const id of ids) {
+            if (dialog && dialog.cancelled) break;
             const entry = metadata[id];
             if (!entry) continue;
 
             const srcPath = joinPath(RECYCLE_PATH, id);
             let destPath = entry.originalPath;
             const parentPath = getParentPath(destPath);
+
+            if (dialog) {
+                dialog.update(entry.originalName, RECYCLE_PATH, parentPath, 0);
+            }
 
             try {
                 await fs.promises.stat(parentPath);
@@ -140,9 +146,14 @@ export class RecycleBinManager {
 
             try {
                 await fs.promises.rename(srcPath, destPath);
+                if (dialog) {
+                    const stats = await fs.promises.stat(destPath);
+                    dialog.finishItem(stats.isDirectory() ? 0 : stats.size);
+                    dialog.update(entry.originalName, RECYCLE_PATH, parentPath, 0);
+                }
             } catch (e) {
-                await this.copyRecursive(srcPath, destPath);
-                await fs.promises.rm(srcPath, { recursive: true });
+                await this.copyRecursive(srcPath, destPath, dialog);
+                await this.removeRecursive(srcPath, dialog, false); // Don't report progress twice
             }
 
             delete metadata[id];
@@ -314,7 +325,7 @@ export class RecycleBinManager {
      * Recursively remove a file or directory
      * @private
      */
-    static async removeRecursive(path, dialog = null) {
+    static async removeRecursive(path, dialog = null, reportProgress = true) {
         if (dialog && dialog.cancelled) return;
 
         let stats;
@@ -328,18 +339,20 @@ export class RecycleBinManager {
             const files = await fs.promises.readdir(path);
             for (const file of files) {
                 if (dialog && dialog.cancelled) return;
-                await this.removeRecursive(joinPath(path, file), dialog);
+                await this.removeRecursive(joinPath(path, file), dialog, reportProgress);
             }
             if (dialog && dialog.cancelled) return;
             await fs.promises.rmdir(path);
         } else {
-            if (dialog) {
+            if (dialog && reportProgress) {
                 const sourceDir = getParentPath(path);
                 dialog.update(path, sourceDir, null, 0);
             }
             await fs.promises.unlink(path);
-            if (dialog) {
+            if (dialog && reportProgress) {
                 dialog.finishItem(stats.size);
+                const sourceDir = getParentPath(path);
+                dialog.update(path, sourceDir, null, 0);
             }
         }
     }

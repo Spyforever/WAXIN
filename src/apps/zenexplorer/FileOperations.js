@@ -47,11 +47,29 @@ export class FileOperations {
         const { items, operation } = ZenClipboardManager.get();
         if (items.length === 0) return;
 
-        console.log("Importing ProgressBarDialogWindow...");
+        // If pasting into Recycle Bin, it's a recycle operation
+        if (RecycleBinManager.isRecycleBinPath(destinationPath)) {
+            const { ProgressBarDialogWindow } = await import("./components/ProgressBarDialogWindow.js");
+            const totalSize = await this.getTotalSize(items);
+            const dialog = new ProgressBarDialogWindow("recycle", items.length, totalSize);
+            try {
+                await RecycleBinManager.moveItemsToRecycleBin(items, dialog);
+                if (operation === "cut") ZenClipboardManager.clear();
+            } finally {
+                dialog.close();
+            }
+            return;
+        }
+
+        // If pasting FROM Recycle Bin, it's a restore operation (effectively)
+        if (items.some(p => RecycleBinManager.isRecycledItemPath(p))) {
+            await this.restoreItems(items);
+            if (operation === "cut") ZenClipboardManager.clear();
+            return;
+        }
+
         const { ProgressBarDialogWindow } = await import("./components/ProgressBarDialogWindow.js");
-        console.log("Imported ProgressBarDialogWindow", !!ProgressBarDialogWindow);
         const totalSize = await this.getTotalSize(items);
-        console.log("Total size:", totalSize);
         const dialog = new ProgressBarDialogWindow(operation, items.length, totalSize);
 
         try {
@@ -535,6 +553,32 @@ export class FileOperations {
                 // Doesn't exist, we can use it
                 return name;
             }
+        }
+    }
+
+    /**
+     * Restore items from Recycle Bin with progress
+     */
+    async restoreItems(paths) {
+        if (paths.length === 0) return;
+
+        const busyId = `restore-${Math.random()}`;
+        requestBusyState(busyId, this.app.win.element);
+
+        const { ProgressBarDialogWindow } = await import("./components/ProgressBarDialogWindow.js");
+        const totalSize = await this.getTotalSize(paths);
+        const dialog = new ProgressBarDialogWindow("restore", paths.length, totalSize);
+
+        try {
+            const ids = paths.map(p => getPathName(p));
+            await RecycleBinManager.restoreItems(ids, dialog);
+        } catch (e) {
+            handleFileSystemError("restore", e, "items");
+        } finally {
+            dialog.close();
+            releaseBusyState(busyId, this.app.win.element);
+            await this.app.navigateTo(this.app.currentPath, true, true);
+            document.dispatchEvent(new CustomEvent("zen-fs-change", { detail: { sourceAppId: this.app.win.element.id } }));
         }
     }
 
