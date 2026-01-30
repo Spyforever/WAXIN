@@ -12,6 +12,7 @@ import {
   joinPath,
   getParentPath,
 } from "../utils/PathUtils.js";
+import ZenLayoutManager from "../utils/ZenLayoutManager.js";
 
 export class ZenDirectoryView {
   constructor(app) {
@@ -62,28 +63,81 @@ export class ZenDirectoryView {
    * Render directory contents
    */
   async renderDirectoryContents(path) {
+    const layout = await ZenLayoutManager.getLayout(path);
     let files = await ZenShellManager.readdir(path);
 
-    // Sort files alphabetically
-    files.sort((a, b) => {
-      // Special sort for root: Drives before shell extensions
-      if (path === "/") {
-        const isDriveA = a.match(/^[A-Z]:$/i);
-        const isDriveB = b.match(/^[A-Z]:$/i);
-        if (isDriveA && !isDriveB) return -1;
-        if (!isDriveA && isDriveB) return 1;
+   
+    
+    // Hide metadata file in recycle bin and layout file
+    files = files.filter((f) => f !== ".zen_layout.json");
+    if (RecycleBinManager.isRecycleBinPath(path)) {
+      files = files.filter((f) => f !== ".metadata.json");
+    }
+
+    // Apply layout logic only for icon views (large/small)
+    const isIconView =
+      this.app.viewMode === "large" || this.app.viewMode === "small";
+
+    if (isIconView) {
+      if (layout.autoArrange) {
+        this.app.iconContainer.classList.remove("has-absolute-icons");
+
+        const order = layout.order || [];
+        const getOrderIndex = (name) => {
+          const index = order.indexOf(name);
+          return index === -1 ? Infinity : index;
+        };
+
+        // Split into folders and files
+        const folderFiles = [];
+        const normalFiles = [];
+
+        for (const file of files) {
+          const fullPath = joinPath(path, file);
+          try {
+            const stat = await fs.promises.stat(fullPath);
+            if (stat.isDirectory()) folderFiles.push(file);
+            else normalFiles.push(file);
+          } catch (e) {
+            normalFiles.push(file);
+          }
+        }
+
+        // Sort each group by custom order, then alphabetically
+        const sortByOrder = (a, b) => {
+          const orderA = getOrderIndex(a);
+          const orderB = getOrderIndex(b);
+          if (orderA !== orderB) return orderA - orderB;
+          return a.localeCompare(b);
+        };
+
+        folderFiles.sort(sortByOrder);
+        normalFiles.sort(sortByOrder);
+
+        files = [...folderFiles, ...normalFiles];
+      } else {
+        this.app.iconContainer.classList.add("has-absolute-icons");
+        // Alphabetical sort as baseline for free-form
+        files.sort((a, b) => a.localeCompare(b));
       }
-      return a.localeCompare(b);
-    });
+    } else {
+      this.app.iconContainer.classList.remove("has-absolute-icons");
+      // Sort files alphabetically
+      files.sort((a, b) => {
+        // Special sort for root: Drives before shell extensions
+        if (path === "/") {
+          const isDriveA = a.match(/^[A-Z]:$/i);
+          const isDriveB = b.match(/^[A-Z]:$/i);
+          if (isDriveA && !isDriveB) return -1;
+          if (!isDriveA && isDriveB) return 1;
+        }
+        return a.localeCompare(b);
+      });
+    }
 
     // Clear view
     this.app.iconContainer.innerHTML = "";
     this.app.iconManager.clearSelection();
-
-    // Hide metadata file in recycle bin
-    if (RecycleBinManager.isRecycleBinPath(path)) {
-      files = files.filter((f) => f !== ".metadata.json");
-    }
 
     const isRecycleBin = RecycleBinManager.isRecycleBinPath(path);
     const metadata = isRecycleBin
@@ -218,6 +272,26 @@ export class ZenDirectoryView {
           }
         });
 
+        // Apply absolute position if auto-arrange is off
+        if (isIconView && !layout.autoArrange) {
+          iconDiv.style.position = "absolute";
+          if (layout.positions && layout.positions[file]) {
+            iconDiv.style.left = `${layout.positions[file].x}px`;
+            iconDiv.style.top = `${layout.positions[file].y}px`;
+          } else {
+            // Fallback placement for items without saved positions
+            const gridX = 75;
+            const gridY = 85;
+            const cols =
+              Math.floor(this.app.iconContainer.clientWidth / gridX) || 1;
+            const index = icons.length;
+            const x = (index % cols) * gridX + 10;
+            const y = Math.floor(index / cols) * gridY + 10;
+            iconDiv.style.left = `${x}px`;
+            iconDiv.style.top = `${y}px`;
+          }
+        }
+
         icons.push(iconDiv);
       } catch (e) {
         console.warn("Could not stat", fullPath);
@@ -228,7 +302,32 @@ export class ZenDirectoryView {
     this.app.iconContainer.innerHTML = "";
     this.app.iconManager.clearSelection();
     const fragment = document.createDocumentFragment();
-    icons.forEach((icon) => fragment.appendChild(icon));
+
+    let maxRight = 0;
+    let maxBottom = 0;
+
+    icons.forEach((icon) => {
+      fragment.appendChild(icon);
+      if (isIconView && !layout.autoArrange) {
+        const left = parseInt(icon.style.left) || 0;
+        const top = parseInt(icon.style.top) || 0;
+        maxRight = Math.max(maxRight, left + 75);
+        maxBottom = Math.max(maxBottom, top + 90);
+      }
+    });
+
+    // Add spacer for absolute layout to enable scrollbars
+    if (isIconView && !layout.autoArrange) {
+      const spacer = document.createElement("div");
+      spacer.style.position = "absolute";
+      spacer.style.left = `${maxRight}px`;
+      spacer.style.top = `${maxBottom}px`;
+      spacer.style.width = "1px";
+      spacer.style.height = "1px";
+      spacer.style.visibility = "hidden";
+      fragment.appendChild(spacer);
+    }
+
     this.app.iconContainer.appendChild(fragment);
 
     this.app.statusBar.setText(`${icons.length} object(s)`);

@@ -6,6 +6,7 @@ import { joinPath, normalizePath, getPathName } from "./utils/PathUtils.js";
 import ZenClipboardManager from "./utils/ZenClipboardManager.js";
 import { RecycleBinManager } from "./utils/RecycleBinManager.js";
 import ZenUndoManager from "./utils/ZenUndoManager.js";
+import ZenLayoutManager from "./utils/ZenLayoutManager.js";
 
 /**
  * FileOperations - Handles file system operations with user interaction
@@ -42,37 +43,89 @@ export class FileOperations {
         const { items, operation } = ZenClipboardManager.get();
         if (items.length === 0) return;
 
+        if (operation === "cut") {
+            await this.moveItemsDirect(items, destinationPath);
+            ZenClipboardManager.clear();
+        } else if (operation === "copy") {
+            await this.copyItemsDirect(items, destinationPath);
+        }
+    }
+
+    /**
+     * Move items directly to a destination
+     * @param {Array<string>} sourcePaths
+     * @param {string} destinationPath
+     * @param {Object} options
+     */
+    async moveItemsDirect(sourcePaths, destinationPath, options = {}) {
         const targetPaths = [];
-
         try {
-            for (const itemPath of items) {
+            for (const itemPath of sourcePaths) {
                 const itemName = getPathName(itemPath);
-                const targetPath = await this.getUniquePastePath(destinationPath, itemName, operation);
-
-                if (operation === "cut") {
-                    await fs.promises.rename(itemPath, targetPath);
-                } else if (operation === "copy") {
-                    await this.copyRecursive(itemPath, targetPath);
-                }
+                const targetPath = await this.getUniquePastePath(destinationPath, itemName, "cut");
+                await fs.promises.rename(itemPath, targetPath);
                 targetPaths.push(targetPath);
             }
 
-            if (operation === "cut") {
-                ZenClipboardManager.clear();
-                ZenUndoManager.push({
-                    type: 'move',
-                    data: { from: items, to: targetPaths }
+            // Save positions if provided
+            if (options.dropX !== undefined && options.dropY !== undefined) {
+                const positions = {};
+                targetPaths.forEach((path, i) => {
+                    const name = getPathName(path);
+                    const offset = options.offsets ? options.offsets[i] : { x: i * 10, y: i * 10 };
+                    positions[name] = { x: options.dropX + offset.x, y: options.dropY + offset.y };
                 });
-            } else if (operation === "copy") {
-                ZenUndoManager.push({
-                    type: 'copy',
-                    data: { created: targetPaths }
-                });
+                await ZenLayoutManager.updateItemPositions(destinationPath, positions);
             }
 
-            this.app.navigateTo(this.app.currentPath);
+            ZenUndoManager.push({
+                type: 'move',
+                data: { from: sourcePaths, to: targetPaths }
+            });
+
+            document.dispatchEvent(new CustomEvent("zen-fs-change"));
         } catch (e) {
-            handleFileSystemError(operation === "cut" ? "move" : "copy", e, "items");
+            handleFileSystemError("move", e, "items");
+            throw e;
+        }
+    }
+
+    /**
+     * Copy items directly to a destination
+     * @param {Array<string>} sourcePaths
+     * @param {string} destinationPath
+     * @param {Object} options
+     */
+    async copyItemsDirect(sourcePaths, destinationPath, options = {}) {
+        const targetPaths = [];
+        try {
+            for (const itemPath of sourcePaths) {
+                const itemName = getPathName(itemPath);
+                const targetPath = await this.getUniquePastePath(destinationPath, itemName, "copy");
+                await this.copyRecursive(itemPath, targetPath);
+                targetPaths.push(targetPath);
+            }
+
+            // Save positions if provided
+            if (options.dropX !== undefined && options.dropY !== undefined) {
+                const positions = {};
+                targetPaths.forEach((path, i) => {
+                    const name = getPathName(path);
+                    const offset = options.offsets ? options.offsets[i] : { x: i * 10, y: i * 10 };
+                    positions[name] = { x: options.dropX + offset.x, y: options.dropY + offset.y };
+                });
+                await ZenLayoutManager.updateItemPositions(destinationPath, positions);
+            }
+
+            ZenUndoManager.push({
+                type: 'copy',
+                data: { created: targetPaths }
+            });
+
+            document.dispatchEvent(new CustomEvent("zen-fs-change"));
+        } catch (e) {
+            handleFileSystemError("copy", e, "items");
+            throw e;
         }
     }
 

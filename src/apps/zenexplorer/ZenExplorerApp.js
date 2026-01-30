@@ -23,6 +23,8 @@ import { ZenContextMenuBuilder } from "./utils/ZenContextMenuBuilder.js";
 import { ZenKeyboardHandler } from "./utils/ZenKeyboardHandler.js";
 import { RecycleBinManager } from "./utils/RecycleBinManager.js";
 import { PropertiesManager } from "./utils/PropertiesManager.js";
+import ZenDragDropManager from "./utils/ZenDragDropManager.js";
+import ZenLayoutManager from "./utils/ZenLayoutManager.js";
 import { ZenShellManager } from "./utils/ZenShellManager.js";
 import { getToolbarItems } from "./utils/ZenToolbarBuilder.js";
 import { ControlPanelExtension } from "./shell/ControlPanelExtension.js";
@@ -148,6 +150,12 @@ export class ZenExplorerApp extends Application {
     // 7e. Removable Disk listener
     this._setupRemovableDiskListener();
 
+    // 7f. FS change listener
+    this._setupFSListener();
+
+    // 7g. Layout change listener
+    this._setupLayoutListener();
+
     // 8. Initial Navigation
     this.navigateTo(this.currentPath);
 
@@ -180,6 +188,9 @@ export class ZenExplorerApp extends Application {
   _setupIconManager() {
     this.iconManager = new IconManager(this.iconContainer, {
       iconSelector: ".explorer-icon",
+      onDragStart: (e, icon, selectedIcons) => {
+        ZenDragDropManager.startDrag(selectedIcons, this, e.clientX, e.clientY);
+      },
       onItemContext: (e, icon) => {
         const menuItems = this.contextMenuBuilder.buildItemMenu(e, icon);
         new window.ContextMenu(menuItems, e);
@@ -296,8 +307,148 @@ export class ZenExplorerApp extends Application {
     );
   }
 
+  /**
+   * Setup FS change listener
+   * @private
+   */
+  _setupFSListener() {
+    this._fsHandler = () => {
+      this.navigateTo(this.currentPath, true, true);
+    };
+    document.addEventListener("zen-fs-change", this._fsHandler);
+  }
+
+  /**
+   * Setup Layout change listener
+   * @private
+   */
+  _setupLayoutListener() {
+    this._layoutHandler = (e) => {
+      if (e.detail.path === this.currentPath) {
+        this.navigateTo(this.currentPath, true, true);
+      }
+    };
+    document.addEventListener("zen-layout-change", this._layoutHandler);
+  }
+
   async navigateTo(path, isHistoryNav = false, skipMRU = false) {
-    return this.navController.navigateTo(path, isHistoryNav, skipMRU);
+    const result = await this.navController.navigateTo(path, isHistoryNav, skipMRU);
+    if (this.iconContainer) {
+      this.iconContainer.setAttribute("data-current-path", this.currentPath);
+      // Update autoArrange state from layout
+      const layout = await ZenLayoutManager.getLayout(this.currentPath);
+      this._autoArrange = layout.autoArrange;
+    }
+    return result;
+  }
+
+  get autoArrange() {
+    if (this.viewMode === 'list' || this.viewMode === 'details') {
+      return true;
+    }
+    return this._autoArrange;
+  }
+
+  set autoArrange(value) {
+    this._autoArrange = value;
+  }
+
+  /**
+   * Handle icon rearrangement within the current folder
+   * @param {string[]} sourcePaths - Paths of dragged items
+   * @param {number} clientX - Drop X coordinate
+   * @param {number} clientY - Drop Y coordinate
+   */
+  /**
+   * Toggle Auto Arrange for the current folder
+   */
+  async toggleAutoArrange() {
+    const layout = await ZenLayoutManager.getLayout(this.currentPath);
+    layout.autoArrange = !layout.autoArrange;
+    if (layout.autoArrange) {
+      layout.positions = {}; // Delete manual positions when turning ON
+    } else {
+      // Capture current grid positions when turning OFF
+      const icons = this.iconContainer.querySelectorAll(".explorer-icon");
+      const containerRect = this.iconContainer.getBoundingClientRect();
+      const scrollLeft = this.iconContainer.scrollLeft;
+      const scrollTop = this.iconContainer.scrollTop;
+
+      icons.forEach((icon) => {
+        const name = icon.getAttribute("data-name");
+        const rect = icon.getBoundingClientRect();
+        layout.positions[name] = {
+          x: rect.left - containerRect.left + scrollLeft,
+          y: rect.top - containerRect.top + scrollTop,
+        };
+      });
+    }
+    await ZenLayoutManager.saveLayout(this.currentPath, layout);
+    this.autoArrange = layout.autoArrange;
+    // Refresh the view to apply changes (e.g., add/remove classes and absolute positioning)
+    this.directoryView.renderDirectoryContents(this.currentPath);
+  }
+
+  async handleRearrange(sourcePaths, x, y, offsets) {
+    const layout = await ZenLayoutManager.getLayout(this.currentPath);
+
+    if (!layout.autoArrange) {
+      // Free-form placement
+      sourcePaths.forEach((path, index) => {
+        const name = path.split("/").pop();
+        const offset = offsets ? offsets[index] : { x: index * 10, y: index * 10 };
+        // Use adjusted coordinates directly
+        layout.positions[name] = {
+          x: x + offset.x,
+          y: y + offset.y,
+        };
+      });
+    } else {
+      // Auto-arrange reordering
+      const icons = [...this.iconContainer.querySelectorAll(".explorer-icon")];
+      let targetIcon = null;
+
+      // Find icon under the cursor using container-relative coordinates
+      for (const icon of icons) {
+        if (
+          x >= icon.offsetLeft &&
+          x <= icon.offsetLeft + icon.offsetWidth &&
+          y >= icon.offsetTop &&
+          y <= icon.offsetTop + icon.offsetHeight
+        ) {
+          targetIcon = icon;
+          break;
+        }
+      }
+
+      const draggedNames = sourcePaths.map((p) => p.split("/").pop());
+      // Get current order from DOM if not in layout
+      const currentOrder =
+        layout.order && layout.order.length > 0
+          ? [...layout.order]
+          : icons.map((i) => i.getAttribute("data-name"));
+
+      // Remove dragged items from current order to re-insert them
+      let newOrder = currentOrder.filter(
+        (name) => !draggedNames.includes(name),
+      );
+
+      if (targetIcon) {
+        const targetName = targetIcon.getAttribute("data-name");
+        const targetIndex = newOrder.indexOf(targetName);
+        if (targetIndex !== -1) {
+          newOrder.splice(targetIndex, 0, ...draggedNames);
+        } else {
+          newOrder.push(...draggedNames);
+        }
+      } else {
+        // Drop at end
+        newOrder.push(...draggedNames);
+      }
+      layout.order = newOrder;
+    }
+
+    await ZenLayoutManager.saveLayout(this.currentPath, layout);
   }
 
   enterRenameMode(icon) {
@@ -461,6 +612,12 @@ export class ZenExplorerApp extends Application {
     }
     if (this._undoHandler) {
       document.removeEventListener("zen-undo-change", this._undoHandler);
+    }
+    if (this._fsHandler) {
+      document.removeEventListener("zen-fs-change", this._fsHandler);
+    }
+    if (this._layoutHandler) {
+      document.removeEventListener("zen-layout-change", this._layoutHandler);
     }
   }
 }

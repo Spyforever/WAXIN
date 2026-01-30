@@ -193,6 +193,19 @@ export class ZenContextMenuBuilder {
           },
         ],
       },
+      {
+        label: "Arrange Icons",
+        submenu: [
+          {
+            label: "Auto Arrange",
+            enabled: () => this.app.viewMode === 'large' || this.app.viewMode === 'small',
+            checkbox: {
+              check: () => this.app.autoArrange,
+              toggle: () => this.app.toggleAutoArrange(),
+            },
+          },
+        ],
+      },
       "MENU_DIVIDER",
       {
         label: "Paste",
