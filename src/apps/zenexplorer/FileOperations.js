@@ -2,7 +2,7 @@ import { fs } from "@zenfs/core";
 import { ShowDialogWindow } from "../../components/DialogWindow.js";
 import { showInputDialog } from "./components/InputDialog.js";
 import { handleFileSystemError } from "./utils/ErrorHandler.js";
-import { joinPath, normalizePath, getPathName } from "./utils/PathUtils.js";
+import { joinPath, normalizePath, getPathName, getParentPath } from "./utils/PathUtils.js";
 import ZenClipboardManager from "./utils/ZenClipboardManager.js";
 import { RecycleBinManager } from "./utils/RecycleBinManager.js";
 import ZenUndoManager from "./utils/ZenUndoManager.js";
@@ -43,11 +43,22 @@ export class FileOperations {
         const { items, operation } = ZenClipboardManager.get();
         if (items.length === 0) return;
 
-        if (operation === "cut") {
-            await this.moveItemsDirect(items, destinationPath);
-            ZenClipboardManager.clear();
-        } else if (operation === "copy") {
-            await this.copyItemsDirect(items, destinationPath);
+        console.log("Importing ProgressBarDialogWindow...");
+        const { ProgressBarDialogWindow } = await import("./components/ProgressBarDialogWindow.js");
+        console.log("Imported ProgressBarDialogWindow", !!ProgressBarDialogWindow);
+        const totalSize = await this.getTotalSize(items);
+        console.log("Total size:", totalSize);
+        const dialog = new ProgressBarDialogWindow(operation, items.length, totalSize);
+
+        try {
+            if (operation === "cut") {
+                await this.moveItemsDirect(items, destinationPath, {}, dialog);
+                ZenClipboardManager.clear();
+            } else if (operation === "copy") {
+                await this.copyItemsDirect(items, destinationPath, {}, dialog);
+            }
+        } finally {
+            dialog.close();
         }
     }
 
@@ -56,14 +67,31 @@ export class FileOperations {
      * @param {Array<string>} sourcePaths
      * @param {string} destinationPath
      * @param {Object} options
+     * @param {ProgressBarDialogWindow} dialog
      */
-    async moveItemsDirect(sourcePaths, destinationPath, options = {}) {
+    async moveItemsDirect(sourcePaths, destinationPath, options = {}, dialog = null) {
         const targetPaths = [];
         try {
             for (const itemPath of sourcePaths) {
+                if (dialog && dialog.cancelled) break;
+
                 const itemName = getPathName(itemPath);
                 const targetPath = await this.getUniquePastePath(destinationPath, itemName, "cut");
-                await fs.promises.rename(itemPath, targetPath);
+
+                if (dialog) {
+                    const stats = await fs.promises.stat(itemPath);
+                    const sourceDir = getParentPath(itemPath);
+                    dialog.update(itemPath, sourceDir, destinationPath, 0);
+
+                    await fs.promises.rename(itemPath, targetPath);
+
+                    const itemSize = stats.isDirectory() ? 0 : stats.size;
+                    dialog.finishItem(itemSize);
+                    dialog.update(itemPath, sourceDir, destinationPath, 0);
+                } else {
+                    await fs.promises.rename(itemPath, targetPath);
+                }
+
                 targetPaths.push(targetPath);
             }
 
@@ -95,14 +123,17 @@ export class FileOperations {
      * @param {Array<string>} sourcePaths
      * @param {string} destinationPath
      * @param {Object} options
+     * @param {ProgressBarDialogWindow} dialog
      */
-    async copyItemsDirect(sourcePaths, destinationPath, options = {}) {
+    async copyItemsDirect(sourcePaths, destinationPath, options = {}, dialog = null) {
         const targetPaths = [];
         try {
             for (const itemPath of sourcePaths) {
+                if (dialog && dialog.cancelled) break;
+
                 const itemName = getPathName(itemPath);
                 const targetPath = await this.getUniquePastePath(destinationPath, itemName, "copy");
-                await this.copyRecursive(itemPath, targetPath);
+                await this.copyRecursive(itemPath, targetPath, dialog);
                 targetPaths.push(targetPath);
             }
 
@@ -200,18 +231,110 @@ export class FileOperations {
      * Recursively copy a file or directory
      * @private
      */
-    async copyRecursive(src, dest) {
+    async copyRecursive(src, dest, dialog = null) {
+        if (dialog && dialog.cancelled) return;
+
         const stats = await fs.promises.stat(src);
         if (stats.isDirectory()) {
             await fs.promises.mkdir(dest, { recursive: true });
             const files = await fs.promises.readdir(src);
             for (const file of files) {
-                await this.copyRecursive(joinPath(src, file), joinPath(dest, file));
+                if (dialog && dialog.cancelled) return;
+                await this.copyRecursive(joinPath(src, file), joinPath(dest, file), dialog);
             }
         } else {
-            const data = await fs.promises.readFile(src);
-            await fs.promises.writeFile(dest, data);
+            if (dialog) {
+                await this.copyFileWithProgress(src, dest, stats.size, dialog);
+                dialog.finishItem(stats.size);
+            } else {
+                const data = await fs.promises.readFile(src);
+                await fs.promises.writeFile(dest, data);
+            }
         }
+    }
+
+    /**
+     * Copy a file with progress reporting
+     * @private
+     */
+    async copyFileWithProgress(src, dest, totalSize, dialog) {
+        const bufferSize = 64 * 1024; // 64KB
+        const buffer = new Uint8Array(bufferSize);
+        let bytesReadTotal = 0;
+
+        const handleIn = await fs.promises.open(src, 'r');
+        const handleOut = await fs.promises.open(dest, 'w');
+
+        try {
+            const sourceDir = getParentPath(src);
+            const destDir = getParentPath(dest);
+
+            while (bytesReadTotal < totalSize) {
+                if (dialog && dialog.cancelled) break;
+
+                const { bytesRead } = await handleIn.read(buffer, 0, bufferSize, bytesReadTotal);
+                if (bytesRead === 0) break;
+
+                await handleOut.write(buffer, 0, bytesRead, bytesReadTotal);
+                bytesReadTotal += bytesRead;
+
+                if (dialog) {
+                    dialog.update(src, sourceDir, destDir, bytesReadTotal);
+                }
+
+                // Yield occasionally
+                if (bytesReadTotal % (bufferSize * 16) === 0) {
+                    await new Promise(resolve => setTimeout(resolve, 0));
+                }
+            }
+        } finally {
+            await handleIn.close();
+            await handleOut.close();
+        }
+    }
+
+    /**
+     * Get total size of items
+     * @private
+     */
+    async getTotalSize(paths) {
+        let total = 0;
+        for (const path of paths) {
+            try {
+                const stats = await fs.promises.stat(path);
+                if (stats.isDirectory()) {
+                    total += await this._getRecursiveSize(path);
+                } else {
+                    total += stats.size;
+                }
+            } catch (e) {
+                console.error("Error getting size for", path, e);
+            }
+        }
+        return total;
+    }
+
+    /**
+     * Get recursive size of a directory
+     * @private
+     */
+    async _getRecursiveSize(path) {
+        let size = 0;
+        try {
+            const files = await fs.promises.readdir(path);
+            for (const file of files) {
+                const fullPath = joinPath(path, file);
+                const stats = await fs.promises.stat(fullPath);
+                if (stats.isDirectory()) {
+                    size += await this._getRecursiveSize(fullPath);
+                } else {
+                    size += stats.size;
+                }
+            }
+        } catch (e) {
+            console.error("Error in _getRecursiveSize", e);
+        }
+        return size;
     }
 
     /**
