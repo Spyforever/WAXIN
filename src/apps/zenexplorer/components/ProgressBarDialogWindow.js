@@ -20,11 +20,23 @@ export class ProgressBarDialogWindow {
   }
 
   _createUI() {
-    const title = this.operation === "copy" ? "Copying..." : "Moving...";
-    const gifUrl =
-      this.operation === "copy"
-        ? new URL("../assets/copying.gif", import.meta.url).href
-        : new URL("../assets/moving.gif", import.meta.url).href;
+    const title = {
+      copy: "Copying...",
+      move: "Moving...",
+      recycle: "Recycling...",
+      delete: "Deleting...",
+      empty: "Emptying Recycle Bin...",
+      restore: "Restoring..."
+    }[this.operation] || "Processing...";
+
+    const gifUrl = {
+      copy: new URL("../assets/copying.gif", import.meta.url).href,
+      move: new URL("../assets/moving.gif", import.meta.url).href,
+      recycle: new URL("../assets/moving.gif", import.meta.url).href,
+      delete: new URL("../assets/copying.gif", import.meta.url).href,
+      empty: new URL("../assets/moving.gif", import.meta.url).href,
+      restore: new URL("../assets/moving.gif", import.meta.url).href
+    }[this.operation] || new URL("../assets/moving.gif", import.meta.url).href;
 
     const content = document.createElement("div");
     content.className = "progress-dialog-content";
@@ -126,16 +138,29 @@ export class ProgressBarDialogWindow {
     const fileName = getDisplayName(currentItemPath);
     if (this.fileNameEl) this.fileNameEl.textContent = fileName;
 
-    let sourceName = getDisplayName(sourcePath);
-    if (sourceName.length > 20) {
-      sourceName = sourceName.substring(0, 17) + "...";
+    if (this.fromToEl) {
+      let sourceName = sourcePath ? getDisplayName(sourcePath) : "";
+      if (sourceName.length > 20) {
+        sourceName = sourceName.substring(0, 17) + "...";
+      }
+
+      let destName = destPath ? getDisplayName(destPath) : "";
+      if (destName.length > 20) {
+        destName = destName.substring(0, 17) + "...";
+      }
+
+      if (this.operation === "delete") {
+        this.fromToEl.textContent = `Deleting from '${sourceName}'`;
+      } else if (this.operation === "recycle") {
+        this.fromToEl.textContent = `From '${sourceName}' to Recycle Bin`;
+      } else if (this.operation === "empty") {
+        this.fromToEl.textContent = `Emptying Recycle Bin...`;
+      } else if (this.operation === "restore") {
+        this.fromToEl.textContent = `From Recycle Bin to '${destName}'`;
+      } else {
+        this.fromToEl.textContent = `From '${sourceName}' to '${destName}'`;
+      }
     }
-    let destName = getDisplayName(destPath);
-    if (destName.length > 20) {
-      destName = destName.substring(0, 17) + "...";
-    }
-    if (this.fromToEl)
-      this.fromToEl.textContent = `From '${sourceName}' to '${destName}'`;
 
     const totalProcessed = this.processedSize + currentProcessedSizeInFile;
     const percent =

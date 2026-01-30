@@ -47,11 +47,29 @@ export class FileOperations {
         const { items, operation } = ZenClipboardManager.get();
         if (items.length === 0) return;
 
-        console.log("Importing ProgressBarDialogWindow...");
+        // If pasting into Recycle Bin, it's a recycle operation
+        if (RecycleBinManager.isRecycleBinPath(destinationPath)) {
+            const { ProgressBarDialogWindow } = await import("./components/ProgressBarDialogWindow.js");
+            const totalSize = await this.getTotalSize(items);
+            const dialog = new ProgressBarDialogWindow("recycle", items.length, totalSize);
+            try {
+                await RecycleBinManager.moveItemsToRecycleBin(items, dialog);
+                if (operation === "cut") ZenClipboardManager.clear();
+            } finally {
+                dialog.close();
+            }
+            return;
+        }
+
+        // If pasting FROM Recycle Bin, it's a restore operation (effectively)
+        if (items.some(p => RecycleBinManager.isRecycledItemPath(p))) {
+            await this.restoreItems(items);
+            if (operation === "cut") ZenClipboardManager.clear();
+            return;
+        }
+
         const { ProgressBarDialogWindow } = await import("./components/ProgressBarDialogWindow.js");
-        console.log("Imported ProgressBarDialogWindow", !!ProgressBarDialogWindow);
         const totalSize = await this.getTotalSize(items);
-        console.log("Total size:", totalSize);
         const dialog = new ProgressBarDialogWindow(operation, items.length, totalSize);
 
         try {
@@ -375,13 +393,19 @@ export class FileOperations {
                     action: async () => {
                         const busyId = `delete-${Math.random()}`;
                         requestBusyState(busyId, this.app.win.element);
+
+                        const { ProgressBarDialogWindow } = await import("./components/ProgressBarDialogWindow.js");
+                        const totalSize = await this.getTotalSize(paths);
+                        const dialog = new ProgressBarDialogWindow(isPermanent ? "delete" : "recycle", paths.length, totalSize);
+
                         try {
                             if (isPermanent) {
                                 for (const path of paths) {
-                                    await fs.promises.rm(path, { recursive: true });
+                                    if (dialog.cancelled) break;
+                                    await this.removeRecursiveWithProgress(path, dialog);
                                 }
                                 // If it was in recycle bin, we should also clean up metadata
-                                if (alreadyInRecycle) {
+                                if (alreadyInRecycle && !dialog.cancelled) {
                                     const metadata = await RecycleBinManager.getMetadata();
                                     let changed = false;
                                     for (const path of paths) {
@@ -397,11 +421,13 @@ export class FileOperations {
                                     }
                                 }
                             } else {
-                                const recycledIds = await RecycleBinManager.moveItemsToRecycleBin(paths);
-                                ZenUndoManager.push({
-                                    type: 'delete',
-                                    data: { recycledIds }
-                                });
+                                const recycledIds = await RecycleBinManager.moveItemsToRecycleBin(paths, dialog);
+                                if (recycledIds.length > 0) {
+                                    ZenUndoManager.push({
+                                        type: 'delete',
+                                        data: { recycledIds }
+                                    });
+                                }
                             }
 
                             // If it was permanent and NOT in recycle bin, we need to refresh manually
@@ -414,6 +440,7 @@ export class FileOperations {
                         } catch (e) {
                             handleFileSystemError("delete", e, "items");
                         } finally {
+                            dialog.close();
                             releaseBusyState(busyId, this.app.win.element);
                         }
                     }
@@ -472,6 +499,43 @@ export class FileOperations {
     }
 
     /**
+     * Recursively remove a file or directory with progress reporting
+     * @private
+     */
+    async removeRecursiveWithProgress(path, dialog) {
+        if (dialog && dialog.cancelled) return;
+
+        let stats;
+        try {
+            stats = await fs.promises.stat(path);
+        } catch (e) {
+            // If it doesn't exist, just return
+            return;
+        }
+
+        const sourceDir = getParentPath(path);
+
+        if (stats.isDirectory()) {
+            const files = await fs.promises.readdir(path);
+            for (const file of files) {
+                if (dialog && dialog.cancelled) return;
+                await this.removeRecursiveWithProgress(joinPath(path, file), dialog);
+            }
+            if (dialog && dialog.cancelled) return;
+            await fs.promises.rmdir(path);
+        } else {
+            if (dialog) {
+                dialog.update(path, sourceDir, null, 0);
+            }
+            await fs.promises.unlink(path);
+            if (dialog) {
+                dialog.finishItem(stats.size);
+                dialog.update(path, sourceDir, null, 0);
+            }
+        }
+    }
+
+    /**
      * Get a unique name for a new item
      * @private
      */
@@ -490,6 +554,78 @@ export class FileOperations {
                 return name;
             }
         }
+    }
+
+    /**
+     * Restore items from Recycle Bin with progress
+     */
+    async restoreItems(paths) {
+        if (paths.length === 0) return;
+
+        const busyId = `restore-${Math.random()}`;
+        requestBusyState(busyId, this.app.win.element);
+
+        const { ProgressBarDialogWindow } = await import("./components/ProgressBarDialogWindow.js");
+        const totalSize = await this.getTotalSize(paths);
+        const dialog = new ProgressBarDialogWindow("restore", paths.length, totalSize);
+
+        try {
+            const ids = paths.map(p => getPathName(p));
+            await RecycleBinManager.restoreItems(ids, dialog);
+        } catch (e) {
+            handleFileSystemError("restore", e, "items");
+        } finally {
+            dialog.close();
+            releaseBusyState(busyId, this.app.win.element);
+            await this.app.navigateTo(this.app.currentPath, true, true);
+            document.dispatchEvent(new CustomEvent("zen-fs-change", { detail: { sourceAppId: this.app.win.element.id } }));
+        }
+    }
+
+    /**
+     * Empty the Recycle Bin with progress
+     */
+    async emptyRecycleBin() {
+        const isEmpty = await RecycleBinManager.isEmpty();
+        if (isEmpty) return;
+
+        ShowDialogWindow({
+            title: "Confirm Empty Recycle Bin",
+            text: "Are you sure you want to permanently delete all items in the Recycle Bin?",
+            parentWindow: this.app.win,
+            modal: true,
+            buttons: [
+                {
+                    label: "Yes",
+                    isDefault: true,
+                    action: async () => {
+                        const busyId = `empty-recycle-${Math.random()}`;
+                        requestBusyState(busyId, this.app.win.element);
+
+                        const metadata = await RecycleBinManager.getMetadata();
+                        const ids = Object.keys(metadata);
+                        const paths = ids.map(id => joinPath("/C:/Recycled", id));
+
+                        const { ProgressBarDialogWindow } = await import("./components/ProgressBarDialogWindow.js");
+                        const totalSize = await this.getTotalSize(paths);
+                        const dialog = new ProgressBarDialogWindow("empty", ids.length, totalSize);
+
+                        try {
+                            await RecycleBinManager.emptyRecycleBin(dialog);
+                            const { playSound } = await import("../../utils/soundManager.js");
+                            playSound("EmptyRecycleBin");
+                        } catch (e) {
+                            handleFileSystemError("delete", e, "items");
+                        } finally {
+                            dialog.close();
+                            releaseBusyState(busyId, this.app.win.element);
+                            await this.app.navigateTo(this.app.currentPath, true, true);
+                        }
+                    }
+                },
+                { label: "No" }
+            ]
+        });
     }
 
     /**

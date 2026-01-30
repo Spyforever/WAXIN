@@ -1,5 +1,6 @@
 import { openApps } from "../../Application.js";
 import { getParentPath } from "./PathUtils.js";
+import { RecycleBinManager } from "./RecycleBinManager.js";
 
 /**
  * ZenDragDropManager - Handles custom drag and drop for ZenExplorer
@@ -179,7 +180,8 @@ export class ZenDragDropManager {
      * @private
      */
     async _performDrop(e, isCopy) {
-        if (!this.dropTarget) return;
+        const sourceApp = this.sourceApp;
+        if (!this.dropTarget || !sourceApp) return;
 
         let destinationPath = null;
         let targetWindow = this.dropTarget.closest('.window');
@@ -213,8 +215,8 @@ export class ZenDragDropManager {
         const sourceDir = sourcePaths[0].substring(0, sourcePaths[0].lastIndexOf('/')) || '/';
         if (!isCopy && destinationPath === sourceDir) {
             // Handle rearrangement
-            if (this.sourceApp.handleRearrange) {
-                await this.sourceApp.handleRearrange(sourcePaths, dropX, dropY, offsets);
+            if (sourceApp.handleRearrange) {
+                await sourceApp.handleRearrange(sourcePaths, dropX, dropY, offsets);
             }
             return;
         }
@@ -225,14 +227,39 @@ export class ZenDragDropManager {
             return;
         }
 
+        // Special handling for Recycle Bin source (Restore)
+        if (sourcePaths.some(p => RecycleBinManager.isRecycledItemPath(p))) {
+            await sourceApp.fileOps.restoreItems(sourcePaths);
+            return;
+        }
+
+        // Special handling for Recycle Bin destination (Recycle)
+        if (RecycleBinManager.isRecycleBinPath(destinationPath)) {
+            const { ProgressBarDialogWindow } = await import("../components/ProgressBarDialogWindow.js");
+            const totalSize = await sourceApp.fileOps.getTotalSize(sourcePaths);
+            const dialog = new ProgressBarDialogWindow("recycle", sourcePaths.length, totalSize);
+            try {
+                await RecycleBinManager.moveItemsToRecycleBin(sourcePaths, dialog);
+            } finally {
+                dialog.close();
+            }
+            return;
+        }
+
+        const { ProgressBarDialogWindow } = await import("../components/ProgressBarDialogWindow.js");
+        const totalSize = await sourceApp.fileOps.getTotalSize(sourcePaths);
+        const dialog = new ProgressBarDialogWindow(isCopy ? "copy" : "move", sourcePaths.length, totalSize);
+
         try {
             if (isCopy) {
-                await this.sourceApp.fileOps.copyItemsDirect(sourcePaths, destinationPath, { dropX, dropY, offsets });
+                await sourceApp.fileOps.copyItemsDirect(sourcePaths, destinationPath, { dropX, dropY, offsets }, dialog);
             } else {
-                await this.sourceApp.fileOps.moveItemsDirect(sourcePaths, destinationPath, { dropX, dropY, offsets });
+                await sourceApp.fileOps.moveItemsDirect(sourcePaths, destinationPath, { dropX, dropY, offsets }, dialog);
             }
         } catch (err) {
             console.error('Drop failed:', err);
+        } finally {
+            dialog.close();
         }
     }
 

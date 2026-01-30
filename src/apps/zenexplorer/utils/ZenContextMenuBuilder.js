@@ -40,16 +40,7 @@ export class ZenContextMenuBuilder {
       menuItems = [
         {
           label: "Restore",
-          action: async () => {
-            const busyId = `restore-${Math.random()}`;
-            requestBusyState(busyId, this.app.win.element);
-            try {
-              const ids = selectedPaths.map((p) => getPathName(p));
-              await RecycleBinManager.restoreItems(ids);
-            } finally {
-              releaseBusyState(busyId, this.app.win.element);
-            }
-          },
+          action: () => this.app.fileOps.restoreItems(selectedPaths),
           default: true,
         },
         "MENU_DIVIDER",
@@ -92,35 +83,7 @@ export class ZenContextMenuBuilder {
       if (isRecycleBin) {
         menuItems.push({
           label: "Empty Recycle Bin",
-          action: async () => {
-            const isEmpty = await RecycleBinManager.isEmpty();
-            if (isEmpty) return;
-
-            ShowDialogWindow({
-              title: "Confirm Empty Recycle Bin",
-              text: "Are you sure you want to permanently delete all items in the Recycle Bin?",
-              buttons: [
-                {
-                  label: "Yes",
-                  isDefault: true,
-                  action: async () => {
-                    const busyId = `empty-recycle-${Math.random()}`;
-                    requestBusyState(busyId, this.app.win.element);
-                    try {
-                      await RecycleBinManager.emptyRecycleBin();
-                      playSound("EmptyRecycleBin");
-                      if (this.app.currentPath === path) {
-                        await this.app.navigateTo(path, true, true);
-                      }
-                    } finally {
-                      releaseBusyState(busyId, this.app.win.element);
-                    }
-                  },
-                },
-                { label: "No" },
-              ],
-            });
-          },
+          action: () => this.app.fileOps.emptyRecycleBin(),
         });
       }
 
