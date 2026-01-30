@@ -33,6 +33,7 @@ export const ZenLayoutManager = {
       // Default layout
       return {
         autoArrange: true,
+        sortBy: "name",
         positions: {},
         order: [],
       };
@@ -43,14 +44,15 @@ export const ZenLayoutManager = {
    * Save layout for a specific path
    * @param {string} path
    * @param {Object} layout
+   * @param {string} sourceAppId - Optional ID of the app that triggered the save
    */
-  async saveLayout(path, layout) {
+  async saveLayout(path, layout, sourceAppId = null) {
     const layoutPath = this._getLayoutPath(path);
     try {
       await fs.promises.writeFile(layoutPath, JSON.stringify(layout, null, 2));
       // Notify other windows
       document.dispatchEvent(
-        new CustomEvent("zen-layout-change", { detail: { path } }),
+        new CustomEvent("zen-layout-change", { detail: { path, sourceAppId } }),
       );
     } catch (e) {
       console.error("Failed to save layout:", e);
@@ -63,22 +65,24 @@ export const ZenLayoutManager = {
    * @param {string} name - Item name
    * @param {number} x
    * @param {number} y
+   * @param {string} sourceAppId
    */
-  async updateItemPosition(path, name, x, y) {
+  async updateItemPosition(path, name, x, y, sourceAppId = null) {
     const layout = await this.getLayout(path);
     layout.positions[name] = { x, y };
-    await this.saveLayout(path, layout);
+    await this.saveLayout(path, layout, sourceAppId);
   },
 
   /**
    * Update positions for multiple items
    * @param {string} path - Folder path
    * @param {Object} positions - Map of name to {x, y}
+   * @param {string} sourceAppId
    */
-  async updateItemPositions(path, positions) {
+  async updateItemPositions(path, positions, sourceAppId = null) {
     const layout = await this.getLayout(path);
     layout.positions = { ...layout.positions, ...positions };
-    await this.saveLayout(path, layout);
+    await this.saveLayout(path, layout, sourceAppId);
   },
 };
 

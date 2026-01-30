@@ -26,7 +26,9 @@ import { PropertiesManager } from "./utils/PropertiesManager.js";
 import ZenDragDropManager from "./utils/ZenDragDropManager.js";
 import ZenLayoutManager from "./utils/ZenLayoutManager.js";
 import { ZenShellManager } from "./utils/ZenShellManager.js";
+import { joinPath } from "./utils/PathUtils.js";
 import { getToolbarItems } from "./utils/ZenToolbarBuilder.js";
+import { sortFileInfos } from "./utils/ZenSortUtils.js";
 import { ControlPanelExtension } from "./shell/ControlPanelExtension.js";
 
 // Initialize Shell Extensions
@@ -388,6 +390,9 @@ export class ZenExplorerApp extends Application {
    */
   _setupLayoutListener() {
     this._layoutHandler = (e) => {
+      if (e.detail.sourceAppId === this.win.element.id) {
+        return;
+      }
       if (e.detail.path === this.currentPath) {
         this.navigateTo(this.currentPath, true, true);
       }
@@ -402,8 +407,58 @@ export class ZenExplorerApp extends Application {
       // Update autoArrange state from layout
       const layout = await ZenLayoutManager.getLayout(this.currentPath);
       this._autoArrange = layout.autoArrange;
+      this._sortBy = (layout.order && layout.order.length > 0) ? null : (layout.sortBy || "name");
     }
     return result;
+  }
+
+  get sortBy() {
+    return this._sortBy;
+  }
+
+  async setSortBy(value) {
+    const layout = await ZenLayoutManager.getLayout(this.currentPath);
+    layout.sortBy = value;
+
+    if (this.autoArrange) {
+      layout.order = []; // Clear manual order
+    } else {
+      // One-time arrangement to grid
+      const files = await ZenShellManager.readdir(this.currentPath);
+      const fileInfos = [];
+      for (const file of files) {
+        if (file === ".zen_layout.json") continue;
+        if (RecycleBinManager.isRecycleBinPath(this.currentPath) && file === ".metadata.json") continue;
+
+        const fullPath = joinPath(this.currentPath, file);
+        try {
+          const stat = await ZenShellManager.stat(fullPath);
+          fileInfos.push({ name: file, stat, isDirectory: stat.isDirectory() });
+        } catch (e) {
+          fileInfos.push({ name: file, stat: { size: 0, mtime: new Date(0) }, isDirectory: false });
+        }
+      }
+
+      // Sort
+      const sortedInfos = sortFileInfos(fileInfos, value, this.currentPath);
+
+      // Grid arrangement
+      const gridX = 75;
+      const gridY = 85;
+      const containerWidth = this.iconContainer.clientWidth || 640;
+      const cols = Math.floor(containerWidth / gridX) || 1;
+
+      layout.positions = {};
+      sortedInfos.forEach((info, index) => {
+        const x = (index % cols) * gridX + 10;
+        const y = Math.floor(index / cols) * gridY + 10;
+        layout.positions[info.name] = { x, y };
+      });
+    }
+
+    await ZenLayoutManager.saveLayout(this.currentPath, layout, this.win.element.id);
+    this._sortBy = value;
+    this.directoryView.renderDirectoryContents(this.currentPath);
   }
 
   get autoArrange() {
@@ -447,7 +502,7 @@ export class ZenExplorerApp extends Application {
         };
       });
     }
-    await ZenLayoutManager.saveLayout(this.currentPath, layout);
+    await ZenLayoutManager.saveLayout(this.currentPath, layout, this.win.element.id);
     this.autoArrange = layout.autoArrange;
     // Refresh the view to apply changes (e.g., add/remove classes and absolute positioning)
     this.directoryView.renderDirectoryContents(this.currentPath);
@@ -512,7 +567,7 @@ export class ZenExplorerApp extends Application {
       layout.order = newOrder;
     }
 
-    await ZenLayoutManager.saveLayout(this.currentPath, layout);
+    await ZenLayoutManager.saveLayout(this.currentPath, layout, this.win.element.id);
   }
 
   enterRenameMode(icon) {

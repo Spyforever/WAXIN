@@ -192,8 +192,20 @@ export class ZenContextMenuBuilder {
         label: "Arrange Icons",
         submenu: [
           {
+            radioItems: [
+              { label: "by Name", value: "name" },
+              { label: "by Size", value: "size" },
+              { label: "by Type", value: "type" },
+              { label: "by Date", value: "date" },
+            ],
+            getValue: () => this.app.sortBy,
+            setValue: (value) => this.app.setSortBy(value),
+          },
+          "MENU_DIVIDER",
+          {
             label: "Auto Arrange",
-            enabled: () => this.app.viewMode === 'large' || this.app.viewMode === 'small',
+            enabled: () =>
+              this.app.viewMode === "large" || this.app.viewMode === "small",
             checkbox: {
               check: () => this.app.autoArrange,
               toggle: () => this.app.toggleAutoArrange(),
