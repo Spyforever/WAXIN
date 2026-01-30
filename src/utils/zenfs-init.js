@@ -25,6 +25,11 @@ export async function initFileSystem() {
             await fs.promises.mkdir('/E:');
         }
 
+        // Ensure WINDOWS directory exists on C: for persistence
+        if (!fs.existsSync('/C:/WINDOWS')) {
+            await fs.promises.mkdir('/C:/WINDOWS');
+        }
+
         isInitialized = true;
         console.log("ZenFS initialized successfully.");
     } catch (error) {

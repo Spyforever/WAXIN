@@ -1,4 +1,5 @@
 import { openApps } from "../../Application.js";
+import { getParentPath } from "./PathUtils.js";
 
 /**
  * ZenDragDropManager - Handles custom drag and drop for ZenExplorer
@@ -122,8 +123,16 @@ export class ZenDragDropManager {
                     const targetPath = icon.getAttribute('data-path');
                     // Don't allow dropping on itself or its children
                     if (!this.draggedItems.some(item => item.path === targetPath || targetPath.startsWith(item.path + '/'))) {
-                         newTarget = icon;
-                         break;
+                         // Prevent dropping a root item onto another root item (treat as layouting)
+                         const sourceDir = this.draggedItems[0] ? getParentPath(this.draggedItems[0].path) : null;
+                         const targetDir = getParentPath(targetPath);
+
+                         if (sourceDir === "/" && targetDir === "/") {
+                             // Ignore icon target to allow falling through to background for rearrangement
+                         } else {
+                             newTarget = icon;
+                             break;
+                         }
                     }
                 }
             }
@@ -207,6 +216,12 @@ export class ZenDragDropManager {
             if (this.sourceApp.handleRearrange) {
                 await this.sourceApp.handleRearrange(sourcePaths, dropX, dropY, offsets);
             }
+            return;
+        }
+
+        // Prevent moving/copying root items to other folders
+        if (sourceDir === "/") {
+            console.warn("Cannot move or copy root items to other folders.");
             return;
         }
 

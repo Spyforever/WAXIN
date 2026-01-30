@@ -1,17 +1,31 @@
 import { fs } from "@zenfs/core";
-import { joinPath } from "./PathUtils.js";
+import { joinPath, getPathName } from "./PathUtils.js";
+import { ZenShellManager } from "./ZenShellManager.js";
 
 /**
  * ZenLayoutManager - Manages folder layouts (icon positions and order)
  */
 export const ZenLayoutManager = {
   /**
+   * Get the layout file path for a given directory path.
+   * Redirects root and virtual folders to /C:/WINDOWS for persistence.
+   * @private
+   */
+  _getLayoutPath(path) {
+    if (path === "/" || ZenShellManager.getExtensionForPath(path)) {
+      const name = getPathName(path);
+      return `/C:/WINDOWS/${name}.zen_layout.json`;
+    }
+    return joinPath(path, ".zen_layout.json");
+  },
+
+  /**
    * Get layout for a specific path
    * @param {string} path
    * @returns {Promise<Object>}
    */
   async getLayout(path) {
-    const layoutPath = joinPath(path, ".zen_layout.json");
+    const layoutPath = this._getLayoutPath(path);
     try {
       const content = await fs.promises.readFile(layoutPath, "utf8");
       return JSON.parse(content);
@@ -31,7 +45,7 @@ export const ZenLayoutManager = {
    * @param {Object} layout
    */
   async saveLayout(path, layout) {
-    const layoutPath = joinPath(path, ".zen_layout.json");
+    const layoutPath = this._getLayoutPath(path);
     try {
       await fs.promises.writeFile(layoutPath, JSON.stringify(layout, null, 2));
       // Notify other windows
