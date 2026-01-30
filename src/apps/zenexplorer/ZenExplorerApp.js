@@ -373,7 +373,10 @@ export class ZenExplorerApp extends Application {
    * @private
    */
   _setupFSListener() {
-    this._fsHandler = () => {
+    this._fsHandler = (e) => {
+      if (e.detail?.sourceAppId === this.win.element.id) {
+        return;
+      }
       this.navigateTo(this.currentPath, true, true);
     };
     document.addEventListener("zen-fs-change", this._fsHandler);

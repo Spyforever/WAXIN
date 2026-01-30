@@ -83,7 +83,8 @@ export class FileOperations {
                 data: { from: sourcePaths, to: targetPaths }
             });
 
-            document.dispatchEvent(new CustomEvent("zen-fs-change"));
+            await this.app.navigateTo(this.app.currentPath, true, true);
+            document.dispatchEvent(new CustomEvent("zen-fs-change", { detail: { sourceAppId: this.app.win.element.id } }));
         } catch (e) {
             handleFileSystemError("move", e, "items");
             throw e;
@@ -122,7 +123,8 @@ export class FileOperations {
                 data: { created: targetPaths }
             });
 
-            document.dispatchEvent(new CustomEvent("zen-fs-change"));
+            await this.app.navigateTo(this.app.currentPath, true, true);
+            document.dispatchEvent(new CustomEvent("zen-fs-change", { detail: { sourceAppId: this.app.win.element.id } }));
         } catch (e) {
             handleFileSystemError("copy", e, "items");
             throw e;
@@ -277,7 +279,8 @@ export class FileOperations {
                             // because no event was dispatched. If an event was dispatched,
                             // ZenExplorerApp already refreshed.
                             if (isPermanent && !alreadyInRecycle) {
-                                this.app.navigateTo(this.app.currentPath);
+                                await this.app.navigateTo(this.app.currentPath, true, true);
+                                document.dispatchEvent(new CustomEvent("zen-fs-change", { detail: { sourceAppId: this.app.win.element.id } }));
                             }
                         } catch (e) {
                             handleFileSystemError("delete", e, "items");
@@ -306,6 +309,7 @@ export class FileOperations {
             const newPath = joinPath(this.app.currentPath, name);
             await fs.promises.mkdir(newPath);
             await this.app.navigateTo(this.app.currentPath, true, true);
+            document.dispatchEvent(new CustomEvent("zen-fs-change", { detail: { sourceAppId: this.app.win.element.id } }));
             this.app.enterRenameModeByPath(newPath);
         } catch (e) {
             handleFileSystemError("create", e, "folder");
@@ -321,6 +325,7 @@ export class FileOperations {
             const newPath = joinPath(this.app.currentPath, name);
             await fs.promises.writeFile(newPath, "");
             await this.app.navigateTo(this.app.currentPath, true, true);
+            document.dispatchEvent(new CustomEvent("zen-fs-change", { detail: { sourceAppId: this.app.win.element.id } }));
             this.app.enterRenameModeByPath(newPath);
         } catch (e) {
             handleFileSystemError("create", e, "file");
@@ -374,7 +379,8 @@ export class FileOperations {
                     break;
             }
             ZenUndoManager.pop(); // Only pop if successful
-            this.app.navigateTo(this.app.currentPath);
+            await this.app.navigateTo(this.app.currentPath, true, true);
+            document.dispatchEvent(new CustomEvent("zen-fs-change", { detail: { sourceAppId: this.app.win.element.id } }));
         } catch (e) {
             ShowDialogWindow({
                 title: "Undo",
