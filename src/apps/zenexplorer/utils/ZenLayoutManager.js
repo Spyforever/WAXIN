@@ -33,6 +33,7 @@ export const ZenLayoutManager = {
       // Default layout
       return {
         autoArrange: true,
+        sortBy: "name",
         positions: {},
         order: [],
       };

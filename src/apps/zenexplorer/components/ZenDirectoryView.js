@@ -17,6 +17,7 @@ import {
   getParentPath,
 } from "../utils/PathUtils.js";
 import ZenLayoutManager from "../utils/ZenLayoutManager.js";
+import { sortFileInfos } from "../utils/ZenSortUtils.js";
 
 export class ZenDirectoryView {
   constructor(app) {
@@ -68,15 +69,42 @@ export class ZenDirectoryView {
    */
   async renderDirectoryContents(path) {
     const layout = await ZenLayoutManager.getLayout(path);
-    let files = await ZenShellManager.readdir(path);
+    let rawFiles = await ZenShellManager.readdir(path);
 
-   
-    
     // Hide metadata file in recycle bin and layout file
-    files = files.filter((f) => f !== ".zen_layout.json");
+    rawFiles = rawFiles.filter((f) => f !== ".zen_layout.json");
     if (RecycleBinManager.isRecycleBinPath(path)) {
-      files = files.filter((f) => f !== ".metadata.json");
+      rawFiles = rawFiles.filter((f) => f !== ".metadata.json");
     }
+
+    // Gather file information and stats
+    const fileInfos = [];
+    for (const file of rawFiles) {
+      const fullPath = joinPath(path, file);
+      try {
+        const fileStat = await ZenShellManager.stat(fullPath);
+        fileInfos.push({
+          name: file,
+          fullPath,
+          stat: fileStat,
+          isDirectory: fileStat.isDirectory(),
+        });
+      } catch (e) {
+        fileInfos.push({
+          name: file,
+          fullPath,
+          stat: { size: 0, mtime: new Date(0) },
+          isDirectory: false,
+        });
+      }
+    }
+
+    const sortBy = layout.sortBy || "name";
+    const order = layout.order || [];
+
+    const sortedInfos = sortFileInfos(fileInfos, sortBy, path, order);
+
+    const files = sortedInfos.map((info) => info.name);
 
     // Apply layout logic only for icon views (large/small)
     const isIconView =
@@ -85,58 +113,11 @@ export class ZenDirectoryView {
     if (isIconView) {
       if (layout.autoArrange) {
         this.app.iconContainer.classList.remove("has-absolute-icons");
-
-        const order = layout.order || [];
-        const getOrderIndex = (name) => {
-          const index = order.indexOf(name);
-          return index === -1 ? Infinity : index;
-        };
-
-        // Split into folders and files
-        const folderFiles = [];
-        const normalFiles = [];
-
-        for (const file of files) {
-          const fullPath = joinPath(path, file);
-          try {
-            const stat = await fs.promises.stat(fullPath);
-            if (stat.isDirectory()) folderFiles.push(file);
-            else normalFiles.push(file);
-          } catch (e) {
-            normalFiles.push(file);
-          }
-        }
-
-        // Sort each group by custom order, then alphabetically
-        const sortByOrder = (a, b) => {
-          const orderA = getOrderIndex(a);
-          const orderB = getOrderIndex(b);
-          if (orderA !== orderB) return orderA - orderB;
-          return a.localeCompare(b);
-        };
-
-        folderFiles.sort(sortByOrder);
-        normalFiles.sort(sortByOrder);
-
-        files = [...folderFiles, ...normalFiles];
       } else {
         this.app.iconContainer.classList.add("has-absolute-icons");
-        // Alphabetical sort as baseline for free-form
-        files.sort((a, b) => a.localeCompare(b));
       }
     } else {
       this.app.iconContainer.classList.remove("has-absolute-icons");
-      // Sort files alphabetically
-      files.sort((a, b) => {
-        // Special sort for root: Drives before shell extensions
-        if (path === "/") {
-          const isDriveA = a.match(/^[A-Z]:$/i);
-          const isDriveB = b.match(/^[A-Z]:$/i);
-          if (isDriveA && !isDriveB) return -1;
-          if (!isDriveA && isDriveB) return 1;
-        }
-        return a.localeCompare(b);
-      });
     }
 
     // Clear view
@@ -168,12 +149,9 @@ export class ZenDirectoryView {
       const tbody = document.createElement("tbody");
       table.appendChild(tbody);
 
-      for (const file of files) {
-        const fullPath = joinPath(path, file);
+      for (const info of sortedInfos) {
+        const { name: file, fullPath, stat: fileStat, isDirectory: isDir } = info;
         try {
-          const fileStat = await ZenShellManager.stat(fullPath);
-          const isDir = fileStat.isDirectory();
-
           const tr = document.createElement("tr");
           tr.className = "explorer-icon";
           tr.setAttribute("tabindex", "0");
@@ -243,7 +221,7 @@ export class ZenDirectoryView {
 
           tbody.appendChild(tr);
         } catch (e) {
-          console.warn("Could not stat", fullPath);
+          console.warn("Could not render row", fullPath, e);
         }
       }
       this.app.iconContainer.appendChild(table);
@@ -253,11 +231,9 @@ export class ZenDirectoryView {
 
     // Build icons first (async operations here)
     const icons = [];
-    for (const file of files) {
-      const fullPath = joinPath(path, file);
+    for (const info of sortedInfos) {
+      const { name: file, fullPath, isDirectory: isDir } = info;
       try {
-        const fileStat = await ZenShellManager.stat(fullPath);
-        const isDir = fileStat.isDirectory();
         const iconDiv = await renderFileIcon(file, fullPath, isDir, {
           metadata,
           recycleBinEmpty,
@@ -298,7 +274,7 @@ export class ZenDirectoryView {
 
         icons.push(iconDiv);
       } catch (e) {
-        console.warn("Could not stat", fullPath);
+        console.warn("Could not render icon", fullPath, e);
       }
     }
 
