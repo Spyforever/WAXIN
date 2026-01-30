@@ -1,4 +1,8 @@
 import { fs, mounts } from "@zenfs/core";
+import {
+  requestBusyState,
+  releaseBusyState,
+} from "../../utils/busyStateManager.js";
 import { NavigationHistory } from "./NavigationHistory.js";
 import {
   formatPathForDisplay,
@@ -17,6 +21,9 @@ export class ZenNavigationController {
 
   async navigateTo(path, isHistoryNav = false, skipMRU = false) {
     if (!path) return;
+
+    const busyId = `nav-${Math.random()}`;
+    requestBusyState(busyId, this.app.win.element);
 
     try {
       if (path === "My Computer") {
@@ -75,6 +82,8 @@ export class ZenNavigationController {
       this.app.win.focus();
     } catch (err) {
       console.error("Navigation failed", err);
+    } finally {
+      releaseBusyState(busyId, this.app.win.element);
     }
   }
 

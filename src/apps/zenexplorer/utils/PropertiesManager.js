@@ -54,44 +54,21 @@ export class PropertiesManager {
     let iconUrl = getIconForFile(name, isDir);
 
     if (isRecycled) {
-        const metadata = await RecycleBinManager.getMetadata();
-        const entry = metadata[name]; // name is the ID
-        if (entry) {
-            name = entry.originalName;
-            displayPath = formatPathForDisplay(entry.originalPath);
-            locationLabel = "Origin";
-            // For recycled items, use the original icon if possible
-            iconUrl = getIconForFile(name, isDir);
-        }
+      const metadata = await RecycleBinManager.getMetadata();
+      const entry = metadata[name]; // name is the ID
+      if (entry) {
+        name = entry.originalName;
+        displayPath = formatPathForDisplay(entry.originalPath);
+        locationLabel = "Origin";
+        // For recycled items, use the original icon if possible
+        iconUrl = getIconForFile(name, isDir);
+      }
     }
 
     let type = "File Folder";
     if (!isDir) {
       const association = getAssociation(name);
       type = association.name || "File";
-    }
-
-    const size = isDir ? await this._getRecursiveSize(path) : stats.size;
-    const formattedSize = this._formatSize(size);
-
-    let contains = null;
-    if (isDir) {
-      const children = await ZenShellManager.readdir(path);
-      let filesCount = 0;
-      let foldersCount = 0;
-      for (const child of children) {
-        try {
-          const childPath = joinPath(path, child);
-          const childStats = await ZenShellManager.stat(childPath);
-          if (childStats.isDirectory()) foldersCount++;
-          else filesCount++;
-        } catch (e) {
-          // Ignore errors for individual children
-        }
-      }
-      const filesStr = filesCount === 1 ? "File" : "Files";
-      const foldersStr = foldersCount === 1 ? "Folder" : "Folders";
-      contains = `${filesCount} ${filesStr}, ${foldersCount} ${foldersStr}`;
     }
 
     const isUserDrive = path.startsWith("/C:");
@@ -104,25 +81,57 @@ export class PropertiesManager {
     const modified = formatDate(stats.mtime);
     const accessed = formatDate(stats.atime);
 
-    const content = this._createPropertiesUI({
+    const { container, sizeEl, containsEl } = this._createPropertiesUI({
       iconUrl,
       name,
       type,
       location: displayPath,
       locationLabel,
-      size: formattedSize,
-      contains,
+      size: isDir ? "Calculating..." : this._formatSize(stats.size),
+      contains: isDir ? "Calculating..." : null,
       created,
       modified,
       accessed,
     });
 
-    ShowDialogWindow({
+    const win = ShowDialogWindow({
       title: `${getDisplayName(path)} Properties`,
-      content,
+      content: container,
       buttons: [{ label: "OK", isDefault: true }],
       modal: true,
     });
+
+    if (isDir) {
+      const controller = new AbortController();
+      win.onClosed(() => controller.abort());
+
+      // Async size and contains calculation
+      (async () => {
+        try {
+          const size = await this._getRecursiveSize(path, controller.signal);
+          if (controller.signal.aborted) return;
+          sizeEl.textContent = this._formatSize(size);
+
+          const children = await ZenShellManager.readdir(path);
+          let filesCount = 0;
+          let foldersCount = 0;
+          for (const child of children) {
+            if (controller.signal.aborted) return;
+            try {
+              const childPath = joinPath(path, child);
+              const childStats = await ZenShellManager.stat(childPath);
+              if (childStats.isDirectory()) foldersCount++;
+              else filesCount++;
+            } catch (e) {}
+          }
+          const filesStr = filesCount === 1 ? "File" : "Files";
+          const foldersStr = foldersCount === 1 ? "Folder" : "Folders";
+          containsEl.textContent = `${filesCount} ${filesStr}, ${foldersCount} ${foldersStr}`;
+        } catch (e) {
+          if (e.name !== "AbortError") console.error(e);
+        }
+      })();
+    }
   }
 
   /**
@@ -132,7 +141,6 @@ export class PropertiesManager {
   static async _showMultipleProperties(items) {
     let filesCount = 0;
     let foldersCount = 0;
-    let totalSize = 0;
     const types = new Set();
 
     for (const item of items) {
@@ -140,11 +148,9 @@ export class PropertiesManager {
       const name = getPathName(item.path);
       if (isDir) {
         foldersCount++;
-        totalSize += await this._getRecursiveSize(item.path);
         types.add("File Folder");
       } else {
         filesCount++;
-        totalSize += item.stats.size;
         const association = getAssociation(name);
         types.add(association.name || "File");
       }
@@ -155,24 +161,22 @@ export class PropertiesManager {
     const name = `${filesCount} ${filesStr}, ${foldersCount} ${foldersStr}`;
     const type = types.size === 1 ? [...types][0] : "Multiple Types";
 
-    // Get parent directory of the first item
     const lastSlashIndex = items[0].path.lastIndexOf("/");
     const parentPathInternal =
       items[0].path.substring(0, lastSlashIndex) || "/";
     const location = `All in ${formatPathForDisplay(parentPathInternal)}`;
-    const size = this._formatSize(totalSize);
 
-    const content = this._createPropertiesUI({
-      iconUrl: ICONS.fileSet[32], // Generic multiple files icon
+    const { container, sizeEl } = this._createPropertiesUI({
+      iconUrl: ICONS.fileSet[32],
       name,
       type,
       location,
-      size,
+      size: "Calculating...",
     });
 
-    ShowDialogWindow({
+    const win = ShowDialogWindow({
       title: `Properties`,
-      content,
+      content: container,
       buttons: [
         { label: "OK", isDefault: true },
         { label: "Cancel" },
@@ -180,21 +184,46 @@ export class PropertiesManager {
       ],
       modal: true,
     });
+
+    const controller = new AbortController();
+    win.onClosed(() => controller.abort());
+
+    (async () => {
+      try {
+        let totalSize = 0;
+        for (const item of items) {
+          if (controller.signal.aborted) return;
+          if (item.stats.isDirectory()) {
+            totalSize += await this._getRecursiveSize(
+              item.path,
+              controller.signal,
+            );
+          } else {
+            totalSize += item.stats.size;
+          }
+        }
+        if (controller.signal.aborted) return;
+        sizeEl.textContent = this._formatSize(totalSize);
+      } catch (e) {
+        if (e.name !== "AbortError") console.error(e);
+      }
+    })();
   }
 
   /**
    * Calculate recursive size of a directory
    * @private
    */
-  static async _getRecursiveSize(path) {
+  static async _getRecursiveSize(path, signal) {
     let size = 0;
     try {
       const files = await ZenShellManager.readdir(path);
       for (const file of files) {
+        if (signal?.aborted) return 0;
         const fullPath = joinPath(path, file);
         const stats = await ZenShellManager.stat(fullPath);
         if (stats.isDirectory()) {
-          size += await this._getRecursiveSize(fullPath);
+          size += await this._getRecursiveSize(fullPath, signal);
         } else {
           size += stats.size;
         }
@@ -273,22 +302,25 @@ export class PropertiesManager {
     details.style.gap = "8px 15px";
     details.style.fontSize = "11px";
 
+    let sizeEl, containsEl;
+
     const addRow = (label, value) => {
-      if (value === undefined || value === null) return;
+      if (value === undefined || value === null) return null;
       const labelEl = document.createElement("div");
       labelEl.textContent = label + ":";
       const valueEl = document.createElement("div");
       valueEl.textContent = value;
       details.appendChild(labelEl);
       details.appendChild(valueEl);
+      return valueEl;
     };
 
     addRow("Type", data.type);
     addRow(data.locationLabel || "Location", data.location);
-    addRow("Size", data.size);
+    sizeEl = addRow("Size", data.size);
 
     if (data.contains) {
-      addRow("Contains", data.contains);
+      containsEl = addRow("Contains", data.contains);
     }
 
     if (data.created || data.modified || data.accessed) {
@@ -305,6 +337,6 @@ export class PropertiesManager {
 
     container.appendChild(details);
 
-    return container;
+    return { container, sizeEl, containsEl };
   }
 }

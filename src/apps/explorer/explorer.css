@@ -257,6 +257,7 @@
     margin: 0;
 }
 
+
 .drop-target-highlight {
     background-color: var(--highlight-blue) !important;
     color: var(--highlight-text) !important;

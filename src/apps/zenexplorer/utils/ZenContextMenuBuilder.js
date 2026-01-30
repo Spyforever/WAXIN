@@ -1,4 +1,8 @@
 import { mounts } from "@zenfs/core";
+import {
+  requestBusyState,
+  releaseBusyState,
+} from "../../../utils/busyStateManager.js";
 import { RecycleBinManager } from "./RecycleBinManager.js";
 import { PropertiesManager } from "./PropertiesManager.js";
 import { ZenRemovableDiskManager } from "./ZenRemovableDiskManager.js";
@@ -36,9 +40,15 @@ export class ZenContextMenuBuilder {
       menuItems = [
         {
           label: "Restore",
-          action: () => {
-            const ids = selectedPaths.map((p) => getPathName(p));
-            RecycleBinManager.restoreItems(ids);
+          action: async () => {
+            const busyId = `restore-${Math.random()}`;
+            requestBusyState(busyId, this.app.win.element);
+            try {
+              const ids = selectedPaths.map((p) => getPathName(p));
+              await RecycleBinManager.restoreItems(ids);
+            } finally {
+              releaseBusyState(busyId, this.app.win.element);
+            }
           },
           default: true,
         },
@@ -50,7 +60,15 @@ export class ZenContextMenuBuilder {
         "MENU_DIVIDER",
         {
           label: "Properties",
-          action: () => PropertiesManager.show(selectedPaths),
+          action: async () => {
+            const busyId = `properties-${Math.random()}`;
+            requestBusyState(busyId, this.app.win.element);
+            try {
+              await PropertiesManager.show(selectedPaths);
+            } finally {
+              releaseBusyState(busyId, this.app.win.element);
+            }
+          },
         },
       ];
     } else {
@@ -86,10 +104,16 @@ export class ZenContextMenuBuilder {
                   label: "Yes",
                   isDefault: true,
                   action: async () => {
-                    await RecycleBinManager.emptyRecycleBin();
-                    playSound("EmptyRecycleBin");
-                    if (this.app.currentPath === path) {
-                      this.app.navigateTo(path, true, true);
+                    const busyId = `empty-recycle-${Math.random()}`;
+                    requestBusyState(busyId, this.app.win.element);
+                    try {
+                      await RecycleBinManager.emptyRecycleBin();
+                      playSound("EmptyRecycleBin");
+                      if (this.app.currentPath === path) {
+                        await this.app.navigateTo(path, true, true);
+                      }
+                    } finally {
+                      releaseBusyState(busyId, this.app.win.element);
                     }
                   },
                 },
@@ -168,7 +192,15 @@ export class ZenContextMenuBuilder {
         "MENU_DIVIDER",
         {
           label: "Properties",
-          action: () => PropertiesManager.show(selectedPaths),
+          action: async () => {
+            const busyId = `properties-${Math.random()}`;
+            requestBusyState(busyId, this.app.win.element);
+            try {
+              await PropertiesManager.show(selectedPaths);
+            } finally {
+              releaseBusyState(busyId, this.app.win.element);
+            }
+          },
         },
       );
     }
@@ -231,7 +263,15 @@ export class ZenContextMenuBuilder {
       "MENU_DIVIDER",
       {
         label: "Properties",
-        action: () => PropertiesManager.show([this.app.currentPath]),
+        action: async () => {
+          const busyId = `properties-${Math.random()}`;
+          requestBusyState(busyId, this.app.win.element);
+          try {
+            await PropertiesManager.show([this.app.currentPath]);
+          } finally {
+            releaseBusyState(busyId, this.app.win.element);
+          }
+        },
       },
     ];
     return menuItems;

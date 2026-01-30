@@ -1,4 +1,8 @@
 import { fs } from "@zenfs/core";
+import {
+  requestBusyState,
+  releaseBusyState,
+} from "../../../utils/busyStateManager.js";
 import { renderFileIcon } from "./FileIconRenderer.js";
 import { ICONS } from "../../../config/icons.js";
 import { getAssociation } from "../../../utils/directory.js";
@@ -404,7 +408,9 @@ export class ZenDirectoryView {
       this._isRenaming = false;
 
       const newName = textarea.value.trim();
+      const busyId = `rename-${Math.random()}`;
       if (save && newName && newName !== oldName) {
+        requestBusyState(busyId, this.app.win.element);
         try {
           const parentPath = getParentPath(fullPath);
           const newPath = joinPath(parentPath, newName);
@@ -416,13 +422,17 @@ export class ZenDirectoryView {
         } catch (e) {
           alert(`Error renaming: ${e.message}`);
           label.textContent = getDisplayName(fullPath);
+        } finally {
+          // Keep busy during refresh
+          await this.app.navigateTo(this.app.currentPath, true, true);
+          document.dispatchEvent(new CustomEvent("zen-fs-change", { detail: { sourceAppId: this.app.win.element.id } }));
+          releaseBusyState(busyId, this.app.win.element);
         }
       } else {
         label.textContent = getDisplayName(fullPath);
+        await this.app.navigateTo(this.app.currentPath, true, true);
+        document.dispatchEvent(new CustomEvent("zen-fs-change", { detail: { sourceAppId: this.app.win.element.id } }));
       }
-
-      await this.app.navigateTo(this.app.currentPath, true, true);
-      document.dispatchEvent(new CustomEvent("zen-fs-change", { detail: { sourceAppId: this.app.win.element.id } }));
     };
 
     textarea.onkeydown = (e) => {
