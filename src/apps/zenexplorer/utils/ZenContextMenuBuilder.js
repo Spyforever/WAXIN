@@ -198,6 +198,7 @@ export class ZenContextMenuBuilder {
         submenu: [
           {
             label: "Auto Arrange",
+            enabled: () => this.app.viewMode === 'large' || this.app.viewMode === 'small',
             checkbox: {
               check: () => this.app.autoArrange,
               toggle: () => this.app.toggleAutoArrange(),
