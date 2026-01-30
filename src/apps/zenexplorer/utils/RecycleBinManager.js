@@ -52,14 +52,16 @@ export class RecycleBinManager {
     /**
      * Move multiple items to the Recycle Bin
      * @param {string[]} paths
+     * @param {ProgressBarDialogWindow} dialog
      * @returns {Promise<string[]>} IDs of the recycled items
      */
-    static async moveItemsToRecycleBin(paths) {
+    static async moveItemsToRecycleBin(paths, dialog = null) {
         const metadata = await this.getMetadata();
         let changed = false;
         const recycledIds = [];
 
         for (const path of paths) {
+            if (dialog && dialog.cancelled) break;
             if (this.isRecycledItemPath(path)) continue;
 
             const id = (typeof crypto.randomUUID === 'function')
@@ -69,11 +71,21 @@ export class RecycleBinManager {
             const name = getPathName(path);
             const targetPath = joinPath(RECYCLE_PATH, id);
 
+            const sourceDir = getParentPath(path);
+            if (dialog) {
+                dialog.update(path, sourceDir, RECYCLE_PATH, 0);
+            }
+
             try {
                 await fs.promises.rename(path, targetPath);
+                if (dialog) {
+                    const stats = await fs.promises.stat(targetPath);
+                    dialog.finishItem(stats.isDirectory() ? 0 : stats.size);
+                    dialog.update(path, sourceDir, RECYCLE_PATH, 0);
+                }
             } catch (e) {
-                await this.copyRecursive(path, targetPath);
-                await fs.promises.rm(path, { recursive: true });
+                await this.copyRecursive(path, targetPath, dialog);
+                await this.removeRecursive(path, dialog);
             }
 
             metadata[id] = {
@@ -251,17 +263,57 @@ export class RecycleBinManager {
      * Recursively copy a file or directory
      * @private
      */
-    static async copyRecursive(src, dest) {
+    static async copyRecursive(src, dest, dialog = null) {
+        if (dialog && dialog.cancelled) return;
+
         const stats = await fs.promises.stat(src);
+        const sourceDir = getParentPath(src);
+        const destDir = getParentPath(dest);
+
         if (stats.isDirectory()) {
             await fs.promises.mkdir(dest, { recursive: true });
             const files = await fs.promises.readdir(src);
             for (const file of files) {
-                await this.copyRecursive(joinPath(src, file), joinPath(dest, file));
+                if (dialog && dialog.cancelled) return;
+                await this.copyRecursive(joinPath(src, file), joinPath(dest, file), dialog);
             }
         } else {
+            if (dialog) {
+                dialog.update(src, sourceDir, destDir, 0);
+            }
             const data = await fs.promises.readFile(src);
             await fs.promises.writeFile(dest, data);
+            if (dialog) {
+                dialog.finishItem(stats.size);
+                dialog.update(src, sourceDir, destDir, 0);
+            }
+        }
+    }
+
+    /**
+     * Recursively remove a file or directory
+     * @private
+     */
+    static async removeRecursive(path, dialog = null) {
+        if (dialog && dialog.cancelled) return;
+
+        let stats;
+        try {
+            stats = await fs.promises.stat(path);
+        } catch (e) {
+            return;
+        }
+
+        if (stats.isDirectory()) {
+            const files = await fs.promises.readdir(path);
+            for (const file of files) {
+                if (dialog && dialog.cancelled) return;
+                await this.removeRecursive(joinPath(path, file), dialog);
+            }
+            if (dialog && dialog.cancelled) return;
+            await fs.promises.rmdir(path);
+        } else {
+            await fs.promises.unlink(path);
         }
     }
 }

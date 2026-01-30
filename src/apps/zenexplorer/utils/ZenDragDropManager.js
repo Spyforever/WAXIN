@@ -225,14 +225,20 @@ export class ZenDragDropManager {
             return;
         }
 
+        const { ProgressBarDialogWindow } = await import("../components/ProgressBarDialogWindow.js");
+        const totalSize = await this.sourceApp.fileOps.getTotalSize(sourcePaths);
+        const dialog = new ProgressBarDialogWindow(isCopy ? "copy" : "move", sourcePaths.length, totalSize);
+
         try {
             if (isCopy) {
-                await this.sourceApp.fileOps.copyItemsDirect(sourcePaths, destinationPath, { dropX, dropY, offsets });
+                await this.sourceApp.fileOps.copyItemsDirect(sourcePaths, destinationPath, { dropX, dropY, offsets }, dialog);
             } else {
-                await this.sourceApp.fileOps.moveItemsDirect(sourcePaths, destinationPath, { dropX, dropY, offsets });
+                await this.sourceApp.fileOps.moveItemsDirect(sourcePaths, destinationPath, { dropX, dropY, offsets }, dialog);
             }
         } catch (err) {
             console.error('Drop failed:', err);
+        } finally {
+            dialog.close();
         }
     }
 

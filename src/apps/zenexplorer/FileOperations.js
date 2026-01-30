@@ -375,13 +375,19 @@ export class FileOperations {
                     action: async () => {
                         const busyId = `delete-${Math.random()}`;
                         requestBusyState(busyId, this.app.win.element);
+
+                        const { ProgressBarDialogWindow } = await import("./components/ProgressBarDialogWindow.js");
+                        const totalSize = await this.getTotalSize(paths);
+                        const dialog = new ProgressBarDialogWindow(isPermanent ? "delete" : "recycle", paths.length, totalSize);
+
                         try {
                             if (isPermanent) {
                                 for (const path of paths) {
-                                    await fs.promises.rm(path, { recursive: true });
+                                    if (dialog.cancelled) break;
+                                    await this.removeRecursiveWithProgress(path, dialog);
                                 }
                                 // If it was in recycle bin, we should also clean up metadata
-                                if (alreadyInRecycle) {
+                                if (alreadyInRecycle && !dialog.cancelled) {
                                     const metadata = await RecycleBinManager.getMetadata();
                                     let changed = false;
                                     for (const path of paths) {
@@ -397,11 +403,13 @@ export class FileOperations {
                                     }
                                 }
                             } else {
-                                const recycledIds = await RecycleBinManager.moveItemsToRecycleBin(paths);
-                                ZenUndoManager.push({
-                                    type: 'delete',
-                                    data: { recycledIds }
-                                });
+                                const recycledIds = await RecycleBinManager.moveItemsToRecycleBin(paths, dialog);
+                                if (recycledIds.length > 0) {
+                                    ZenUndoManager.push({
+                                        type: 'delete',
+                                        data: { recycledIds }
+                                    });
+                                }
                             }
 
                             // If it was permanent and NOT in recycle bin, we need to refresh manually
@@ -414,6 +422,7 @@ export class FileOperations {
                         } catch (e) {
                             handleFileSystemError("delete", e, "items");
                         } finally {
+                            dialog.close();
                             releaseBusyState(busyId, this.app.win.element);
                         }
                     }
@@ -468,6 +477,43 @@ export class FileOperations {
             handleFileSystemError("create", e, "file");
         } finally {
             releaseBusyState(busyId, this.app.win.element);
+        }
+    }
+
+    /**
+     * Recursively remove a file or directory with progress reporting
+     * @private
+     */
+    async removeRecursiveWithProgress(path, dialog) {
+        if (dialog && dialog.cancelled) return;
+
+        let stats;
+        try {
+            stats = await fs.promises.stat(path);
+        } catch (e) {
+            // If it doesn't exist, just return
+            return;
+        }
+
+        const sourceDir = getParentPath(path);
+
+        if (stats.isDirectory()) {
+            const files = await fs.promises.readdir(path);
+            for (const file of files) {
+                if (dialog && dialog.cancelled) return;
+                await this.removeRecursiveWithProgress(joinPath(path, file), dialog);
+            }
+            if (dialog && dialog.cancelled) return;
+            await fs.promises.rmdir(path);
+        } else {
+            if (dialog) {
+                dialog.update(path, sourceDir, null, 0);
+            }
+            await fs.promises.unlink(path);
+            if (dialog) {
+                dialog.finishItem(stats.size);
+                dialog.update(path, sourceDir, null, 0);
+            }
         }
     }
 
