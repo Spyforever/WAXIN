@@ -17,14 +17,14 @@ const appManager = {
         return apps.find((a) => a.id === appId);
     },
 
-    closeApp(appId) {
-        const appInstance = this.runningApps[appId];
+    closeApp(instanceKey) {
+        const appInstance = this.runningApps[instanceKey];
         if (appInstance) {
             playSound("Close");
             // Remove the app from the registries first to prevent re-entry.
-            delete this.runningApps[appId];
-            openApps.delete(appId);
-            document.dispatchEvent(new CustomEvent('app-closed', { detail: { appId } }));
+            delete this.runningApps[instanceKey];
+            openApps.delete(instanceKey);
+            document.dispatchEvent(new CustomEvent('app-closed', { detail: { appId: appInstance.id, instanceKey } }));
 
             // Now, perform the app-specific cleanup.
             if (appInstance.win) {
@@ -59,7 +59,7 @@ export async function launchApp(appId, data = null) {
     try {
         if (appConfig.appClass) {
             const appInstance = new appConfig.appClass({ ...appConfig, id: appId });
-            appManager.runningApps[appId] = appInstance;
+            // The instance will register itself in runningApps during launch using its unique instanceKey
             await appInstance.launch(data);
             document.dispatchEvent(new CustomEvent('app-launched', { detail: { appId } }));
             return appInstance;

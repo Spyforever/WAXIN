@@ -30,20 +30,20 @@ export class TaskManagerApp extends Application {
     const taskList = this.win.$content.find(".task-list");
     const selectedAppId = this.win.$content
       .find(".task-list tr.highlighted")
-      .data("appId");
+      .data("instanceKey");
     const tableBody = $("<tbody></tbody>");
 
     const runningApps = appManager.getRunningApps();
 
-    for (const [appId, appInstance] of Object.entries(runningApps)) {
-      if (appId === "taskmanager") continue;
+    for (const [instanceKey, appInstance] of Object.entries(runningApps)) {
+      if (appInstance.id === "taskmanager") continue;
 
-      const appConfig = appManager.getAppConfig(appId);
+      const appConfig = appManager.getAppConfig(appInstance.id);
       const title = appInstance.win ? appInstance.win.title() : appConfig.title;
 
       const tableRow = $(`<tr><td>${title}</td></tr>`);
-      tableRow.data("appId", appId);
-      if (selectedAppId && appId === selectedAppId) {
+      tableRow.data("instanceKey", instanceKey);
+      if (selectedAppId && instanceKey === selectedAppId) {
         tableRow.addClass("highlighted");
       }
       tableBody.append(tableRow);
@@ -72,8 +72,8 @@ export class TaskManagerApp extends Application {
     content.on("click", ".end-task-btn", () => {
       const selectedItem = content.find(".task-list tr.highlighted");
       if (selectedItem.length) {
-        const appId = selectedItem.data("appId");
-        appManager.closeApp(appId);
+        const instanceKey = selectedItem.data("instanceKey");
+        appManager.closeApp(instanceKey);
       }
     });
 
