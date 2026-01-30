@@ -125,7 +125,7 @@ export class FileOperations {
                     const offset = options.offsets ? options.offsets[i] : { x: i * 10, y: i * 10 };
                     positions[name] = { x: options.dropX + offset.x, y: options.dropY + offset.y };
                 });
-                await ZenLayoutManager.updateItemPositions(destinationPath, positions);
+                await ZenLayoutManager.updateItemPositions(destinationPath, positions, this.app.win.element.id);
             }
 
             ZenUndoManager.push({
@@ -168,7 +168,7 @@ export class FileOperations {
                     const offset = options.offsets ? options.offsets[i] : { x: i * 10, y: i * 10 };
                     positions[name] = { x: options.dropX + offset.x, y: options.dropY + offset.y };
                 });
-                await ZenLayoutManager.updateItemPositions(destinationPath, positions);
+                await ZenLayoutManager.updateItemPositions(destinationPath, positions, this.app.win.element.id);
             }
 
             ZenUndoManager.push({

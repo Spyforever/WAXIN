@@ -390,6 +390,9 @@ export class ZenExplorerApp extends Application {
    */
   _setupLayoutListener() {
     this._layoutHandler = (e) => {
+      if (e.detail.sourceAppId === this.win.element.id) {
+        return;
+      }
       if (e.detail.path === this.currentPath) {
         this.navigateTo(this.currentPath, true, true);
       }
@@ -453,7 +456,7 @@ export class ZenExplorerApp extends Application {
       });
     }
 
-    await ZenLayoutManager.saveLayout(this.currentPath, layout);
+    await ZenLayoutManager.saveLayout(this.currentPath, layout, this.win.element.id);
     this._sortBy = value;
     this.directoryView.renderDirectoryContents(this.currentPath);
   }
@@ -499,7 +502,7 @@ export class ZenExplorerApp extends Application {
         };
       });
     }
-    await ZenLayoutManager.saveLayout(this.currentPath, layout);
+    await ZenLayoutManager.saveLayout(this.currentPath, layout, this.win.element.id);
     this.autoArrange = layout.autoArrange;
     // Refresh the view to apply changes (e.g., add/remove classes and absolute positioning)
     this.directoryView.renderDirectoryContents(this.currentPath);
@@ -564,7 +567,7 @@ export class ZenExplorerApp extends Application {
       layout.order = newOrder;
     }
 
-    await ZenLayoutManager.saveLayout(this.currentPath, layout);
+    await ZenLayoutManager.saveLayout(this.currentPath, layout, this.win.element.id);
   }
 
   enterRenameMode(icon) {
