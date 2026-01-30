@@ -30,6 +30,14 @@ export async function initFileSystem() {
             await fs.promises.mkdir('/C:/WINDOWS');
         }
 
+        // Ensure Program Files/Doom exists
+        if (!fs.existsSync('/C:/Program Files')) {
+            await fs.promises.mkdir('/C:/Program Files');
+        }
+        if (!fs.existsSync('/C:/Program Files/Doom')) {
+            await fs.promises.mkdir('/C:/Program Files/Doom');
+        }
+
         isInitialized = true;
         console.log("ZenFS initialized successfully.");
     } catch (error) {

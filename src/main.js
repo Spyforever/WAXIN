@@ -8,6 +8,7 @@ import { themes } from "./config/themes.js";
 import { colorSchemes } from "./config/colorSchemes.js";
 import { setupCounter } from "./counter.js";
 import { initDesktop } from "./components/desktop.js";
+import { initFileSystem } from "./utils/zenfs-init.js";
 import { getItem, LOCAL_STORAGE_KEYS } from "./utils/localStorage.js";
 import { apps, appClasses } from "./config/apps.js";
 import { ICONS } from "./config/icons.js";
@@ -294,6 +295,44 @@ async function initializeOS() {
       createMainUI();
       initColorModeManager(document.body);
       finalizeBootProcessStep(logElement, "OK");
+    });
+
+    await executeBootStep(async () => {
+      let logElement = startBootProcessStep("Initializing file system...");
+      await initFileSystem();
+      finalizeBootProcessStep(logElement, "OK");
+    });
+
+    await executeBootStep(async () => {
+      const doomFiles = ["doom1.wad", "default.cfg"];
+      const baseRemotePath = "games/doom/";
+      const baseLocalPath = "/C:/Program Files/Doom/";
+
+      let needed = false;
+      for (const file of doomFiles) {
+        if (!fs.existsSync(baseLocalPath + file)) {
+          needed = true;
+          break;
+        }
+      }
+
+      if (needed) {
+        let logElement = startBootProcessStep("Loading Doom game data...");
+        for (const file of doomFiles) {
+          if (!fs.existsSync(baseLocalPath + file)) {
+            if (logElement && logElement.firstChild) {
+              logElement.firstChild.nodeValue = `Loading Doom game data: ${file}...`;
+            }
+            const response = await fetch(baseRemotePath + file);
+            const buffer = await response.arrayBuffer();
+            await fs.promises.writeFile(baseLocalPath + file, new Uint8Array(buffer));
+          }
+        }
+        if (logElement && logElement.firstChild) {
+          logElement.firstChild.nodeValue = "Loading Doom game data...";
+        }
+        finalizeBootProcessStep(logElement, "OK");
+      }
     });
 
     await executeBootStep(async () => {
