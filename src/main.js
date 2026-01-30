@@ -33,6 +33,7 @@ import { initColorModeManager } from "./utils/colorModeManager.js";
 import screensaver from "./utils/screensaverUtils.js";
 import { initScreenManager } from "./utils/screenManager.js";
 import { fs } from "@zenfs/core";
+import { initFileSystem } from "./utils/zenfs-init.js";
 
 // Window Management System
 class WindowManagerSystem {
@@ -213,6 +214,12 @@ async function initializeOS() {
       let logElement = startBootProcessStep("Connecting to network...");
       await new Promise((resolve) => setTimeout(resolve, 1000));
       finalizeBootProcessStep(logElement, navigator.onLine ? "OK" : "FAILED");
+    });
+
+    await executeBootStep(async () => {
+      let logElement = startBootProcessStep("Initializing file system...");
+      await initFileSystem();
+      finalizeBootProcessStep(logElement, "OK");
     });
 
     const createAssetLogCallbacks = (logElement, baseMessage) => {

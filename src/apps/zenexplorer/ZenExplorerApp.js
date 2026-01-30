@@ -1,6 +1,5 @@
 import { Application, openApps } from "../Application.js";
 import { mounts } from "@zenfs/core";
-import { initFileSystem } from "../../utils/zenfs-init.js";
 import { ICONS } from "../../config/icons.js";
 import { getAssociation } from "../../utils/directory.js";
 import { launchApp } from "../../utils/appManager.js";
@@ -124,7 +123,6 @@ export class ZenExplorerApp extends Application {
     }
 
     // 1. Initialize File System
-    await initFileSystem();
     await RecycleBinManager.init();
 
     // 2. Setup Window
