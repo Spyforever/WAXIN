@@ -122,9 +122,6 @@ export class ZenExplorerApp extends Application {
       this.currentPath = initialPath;
     }
 
-    // 1. Initialize File System
-    await RecycleBinManager.init();
-
     // 2. Setup Window
     const win = new window.$Window({
       title: this.title,
