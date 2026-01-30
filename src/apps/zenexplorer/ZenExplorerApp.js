@@ -406,8 +406,8 @@ export class ZenExplorerApp extends Application {
       this.iconContainer.setAttribute("data-current-path", this.currentPath);
       // Update autoArrange state from layout
       const layout = await ZenLayoutManager.getLayout(this.currentPath);
-      this._autoArrange = layout.autoArrange;
-      this._sortBy = (layout.order && layout.order.length > 0) ? null : (layout.sortBy || "name");
+      this.autoArrange = layout.autoArrange;
+      this._sortBy = (layout.order && layout.order.length > 0) ? null : (layout.sortBy !== undefined ? layout.sortBy : "name");
     }
     return result;
   }
@@ -417,6 +417,11 @@ export class ZenExplorerApp extends Application {
   }
 
   async setSortBy(value) {
+    this._sortBy = value;
+    if (this.menuBar) {
+      this.menuBar.element.dispatchEvent(new Event("update"));
+    }
+
     const layout = await ZenLayoutManager.getLayout(this.currentPath);
     layout.sortBy = value;
 
@@ -457,7 +462,6 @@ export class ZenExplorerApp extends Application {
     }
 
     await ZenLayoutManager.saveLayout(this.currentPath, layout, this.win.element.id);
-    this._sortBy = value;
     this.directoryView.renderDirectoryContents(this.currentPath);
   }
 
@@ -482,8 +486,13 @@ export class ZenExplorerApp extends Application {
    * Toggle Auto Arrange for the current folder
    */
   async toggleAutoArrange() {
+    this.autoArrange = !this.autoArrange;
+    if (this.menuBar) {
+      this.menuBar.element.dispatchEvent(new Event("update"));
+    }
+
     const layout = await ZenLayoutManager.getLayout(this.currentPath);
-    layout.autoArrange = !layout.autoArrange;
+    layout.autoArrange = this.autoArrange;
     if (layout.autoArrange) {
       layout.positions = {}; // Delete manual positions when turning ON
     } else {
@@ -503,13 +512,18 @@ export class ZenExplorerApp extends Application {
       });
     }
     await ZenLayoutManager.saveLayout(this.currentPath, layout, this.win.element.id);
-    this.autoArrange = layout.autoArrange;
     // Refresh the view to apply changes (e.g., add/remove classes and absolute positioning)
     this.directoryView.renderDirectoryContents(this.currentPath);
   }
 
   async handleRearrange(sourcePaths, x, y, offsets) {
+    this._sortBy = null;
+    if (this.menuBar) {
+      this.menuBar.element.dispatchEvent(new Event("update"));
+    }
+
     const layout = await ZenLayoutManager.getLayout(this.currentPath);
+    layout.sortBy = null;
 
     if (!layout.autoArrange) {
       // Free-form placement
@@ -568,6 +582,7 @@ export class ZenExplorerApp extends Application {
     }
 
     await ZenLayoutManager.saveLayout(this.currentPath, layout, this.win.element.id);
+    this.directoryView.renderDirectoryContents(this.currentPath);
   }
 
   enterRenameMode(icon) {
