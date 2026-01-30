@@ -1,4 +1,8 @@
 import { fs } from "@zenfs/core";
+import {
+    requestBusyState,
+    releaseBusyState,
+} from "../../utils/busyStateManager.js";
 import { ShowDialogWindow } from "../../components/DialogWindow.js";
 import { showInputDialog } from "./components/InputDialog.js";
 import { handleFileSystemError } from "./utils/ErrorHandler.js";
@@ -369,6 +373,8 @@ export class FileOperations {
                     label: "Yes",
                     isDefault: true,
                     action: async () => {
+                        const busyId = `delete-${Math.random()}`;
+                        requestBusyState(busyId, this.app.win.element);
                         try {
                             if (isPermanent) {
                                 for (const path of paths) {
@@ -407,6 +413,8 @@ export class FileOperations {
                             }
                         } catch (e) {
                             handleFileSystemError("delete", e, "items");
+                        } finally {
+                            releaseBusyState(busyId, this.app.win.element);
                         }
                     }
                 },
@@ -427,6 +435,8 @@ export class FileOperations {
      * Create new folder with inline rename
      */
     async createNewFolder() {
+        const busyId = `create-folder-${Math.random()}`;
+        requestBusyState(busyId, this.app.win.element);
         try {
             const name = await this.getUniqueName(this.app.currentPath, "New Folder");
             const newPath = joinPath(this.app.currentPath, name);
@@ -436,6 +446,8 @@ export class FileOperations {
             this.app.enterRenameModeByPath(newPath);
         } catch (e) {
             handleFileSystemError("create", e, "folder");
+        } finally {
+            releaseBusyState(busyId, this.app.win.element);
         }
     }
 
@@ -443,6 +455,8 @@ export class FileOperations {
      * Create new text document with inline rename
      */
     async createNewTextFile() {
+        const busyId = `create-file-${Math.random()}`;
+        requestBusyState(busyId, this.app.win.element);
         try {
             const name = await this.getUniqueName(this.app.currentPath, "New Text Document", ".txt");
             const newPath = joinPath(this.app.currentPath, name);
@@ -452,6 +466,8 @@ export class FileOperations {
             this.app.enterRenameModeByPath(newPath);
         } catch (e) {
             handleFileSystemError("create", e, "file");
+        } finally {
+            releaseBusyState(busyId, this.app.win.element);
         }
     }
 
@@ -483,6 +499,8 @@ export class FileOperations {
         const op = ZenUndoManager.peek();
         if (!op) return;
 
+        const busyId = `undo-${Math.random()}`;
+        requestBusyState(busyId, this.app.win.element);
         try {
             switch (op.type) {
                 case 'rename':
@@ -512,6 +530,8 @@ export class FileOperations {
                 modal: true,
                 buttons: [{ label: "OK" }]
             });
+        } finally {
+            releaseBusyState(busyId, this.app.win.element);
         }
     }
 

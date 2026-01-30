@@ -1,5 +1,9 @@
 import { ShowDialogWindow } from "../../components/DialogWindow.js";
 import { mounts } from "@zenfs/core";
+import {
+  requestBusyState,
+  releaseBusyState,
+} from "../../utils/busyStateManager.js";
 import { getDisplayName, getParentPath } from "./utils/PathUtils.js";
 import ZenClipboardManager from "./utils/ZenClipboardManager.js";
 import { PropertiesManager } from "./utils/PropertiesManager.js";
@@ -199,15 +203,21 @@ export class MenuBarBuilder {
       "MENU_DIVIDER",
       {
         label: "&Properties",
-        action: () => {
+        action: async () => {
           const selectedIcons = this.app.iconManager?.selectedIcons || new Set();
           const selectedPaths = [...selectedIcons].map((icon) =>
             icon.getAttribute("data-path"),
           );
-          if (selectedPaths.length > 0) {
-            PropertiesManager.show(selectedPaths);
-          } else {
-            PropertiesManager.show([this.app.currentPath]);
+          const busyId = `properties-${Math.random()}`;
+          requestBusyState(busyId, this.app.win.element);
+          try {
+            if (selectedPaths.length > 0) {
+              await PropertiesManager.show(selectedPaths);
+            } else {
+              await PropertiesManager.show([this.app.currentPath]);
+            }
+          } finally {
+            releaseBusyState(busyId, this.app.win.element);
           }
         },
       },
