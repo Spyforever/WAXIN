@@ -165,21 +165,41 @@ export class RecycleBinManager {
 
     /**
      * Empty the Recycle Bin
+     * @param {ProgressBarDialogWindow} dialog
      */
-    static async emptyRecycleBin() {
+    static async emptyRecycleBin(dialog = null) {
         const metadata = await this.getMetadata();
         const ids = Object.keys(metadata);
 
         for (const id of ids) {
+            if (dialog && dialog.cancelled) break;
             const path = joinPath(RECYCLE_PATH, id);
             try {
-                await fs.promises.rm(path, { recursive: true });
+                if (dialog) {
+                    await this.removeRecursive(path, dialog);
+                } else {
+                    await fs.promises.rm(path, { recursive: true });
+                }
             } catch (e) {
                 console.error(`Failed to delete recycled item ${id}`, e);
             }
         }
 
-        await this.saveMetadata({});
+        if (dialog && dialog.cancelled) {
+            // Re-sync metadata if cancelled
+            const remainingMetadata = {};
+            for (const id in metadata) {
+                try {
+                    await fs.promises.stat(joinPath(RECYCLE_PATH, id));
+                    remainingMetadata[id] = metadata[id];
+                } catch (e) {
+                    // Item was deleted
+                }
+            }
+            await this.saveMetadata(remainingMetadata);
+        } else {
+            await this.saveMetadata({});
+        }
         document.dispatchEvent(new CustomEvent("zen-recycle-bin-change"));
     }
 
@@ -313,7 +333,14 @@ export class RecycleBinManager {
             if (dialog && dialog.cancelled) return;
             await fs.promises.rmdir(path);
         } else {
+            if (dialog) {
+                const sourceDir = getParentPath(path);
+                dialog.update(path, sourceDir, null, 0);
+            }
             await fs.promises.unlink(path);
+            if (dialog) {
+                dialog.finishItem(stats.size);
+            }
         }
     }
 }

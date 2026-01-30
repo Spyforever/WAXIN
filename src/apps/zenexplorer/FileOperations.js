@@ -539,6 +539,52 @@ export class FileOperations {
     }
 
     /**
+     * Empty the Recycle Bin with progress
+     */
+    async emptyRecycleBin() {
+        const isEmpty = await RecycleBinManager.isEmpty();
+        if (isEmpty) return;
+
+        ShowDialogWindow({
+            title: "Confirm Empty Recycle Bin",
+            text: "Are you sure you want to permanently delete all items in the Recycle Bin?",
+            parentWindow: this.app.win,
+            modal: true,
+            buttons: [
+                {
+                    label: "Yes",
+                    isDefault: true,
+                    action: async () => {
+                        const busyId = `empty-recycle-${Math.random()}`;
+                        requestBusyState(busyId, this.app.win.element);
+
+                        const metadata = await RecycleBinManager.getMetadata();
+                        const ids = Object.keys(metadata);
+                        const paths = ids.map(id => joinPath("/C:/Recycled", id));
+
+                        const { ProgressBarDialogWindow } = await import("./components/ProgressBarDialogWindow.js");
+                        const totalSize = await this.getTotalSize(paths);
+                        const dialog = new ProgressBarDialogWindow("empty", ids.length, totalSize);
+
+                        try {
+                            await RecycleBinManager.emptyRecycleBin(dialog);
+                            const { playSound } = await import("../../utils/soundManager.js");
+                            playSound("EmptyRecycleBin");
+                        } catch (e) {
+                            handleFileSystemError("delete", e, "items");
+                        } finally {
+                            dialog.close();
+                            releaseBusyState(busyId, this.app.win.element);
+                            await this.app.navigateTo(this.app.currentPath, true, true);
+                        }
+                    }
+                },
+                { label: "No" }
+            ]
+        });
+    }
+
+    /**
      * Undo the last file operation
      */
     async undo() {

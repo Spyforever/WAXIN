@@ -24,14 +24,16 @@ export class ProgressBarDialogWindow {
       copy: "Copying...",
       move: "Moving...",
       recycle: "Recycling...",
-      delete: "Deleting..."
+      delete: "Deleting...",
+      empty: "Emptying Recycle Bin..."
     }[this.operation] || "Processing...";
 
     const gifUrl = {
       copy: new URL("../assets/copying.gif", import.meta.url).href,
       move: new URL("../assets/moving.gif", import.meta.url).href,
       recycle: new URL("../assets/moving.gif", import.meta.url).href,
-      delete: new URL("../assets/copying.gif", import.meta.url).href
+      delete: new URL("../assets/copying.gif", import.meta.url).href,
+      empty: new URL("../assets/moving.gif", import.meta.url).href
     }[this.operation] || new URL("../assets/moving.gif", import.meta.url).href;
 
     const content = document.createElement("div");
@@ -144,6 +146,8 @@ export class ProgressBarDialogWindow {
         this.fromToEl.textContent = `Deleting from '${sourceName}'`;
       } else if (this.operation === "recycle") {
         this.fromToEl.textContent = `From '${sourceName}' to Recycle Bin`;
+      } else if (this.operation === "empty") {
+        this.fromToEl.textContent = `Emptying Recycle Bin...`;
       } else {
         let destName = destPath ? getDisplayName(destPath) : "";
         if (destName.length > 20) {
