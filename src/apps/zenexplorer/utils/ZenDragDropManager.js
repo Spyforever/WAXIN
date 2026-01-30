@@ -210,6 +210,12 @@ export class ZenDragDropManager {
             return;
         }
 
+        // Prevent moving/copying root items to other folders
+        if (sourceDir === "/") {
+            console.warn("Cannot move or copy root items to other folders.");
+            return;
+        }
+
         try {
             if (isCopy) {
                 await this.sourceApp.fileOps.copyItemsDirect(sourcePaths, destinationPath, { dropX, dropY });
