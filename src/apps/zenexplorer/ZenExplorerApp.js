@@ -407,47 +407,39 @@ export class ZenExplorerApp extends Application {
       // Update autoArrange state from layout
       const layout = await ZenLayoutManager.getLayout(this.currentPath);
       this.autoArrange = layout.autoArrange;
-      this._sortBy = (layout.order && layout.order.length > 0) ? null : (layout.sortBy !== undefined ? layout.sortBy : "name");
     }
     return result;
   }
 
-  get sortBy() {
-    return this._sortBy;
-  }
+  async sortIcons(method) {
+    const layout = await ZenLayoutManager.getLayout(this.currentPath);
+    layout.sortBy = null; // Don't persist the sort method
 
-  async setSortBy(value) {
-    this._sortBy = value;
-    if (this.menuBar) {
-      this.menuBar.element.dispatchEvent(new Event("update"));
+    // Get current files and stats for sorting
+    const files = await ZenShellManager.readdir(this.currentPath);
+    const fileInfos = [];
+    for (const file of files) {
+      if (file === ".zen_layout.json") continue;
+      if (RecycleBinManager.isRecycleBinPath(this.currentPath) && file === ".metadata.json") continue;
+
+      const fullPath = joinPath(this.currentPath, file);
+      try {
+        const stat = await ZenShellManager.stat(fullPath);
+        fileInfos.push({ name: file, stat, isDirectory: stat.isDirectory() });
+      } catch (e) {
+        fileInfos.push({ name: file, stat: { size: 0, mtime: new Date(0) }, isDirectory: false });
+      }
     }
 
-    const layout = await ZenLayoutManager.getLayout(this.currentPath);
-    layout.sortBy = value;
+    // Perform sort
+    const sortedInfos = sortFileInfos(fileInfos, method, this.currentPath, []);
 
     if (this.autoArrange) {
-      layout.order = []; // Clear manual order
+      // Update order for grid view
+      layout.order = sortedInfos.map(info => info.name);
+      layout.positions = {};
     } else {
-      // One-time arrangement to grid
-      const files = await ZenShellManager.readdir(this.currentPath);
-      const fileInfos = [];
-      for (const file of files) {
-        if (file === ".zen_layout.json") continue;
-        if (RecycleBinManager.isRecycleBinPath(this.currentPath) && file === ".metadata.json") continue;
-
-        const fullPath = joinPath(this.currentPath, file);
-        try {
-          const stat = await ZenShellManager.stat(fullPath);
-          fileInfos.push({ name: file, stat, isDirectory: stat.isDirectory() });
-        } catch (e) {
-          fileInfos.push({ name: file, stat: { size: 0, mtime: new Date(0) }, isDirectory: false });
-        }
-      }
-
-      // Sort
-      const sortedInfos = sortFileInfos(fileInfos, value, this.currentPath);
-
-      // Grid arrangement
+      // Update absolute positions in a grid
       const gridX = 75;
       const gridY = 85;
       const containerWidth = this.iconContainer.clientWidth || 640;
@@ -459,6 +451,7 @@ export class ZenExplorerApp extends Application {
         const y = Math.floor(index / cols) * gridY + 10;
         layout.positions[info.name] = { x, y };
       });
+      layout.order = sortedInfos.map(info => info.name);
     }
 
     await ZenLayoutManager.saveLayout(this.currentPath, layout, this.win.element.id);
@@ -517,11 +510,6 @@ export class ZenExplorerApp extends Application {
   }
 
   async handleRearrange(sourcePaths, x, y, offsets) {
-    this._sortBy = null;
-    if (this.menuBar) {
-      this.menuBar.element.dispatchEvent(new Event("update"));
-    }
-
     const layout = await ZenLayoutManager.getLayout(this.currentPath);
     layout.sortBy = null;
 

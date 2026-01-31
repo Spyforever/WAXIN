@@ -20,10 +20,6 @@ export function sortFileInfos(fileInfos, sortBy, path, order = []) {
       if (!isDriveA && isDriveB) return 1;
     }
 
-    // Folders first
-    if (a.isDirectory && !b.isDirectory) return -1;
-    if (!a.isDirectory && b.isDirectory) return 1;
-
     // Use order if provided
     if (order.length > 0) {
       const orderA = getOrderIndex(a.name);
@@ -31,6 +27,10 @@ export function sortFileInfos(fileInfos, sortBy, path, order = []) {
       if (orderA !== orderB) return orderA - orderB;
       return a.name.localeCompare(b.name);
     }
+
+    // Folders first
+    if (a.isDirectory && !b.isDirectory) return -1;
+    if (!a.isDirectory && b.isDirectory) return 1;
 
     switch (sortBy) {
       case "size":
