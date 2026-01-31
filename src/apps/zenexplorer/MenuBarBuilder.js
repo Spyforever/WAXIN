@@ -249,16 +249,10 @@ export class MenuBarBuilder {
       {
         label: "Arrange &Icons",
         submenu: [
-          {
-            radioItems: [
-              { label: "by Name", value: "name" },
-              { label: "by Size", value: "size" },
-              { label: "by Type", value: "type" },
-              { label: "by Date", value: "date" },
-            ],
-            getValue: () => this.app.sortBy,
-            setValue: (value) => this.app.setSortBy(value),
-          },
+          { label: "by &Name", action: () => this.app.sortIcons("name") },
+          { label: "by &Size", action: () => this.app.sortIcons("size") },
+          { label: "by &Type", action: () => this.app.sortIcons("type") },
+          { label: "by &Date", action: () => this.app.sortIcons("date") },
           "MENU_DIVIDER",
           {
             label: "&Auto Arrange",

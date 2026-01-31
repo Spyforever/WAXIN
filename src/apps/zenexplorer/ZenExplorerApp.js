@@ -406,43 +406,40 @@ export class ZenExplorerApp extends Application {
       this.iconContainer.setAttribute("data-current-path", this.currentPath);
       // Update autoArrange state from layout
       const layout = await ZenLayoutManager.getLayout(this.currentPath);
-      this._autoArrange = layout.autoArrange;
-      this._sortBy = (layout.order && layout.order.length > 0) ? null : (layout.sortBy || "name");
+      this.autoArrange = layout.autoArrange;
     }
     return result;
   }
 
-  get sortBy() {
-    return this._sortBy;
-  }
-
-  async setSortBy(value) {
+  async sortIcons(method) {
     const layout = await ZenLayoutManager.getLayout(this.currentPath);
-    layout.sortBy = value;
+    layout.sortBy = null; // Don't persist the sort method
+
+    // Get current files and stats for sorting
+    const files = await ZenShellManager.readdir(this.currentPath);
+    const fileInfos = [];
+    for (const file of files) {
+      if (file === ".zen_layout.json") continue;
+      if (RecycleBinManager.isRecycleBinPath(this.currentPath) && file === ".metadata.json") continue;
+
+      const fullPath = joinPath(this.currentPath, file);
+      try {
+        const stat = await ZenShellManager.stat(fullPath);
+        fileInfos.push({ name: file, stat, isDirectory: stat.isDirectory() });
+      } catch (e) {
+        fileInfos.push({ name: file, stat: { size: 0, mtime: new Date(0) }, isDirectory: false });
+      }
+    }
+
+    // Perform sort
+    const sortedInfos = sortFileInfos(fileInfos, method, this.currentPath, []);
 
     if (this.autoArrange) {
-      layout.order = []; // Clear manual order
+      // Update order for grid view
+      layout.order = sortedInfos.map(info => info.name);
+      layout.positions = {};
     } else {
-      // One-time arrangement to grid
-      const files = await ZenShellManager.readdir(this.currentPath);
-      const fileInfos = [];
-      for (const file of files) {
-        if (file === ".zen_layout.json") continue;
-        if (RecycleBinManager.isRecycleBinPath(this.currentPath) && file === ".metadata.json") continue;
-
-        const fullPath = joinPath(this.currentPath, file);
-        try {
-          const stat = await ZenShellManager.stat(fullPath);
-          fileInfos.push({ name: file, stat, isDirectory: stat.isDirectory() });
-        } catch (e) {
-          fileInfos.push({ name: file, stat: { size: 0, mtime: new Date(0) }, isDirectory: false });
-        }
-      }
-
-      // Sort
-      const sortedInfos = sortFileInfos(fileInfos, value, this.currentPath);
-
-      // Grid arrangement
+      // Update absolute positions in a grid
       const gridX = 75;
       const gridY = 85;
       const containerWidth = this.iconContainer.clientWidth || 640;
@@ -454,10 +451,10 @@ export class ZenExplorerApp extends Application {
         const y = Math.floor(index / cols) * gridY + 10;
         layout.positions[info.name] = { x, y };
       });
+      layout.order = sortedInfos.map(info => info.name);
     }
 
     await ZenLayoutManager.saveLayout(this.currentPath, layout, this.win.element.id);
-    this._sortBy = value;
     this.directoryView.renderDirectoryContents(this.currentPath);
   }
 
@@ -482,8 +479,13 @@ export class ZenExplorerApp extends Application {
    * Toggle Auto Arrange for the current folder
    */
   async toggleAutoArrange() {
+    this.autoArrange = !this.autoArrange;
+    if (this.menuBar) {
+      this.menuBar.element.dispatchEvent(new Event("update"));
+    }
+
     const layout = await ZenLayoutManager.getLayout(this.currentPath);
-    layout.autoArrange = !layout.autoArrange;
+    layout.autoArrange = this.autoArrange;
     if (layout.autoArrange) {
       layout.positions = {}; // Delete manual positions when turning ON
     } else {
@@ -503,13 +505,13 @@ export class ZenExplorerApp extends Application {
       });
     }
     await ZenLayoutManager.saveLayout(this.currentPath, layout, this.win.element.id);
-    this.autoArrange = layout.autoArrange;
     // Refresh the view to apply changes (e.g., add/remove classes and absolute positioning)
     this.directoryView.renderDirectoryContents(this.currentPath);
   }
 
   async handleRearrange(sourcePaths, x, y, offsets) {
     const layout = await ZenLayoutManager.getLayout(this.currentPath);
+    layout.sortBy = null;
 
     if (!layout.autoArrange) {
       // Free-form placement
@@ -568,6 +570,7 @@ export class ZenExplorerApp extends Application {
     }
 
     await ZenLayoutManager.saveLayout(this.currentPath, layout, this.win.element.id);
+    this.directoryView.renderDirectoryContents(this.currentPath);
   }
 
   enterRenameMode(icon) {
