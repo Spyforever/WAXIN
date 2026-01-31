@@ -1,5 +1,5 @@
 import { fs } from "@zenfs/core";
-import { getParentPath } from "./PathUtils.js";
+import { getParentPath } from "../navigation/PathUtils.js";
 
 /**
  * VirtualStats - Mock fs.Stats for shell extensions
@@ -30,9 +30,9 @@ export class VirtualStats {
 }
 
 /**
- * ZenShellManager - Orchestrates virtual shell extensions in ZenExplorer
+ * ShellManager - Orchestrates virtual shell extensions in ZenExplorer
  */
-export class ZenShellManager {
+export class ShellManager {
   static extensions = [];
 
   /**

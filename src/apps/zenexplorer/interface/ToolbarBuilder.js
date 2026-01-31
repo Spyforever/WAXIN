@@ -1,10 +1,10 @@
-import ZenClipboardManager from "./ZenClipboardManager.js";
-import ZenUndoManager from "./ZenUndoManager.js";
-import { getParentPath, getDisplayName } from "./PathUtils.js";
-import { PropertiesManager } from "./PropertiesManager.js";
+import ClipboardManager from "../fileoperations/ClipboardManager.js";
+import UndoManager from "../fileoperations/UndoManager.js";
+import { getParentPath, getDisplayName } from "../navigation/PathUtils.js";
+import { PropertiesManager } from "../fileoperations/PropertiesManager.js";
 
 /**
- * ZenToolbarBuilder - Constructs toolbar items for ZenExplorer
+ * ToolbarBuilder - Constructs toolbar items for ZenExplorer
  */
 
 export function getToolbarItems(app) {
@@ -105,14 +105,14 @@ export function getToolbarItems(app) {
       label: "Paste",
       iconName: "paste",
       action: () => app.fileOps.pasteItems(app.currentPath),
-      enabled: () => !ZenClipboardManager.isEmpty() && !isRoot(),
+      enabled: () => !ClipboardManager.isEmpty() && !isRoot(),
     },
     "divider",
     {
       label: "Undo",
       iconName: "undo",
       action: () => app.fileOps.undo(),
-      enabled: () => ZenUndoManager.canUndo(),
+      enabled: () => UndoManager.canUndo(),
     },
     "divider",
     {

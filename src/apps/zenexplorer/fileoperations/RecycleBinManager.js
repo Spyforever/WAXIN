@@ -1,16 +1,10 @@
 import { fs } from "@zenfs/core";
-import { joinPath, getPathName, getParentPath } from "./PathUtils.js";
+import { joinPath, getPathName, getParentPath } from "../navigation/PathUtils.js";
 
 const RECYCLE_PATH = "/C:/Recycled";
 const METADATA_FILE = joinPath(RECYCLE_PATH, ".metadata.json");
 
-/**
- * RecycleBinManager - Manages the Recycle Bin system for ZenExplorer
- */
 export class RecycleBinManager {
-    /**
-     * Initialize the Recycle Bin folder and metadata
-     */
     static async init() {
         try {
             const stats = await fs.promises.stat(RECYCLE_PATH);
@@ -28,10 +22,6 @@ export class RecycleBinManager {
         }
     }
 
-    /**
-     * Get the current metadata object
-     * @returns {Promise<Object>}
-     */
     static async getMetadata() {
         try {
             const content = await fs.promises.readFile(METADATA_FILE, 'utf8');
@@ -41,20 +31,10 @@ export class RecycleBinManager {
         }
     }
 
-    /**
-     * Save the metadata object
-     * @param {Object} metadata
-     */
     static async saveMetadata(metadata) {
         await fs.promises.writeFile(METADATA_FILE, JSON.stringify(metadata, null, 2));
     }
 
-    /**
-     * Move multiple items to the Recycle Bin
-     * @param {string[]} paths
-     * @param {ProgressBarDialogWindow} dialog
-     * @returns {Promise<string[]>} IDs of the recycled items
-     */
     static async moveItemsToRecycleBin(paths, dialog = null) {
         const metadata = await this.getMetadata();
         let changed = false;
@@ -85,7 +65,7 @@ export class RecycleBinManager {
                 }
             } catch (e) {
                 await this.copyRecursive(path, targetPath, dialog);
-                await this.removeRecursive(path, dialog, false); // Don't report progress twice
+                await this.removeRecursive(path, dialog, false);
             }
 
             metadata[id] = {
@@ -100,25 +80,16 @@ export class RecycleBinManager {
 
         if (changed) {
             await this.saveMetadata(metadata);
-            document.dispatchEvent(new CustomEvent("zen-recycle-bin-change"));
+            document.dispatchEvent(new CustomEvent("recycle-bin-change"));
         }
 
         return recycledIds;
     }
 
-    /**
-     * Move an item to the Recycle Bin
-     * @param {string} path
-     */
     static async moveToRecycleBin(path) {
         await this.moveItemsToRecycleBin([path]);
     }
 
-    /**
-     * Restore multiple items from the Recycle Bin
-     * @param {string[]} ids
-     * @param {ProgressBarDialogWindow} dialog
-     */
     static async restoreItems(ids, dialog = null) {
         const metadata = await this.getMetadata();
         let changed = false;
@@ -153,7 +124,8 @@ export class RecycleBinManager {
                 }
             } catch (e) {
                 await this.copyRecursive(srcPath, destPath, dialog);
-                await this.removeRecursive(srcPath, dialog, false); // Don't report progress twice
+                // BUG FIX: pass dialog, not destPath
+                await this.removeRecursive(srcPath, dialog, false);
             }
 
             delete metadata[id];
@@ -162,22 +134,14 @@ export class RecycleBinManager {
 
         if (changed) {
             await this.saveMetadata(metadata);
-            document.dispatchEvent(new CustomEvent("zen-recycle-bin-change"));
+            document.dispatchEvent(new CustomEvent("recycle-bin-change"));
         }
     }
 
-    /**
-     * Restore an item from the Recycle Bin
-     * @param {string} id
-     */
     static async restoreItem(id) {
         await this.restoreItems([id]);
     }
 
-    /**
-     * Empty the Recycle Bin
-     * @param {ProgressBarDialogWindow} dialog
-     */
     static async emptyRecycleBin(dialog = null) {
         const metadata = await this.getMetadata();
         const ids = Object.keys(metadata);
@@ -197,67 +161,43 @@ export class RecycleBinManager {
         }
 
         if (dialog && dialog.cancelled) {
-            // Re-sync metadata if cancelled
             const remainingMetadata = {};
             for (const id in metadata) {
                 try {
                     await fs.promises.stat(joinPath(RECYCLE_PATH, id));
                     remainingMetadata[id] = metadata[id];
-                } catch (e) {
-                    // Item was deleted
-                }
+                } catch (e) {}
             }
             await this.saveMetadata(remainingMetadata);
         } else {
             await this.saveMetadata({});
         }
-        document.dispatchEvent(new CustomEvent("zen-recycle-bin-change"));
+        document.dispatchEvent(new CustomEvent("recycle-bin-change"));
     }
 
-    /**
-     * Check if the Recycle Bin is empty
-     * @returns {Promise<boolean>}
-     */
     static async isEmpty() {
         const metadata = await this.getMetadata();
         return Object.keys(metadata).length === 0;
     }
 
-    /**
-     * Check if a path is the Recycle Bin folder itself
-     * @param {string} path
-     * @returns {boolean}
-     */
     static isRecycleBinPath(path) {
         return path === RECYCLE_PATH;
     }
 
-    /**
-     * Check if a path is an item inside the Recycle Bin
-     * @param {string} path
-     * @returns {boolean}
-     */
     static isRecycledItemPath(path) {
         return path.startsWith(RECYCLE_PATH + "/") && path !== METADATA_FILE;
     }
 
-    /**
-     * Get unique path for restoration using "Copy of" logic
-     * @private
-     */
     static async _getUniqueRestorePath(path) {
         let currentPath = path;
         try {
             await fs.promises.stat(currentPath);
-            // File exists, need new name
         } catch (e) {
             return currentPath;
         }
 
         const parent = getParentPath(path);
         const originalName = getPathName(path);
-
-        // Windows-style copy naming: "Copy of X", "Copy (2) of X", etc.
         const copyNOfRegex = /^Copy \((\d+)\) of (.*)$/;
         const copyOfRegex = /^Copy of (.*)$/;
 
@@ -273,7 +213,6 @@ export class RecycleBinManager {
         currentPath = joinPath(parent, candidateName);
         try {
             await fs.promises.stat(currentPath);
-            // "Copy of X" exists, try "Copy (2) of X", etc.
             let counter = 2;
             while (true) {
                 candidateName = `Copy (${counter}) of ${baseName}`;
@@ -290,13 +229,8 @@ export class RecycleBinManager {
         }
     }
 
-    /**
-     * Recursively copy a file or directory
-     * @private
-     */
     static async copyRecursive(src, dest, dialog = null) {
         if (dialog && dialog.cancelled) return;
-
         const stats = await fs.promises.stat(src);
         const sourceDir = getParentPath(src);
         const destDir = getParentPath(dest);
@@ -321,13 +255,8 @@ export class RecycleBinManager {
         }
     }
 
-    /**
-     * Recursively remove a file or directory
-     * @private
-     */
     static async removeRecursive(path, dialog = null, reportProgress = true) {
         if (dialog && dialog.cancelled) return;
-
         let stats;
         try {
             stats = await fs.promises.stat(path);

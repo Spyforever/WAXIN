@@ -1,9 +1,9 @@
-import { getParentPath } from "./PathUtils.js";
-import { RecycleBinManager } from "./RecycleBinManager.js";
-import { PropertiesManager } from "./PropertiesManager.js";
+import { getParentPath } from "../navigation/PathUtils.js";
+import { RecycleBinManager } from "../fileoperations/RecycleBinManager.js";
+import { PropertiesManager } from "../fileoperations/PropertiesManager.js";
 import { launchApp } from "../../../utils/appManager.js";
 
-export class ZenKeyboardHandler {
+export class KeyboardHandler {
   constructor(app) {
     this.app = app;
   }

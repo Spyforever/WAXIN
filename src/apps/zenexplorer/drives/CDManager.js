@@ -1,10 +1,10 @@
 /**
- * ZenCDManager - Singleton to track the label of the mounted CD-ROM in ZenFS
+ * CDManager - Singleton to track the label of the mounted CD-ROM in ZenFS
  */
 
 let cdLabel = null;
 
-export const ZenCDManager = {
+export const CDManager = {
     setLabel(label) {
         cdLabel = label;
     },

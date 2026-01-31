@@ -1,8 +1,8 @@
 /**
- * ZenUndoManager - Manages the undo stack for file operations in ZenExplorer
+ * UndoManager - Manages the undo stack for file operations in ZenExplorer
  */
 
-const ZenUndoManager = {
+const UndoManager = {
     stack: [],
 
     /**
@@ -13,7 +13,7 @@ const ZenUndoManager = {
      */
     push(operation) {
         this.stack.push(operation);
-        document.dispatchEvent(new CustomEvent('zen-undo-change'));
+        document.dispatchEvent(new CustomEvent('undo-change'));
     },
 
     /**
@@ -23,7 +23,7 @@ const ZenUndoManager = {
     pop() {
         if (this.stack.length === 0) return null;
         const op = this.stack.pop();
-        document.dispatchEvent(new CustomEvent('zen-undo-change'));
+        document.dispatchEvent(new CustomEvent('undo-change'));
         return op;
     },
 
@@ -41,7 +41,7 @@ const ZenUndoManager = {
      */
     clear() {
         this.stack = [];
-        document.dispatchEvent(new CustomEvent('zen-undo-change'));
+        document.dispatchEvent(new CustomEvent('undo-change'));
     },
 
     /**
@@ -71,4 +71,4 @@ const ZenUndoManager = {
     }
 };
 
-export default ZenUndoManager;
+export default UndoManager;

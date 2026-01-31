@@ -1,8 +1,8 @@
 import { ICONS } from "../../../config/icons.js";
 import { apps } from "../../../config/apps.js";
 import { launchApp } from "../../../utils/appManager.js";
-import { VirtualStats } from "../utils/ZenShellManager.js";
-import { getPathName } from "../utils/PathUtils.js";
+import { VirtualStats } from "./ShellManager.js";
+import { getPathName } from "../navigation/PathUtils.js";
 
 /**
  * ControlPanelExtension - Shell extension for the virtual Control Panel folder

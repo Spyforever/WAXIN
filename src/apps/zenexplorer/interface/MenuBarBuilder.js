@@ -1,28 +1,20 @@
-import { ShowDialogWindow } from "../../components/DialogWindow.js";
+import { ShowDialogWindow } from "../../../components/DialogWindow.js";
 import { mounts } from "@zenfs/core";
 import {
   requestBusyState,
   releaseBusyState,
-} from "../../utils/busyStateManager.js";
-import { getDisplayName, getParentPath } from "./utils/PathUtils.js";
-import ZenClipboardManager from "./utils/ZenClipboardManager.js";
-import { PropertiesManager } from "./utils/PropertiesManager.js";
-import ZenUndoManager from "./utils/ZenUndoManager.js";
-import { ZenRemovableDiskManager } from "./utils/ZenRemovableDiskManager.js";
-
-/**
- * MenuBarBuilder - Constructs menu bar for ZenExplorer
- */
+} from "../../../utils/busyStateManager.js";
+import { getDisplayName, getParentPath } from "../navigation/PathUtils.js";
+import ClipboardManager from "../fileoperations/ClipboardManager.js";
+import { PropertiesManager } from "../fileoperations/PropertiesManager.js";
+import UndoManager from "../fileoperations/UndoManager.js";
+import { RemovableDiskManager } from "../drives/RemovableDiskManager.js";
 
 export class MenuBarBuilder {
   constructor(app) {
     this.app = app;
   }
 
-  /**
-   * Build complete menu bar
-   * @returns {MenuBar} Menu bar instance
-   */
   build() {
     return new window.MenuBar({
       "&File": this._getFileMenuItems(),
@@ -33,10 +25,6 @@ export class MenuBarBuilder {
     });
   }
 
-  /**
-   * Get Edit menu items
-   * @private
-   */
   _getEditMenuItems() {
     const selectedIcons = this.app.iconManager?.selectedIcons || new Set();
     const selectedPaths = [...selectedIcons].map((icon) =>
@@ -49,10 +37,10 @@ export class MenuBarBuilder {
 
     return [
       {
-        label: ZenUndoManager.getUndoLabel(),
+        label: UndoManager.getUndoLabel(),
         shortcutLabel: "Ctrl+Z",
         action: () => this.app.fileOps.undo(),
-        enabled: () => ZenUndoManager.canUndo(),
+        enabled: () => UndoManager.canUndo(),
       },
       "MENU_DIVIDER",
       {
@@ -75,15 +63,11 @@ export class MenuBarBuilder {
         label: "&Paste",
         shortcutLabel: "Ctrl+V",
         action: () => this.app.fileOps.pasteItems(this.app.currentPath),
-        enabled: () => !ZenClipboardManager.isEmpty() && !isRoot,
+        enabled: () => !ClipboardManager.isEmpty() && !isRoot,
       },
     ];
   }
 
-  /**
-   * Get File menu items
-   * @private
-   */
   _getFileMenuItems() {
     const selectedIcons = this.app.iconManager?.selectedIcons || new Set();
     const selectedPaths = [...selectedIcons].map((icon) =>
@@ -137,7 +121,7 @@ export class MenuBarBuilder {
       {
         label: "&Insert Removable Disk",
         action: () => this.app.driveManager.insertRemovableDisk(),
-        enabled: () => ZenRemovableDiskManager.getAvailableLetter() !== null,
+        enabled: () => RemovableDiskManager.getAvailableLetter() !== null,
       },
       "MENU_DIVIDER",
       {
@@ -181,21 +165,17 @@ export class MenuBarBuilder {
       {
         radioItems: this.app.navHistory.getMRUFolders().map((entry) => ({
           label: getDisplayName(entry.path),
-          value: entry.id, // Use unique ID as value instead of path
+          value: entry.id,
         })),
         getValue: () => {
-          // Return the ID of the selected entry
           return this.app.navHistory.getSelectedMRUId();
         },
         setValue: (id) => {
-          // Find the entry by ID
           const entry = this.app.navHistory
             .getMRUFolders()
             .find((e) => e.id === id);
           if (entry) {
-            // Mark this specific entry as manually selected
             this.app.navHistory.markAsManuallySelectedById(id);
-            // Navigate without adding to MRU (pass true for skipMRU)
             this.app.navigateTo(entry.path, false, true);
           }
         },
@@ -229,10 +209,6 @@ export class MenuBarBuilder {
     ];
   }
 
-  /**
-   * Get View menu items
-   * @private
-   */
   _getViewMenuItems() {
     return [
       {
@@ -274,10 +250,6 @@ export class MenuBarBuilder {
     ];
   }
 
-  /**
-   * Get Go menu items
-   * @private
-   */
   _getGoMenuItems() {
     return [
       {
@@ -298,10 +270,6 @@ export class MenuBarBuilder {
     ];
   }
 
-  /**
-   * Get Help menu items
-   * @private
-   */
   _getHelpMenuItems() {
     return [
       {
