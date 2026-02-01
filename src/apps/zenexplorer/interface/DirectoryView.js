@@ -48,7 +48,7 @@ export class DirectoryView {
       icon = ICONS.disketteDrive;
     }
     if (RecycleBinManager.isRecycleBinPath(path)) {
-      const isEmpty = await RecycleBinManager.isEmpty();
+      const isEmpty = await RecycleBinManager.isEmpty(path);
       icon = isEmpty ? ICONS.recycleBinEmpty : ICONS.recycleBinFull;
     }
 
@@ -108,8 +108,8 @@ export class DirectoryView {
     this.app.iconManager.clearSelection();
 
     const isRecycleBin = RecycleBinManager.isRecycleBinPath(path);
-    const metadata = isRecycleBin ? await RecycleBinManager.getMetadata() : null;
-    const recycleBinEmpty = await RecycleBinManager.isEmpty();
+    const metadata = isRecycleBin ? await RecycleBinManager.getMetadata(path) : null;
+    const recycleBinEmpty = isRecycleBin ? await RecycleBinManager.isEmpty(path) : true;
 
     if (this.app.viewMode === "details") {
       const columns = ShellManager.getColumns(path);

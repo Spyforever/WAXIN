@@ -1,154 +1,198 @@
 import { fs } from "@zenfs/core";
 import { joinPath, getPathName, getParentPath } from "../navigation/PathUtils.js";
 
-const RECYCLE_PATH = "/C:/Recycled";
-const METADATA_FILE = joinPath(RECYCLE_PATH, ".metadata.json");
-
 export class RecycleBinManager {
     static async init() {
-        try {
-            const stats = await fs.promises.stat(RECYCLE_PATH);
-            if (!stats.isDirectory()) {
-                await fs.promises.mkdir(RECYCLE_PATH, { recursive: true });
-            }
-        } catch (e) {
-            await fs.promises.mkdir(RECYCLE_PATH, { recursive: true });
-        }
-
-        try {
-            await fs.promises.stat(METADATA_FILE);
-        } catch (e) {
-            await fs.promises.writeFile(METADATA_FILE, JSON.stringify({}));
-        }
+        // No longer creates /C:/Recycled by default.
+        // Recycle bins are created on-demand per drive.
     }
 
-    static async getMetadata() {
+    static getDriveRoot(path) {
+        const match = path.match(/^(\/[A-Z]:)/i);
+        return match ? match[1] : "/";
+    }
+
+    static getRecyclePath(path) {
+        const driveRoot = this.getDriveRoot(path);
+        if (driveRoot === "/" || driveRoot.toUpperCase() === "/E:") return null;
+        return joinPath(driveRoot, "Recycled");
+    }
+
+    static async getMetadata(recyclePath) {
+        const metadataFile = joinPath(recyclePath, ".metadata.json");
         try {
-            const content = await fs.promises.readFile(METADATA_FILE, 'utf8');
+            const content = await fs.promises.readFile(metadataFile, 'utf8');
             return JSON.parse(content);
         } catch (e) {
             return {};
         }
     }
 
-    static async saveMetadata(metadata) {
-        await fs.promises.writeFile(METADATA_FILE, JSON.stringify(metadata, null, 2));
+    static async saveMetadata(recyclePath, metadata) {
+        const metadataFile = joinPath(recyclePath, ".metadata.json");
+        await fs.promises.writeFile(metadataFile, JSON.stringify(metadata, null, 2));
     }
 
     static async moveItemsToRecycleBin(paths, dialog = null) {
-        const metadata = await this.getMetadata();
-        let changed = false;
-        const recycledIds = [];
-
+        const groups = {};
         for (const path of paths) {
-            if (dialog && dialog.cancelled) break;
-            if (this.isRecycledItemPath(path)) continue;
+            const recyclePath = this.getRecyclePath(path);
+            if (!recyclePath) continue;
+            if (!groups[recyclePath]) groups[recyclePath] = [];
+            groups[recyclePath].push(path);
+        }
 
-            const id = (typeof crypto.randomUUID === 'function')
-                ? crypto.randomUUID()
-                : Date.now().toString(36) + Math.random().toString(36).substring(2);
+        const allRecycledPaths = [];
+        for (const recyclePath in groups) {
+            const items = groups[recyclePath];
+            const metadataFile = joinPath(recyclePath, ".metadata.json");
 
-            const name = getPathName(path);
-            const targetPath = joinPath(RECYCLE_PATH, id);
-
-            const sourceDir = getParentPath(path);
-            if (dialog) {
-                dialog.update(path, sourceDir, RECYCLE_PATH, 0);
+            try {
+                await fs.promises.stat(recyclePath);
+            } catch (e) {
+                await fs.promises.mkdir(recyclePath, { recursive: true });
             }
 
             try {
-                await fs.promises.rename(path, targetPath);
-                if (dialog) {
-                    const stats = await fs.promises.stat(targetPath);
-                    dialog.finishItem(stats.isDirectory() ? 0 : stats.size);
-                    dialog.update(path, sourceDir, RECYCLE_PATH, 0);
-                }
+                await fs.promises.stat(metadataFile);
             } catch (e) {
-                await this.copyRecursive(path, targetPath, dialog);
-                await this.removeRecursive(path, dialog, false);
+                await fs.promises.writeFile(metadataFile, JSON.stringify({}));
             }
 
-            metadata[id] = {
-                id,
-                originalPath: path,
-                originalName: name,
-                deletionDate: new Date().toISOString()
-            };
-            recycledIds.push(id);
-            changed = true;
+            const metadata = await this.getMetadata(recyclePath);
+            let changed = false;
+
+            for (const path of items) {
+                if (dialog && dialog.cancelled) break;
+                if (this.isRecycledItemPath(path)) continue;
+
+                const id = (typeof crypto.randomUUID === 'function')
+                    ? crypto.randomUUID()
+                    : Date.now().toString(36) + Math.random().toString(36).substring(2);
+
+                const name = getPathName(path);
+                const targetPath = joinPath(recyclePath, id);
+
+                const sourceDir = getParentPath(path);
+                if (dialog) {
+                    dialog.update(path, sourceDir, recyclePath, 0);
+                }
+
+                try {
+                    await fs.promises.rename(path, targetPath);
+                    if (dialog) {
+                        const stats = await fs.promises.stat(targetPath);
+                        dialog.finishItem(stats.isDirectory() ? 0 : stats.size);
+                        dialog.update(path, sourceDir, recyclePath, 0);
+                    }
+                } catch (e) {
+                    await this.copyRecursive(path, targetPath, dialog);
+                    await this.removeRecursive(path, dialog, false);
+                }
+
+                metadata[id] = {
+                    id,
+                    originalPath: path,
+                    originalName: name,
+                    deletionDate: new Date().toISOString()
+                };
+                allRecycledPaths.push(targetPath);
+                changed = true;
+            }
+
+            if (changed) {
+                await this.saveMetadata(recyclePath, metadata);
+            }
         }
 
-        if (changed) {
-            await this.saveMetadata(metadata);
+        if (allRecycledPaths.length > 0) {
             document.dispatchEvent(new CustomEvent("recycle-bin-change"));
         }
 
-        return recycledIds;
+        return allRecycledPaths;
     }
 
     static async moveToRecycleBin(path) {
         await this.moveItemsToRecycleBin([path]);
     }
 
-    static async restoreItems(ids, dialog = null) {
-        const metadata = await this.getMetadata();
-        let changed = false;
-
-        for (const id of ids) {
-            if (dialog && dialog.cancelled) break;
-            const entry = metadata[id];
-            if (!entry) continue;
-
-            const srcPath = joinPath(RECYCLE_PATH, id);
-            let destPath = entry.originalPath;
-            const parentPath = getParentPath(destPath);
-
-            if (dialog) {
-                dialog.update(entry.originalName, RECYCLE_PATH, parentPath, 0);
-            }
-
-            try {
-                await fs.promises.stat(parentPath);
-            } catch (e) {
-                await fs.promises.mkdir(parentPath, { recursive: true });
-            }
-
-            destPath = await this._getUniqueRestorePath(destPath);
-
-            try {
-                await fs.promises.rename(srcPath, destPath);
-                if (dialog) {
-                    const stats = await fs.promises.stat(destPath);
-                    dialog.finishItem(stats.isDirectory() ? 0 : stats.size);
-                    dialog.update(entry.originalName, RECYCLE_PATH, parentPath, 0);
-                }
-            } catch (e) {
-                await this.copyRecursive(srcPath, destPath, dialog);
-                // BUG FIX: pass dialog, not destPath
-                await this.removeRecursive(srcPath, dialog, false);
-            }
-
-            delete metadata[id];
-            changed = true;
+    static async restoreItems(itemPaths, dialog = null) {
+        const groups = {};
+        for (const itemPath of itemPaths) {
+            const match = itemPath.match(/^(\/[A-Z]:\/Recycled)\/([^/]+)$/i);
+            if (!match) continue;
+            const recyclePath = match[1];
+            const id = match[2];
+            if (id === ".metadata.json") continue;
+            if (!groups[recyclePath]) groups[recyclePath] = [];
+            groups[recyclePath].push(id);
         }
 
-        if (changed) {
-            await this.saveMetadata(metadata);
+        let anyChanged = false;
+        for (const recyclePath in groups) {
+            const ids = groups[recyclePath];
+            const metadata = await this.getMetadata(recyclePath);
+            let changed = false;
+
+            for (const id of ids) {
+                if (dialog && dialog.cancelled) break;
+                const entry = metadata[id];
+                if (!entry) continue;
+
+                const srcPath = joinPath(recyclePath, id);
+                let destPath = entry.originalPath;
+                const parentPath = getParentPath(destPath);
+
+                if (dialog) {
+                    dialog.update(entry.originalName, recyclePath, parentPath, 0);
+                }
+
+                try {
+                    await fs.promises.stat(parentPath);
+                } catch (e) {
+                    await fs.promises.mkdir(parentPath, { recursive: true });
+                }
+
+                destPath = await this._getUniqueRestorePath(destPath);
+
+                try {
+                    await fs.promises.rename(srcPath, destPath);
+                    if (dialog) {
+                        const stats = await fs.promises.stat(destPath);
+                        dialog.finishItem(stats.isDirectory() ? 0 : stats.size);
+                        dialog.update(entry.originalName, recyclePath, parentPath, 0);
+                    }
+                } catch (e) {
+                    await this.copyRecursive(srcPath, destPath, dialog);
+                    await this.removeRecursive(srcPath, dialog, false);
+                }
+
+                delete metadata[id];
+                changed = true;
+                anyChanged = true;
+            }
+
+            if (changed) {
+                await this.saveMetadata(recyclePath, metadata);
+            }
+        }
+
+        if (anyChanged) {
             document.dispatchEvent(new CustomEvent("recycle-bin-change"));
         }
     }
 
-    static async restoreItem(id) {
-        await this.restoreItems([id]);
+    static async restoreItem(path) {
+        await this.restoreItems([path]);
     }
 
-    static async emptyRecycleBin(dialog = null) {
-        const metadata = await this.getMetadata();
+    static async emptyRecycleBin(recyclePath, dialog = null) {
+        const metadata = await this.getMetadata(recyclePath);
         const ids = Object.keys(metadata);
 
         for (const id of ids) {
             if (dialog && dialog.cancelled) break;
-            const path = joinPath(RECYCLE_PATH, id);
+            const path = joinPath(recyclePath, id);
             try {
                 if (dialog) {
                     await this.removeRecursive(path, dialog);
@@ -164,28 +208,30 @@ export class RecycleBinManager {
             const remainingMetadata = {};
             for (const id in metadata) {
                 try {
-                    await fs.promises.stat(joinPath(RECYCLE_PATH, id));
+                    await fs.promises.stat(joinPath(recyclePath, id));
                     remainingMetadata[id] = metadata[id];
                 } catch (e) {}
             }
-            await this.saveMetadata(remainingMetadata);
+            await this.saveMetadata(recyclePath, remainingMetadata);
         } else {
-            await this.saveMetadata({});
+            await this.saveMetadata(recyclePath, {});
         }
         document.dispatchEvent(new CustomEvent("recycle-bin-change"));
     }
 
-    static async isEmpty() {
-        const metadata = await this.getMetadata();
+    static async isEmpty(recyclePath) {
+        const metadata = await this.getMetadata(recyclePath);
         return Object.keys(metadata).length === 0;
     }
 
     static isRecycleBinPath(path) {
-        return path === RECYCLE_PATH;
+        return !!path.match(/^\/[A-Z]:\/Recycled$/i);
     }
 
     static isRecycledItemPath(path) {
-        return path.startsWith(RECYCLE_PATH + "/") && path !== METADATA_FILE;
+        const match = path.match(/^(\/[A-Z]:\/Recycled)\/([^/]+)$/i);
+        if (!match) return false;
+        return match[2] !== ".metadata.json";
     }
 
     static async _getUniqueRestorePath(path) {
