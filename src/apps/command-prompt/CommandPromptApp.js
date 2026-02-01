@@ -2,7 +2,7 @@ import { Application } from "../Application.js";
 import { Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import "./command-prompt.css";
-import { fs } from "@zenfs/core";
+import { fs, mounts } from "@zenfs/core";
 import { apps } from "../../config/apps.js";
 import { getAssociation } from "../../utils/directory.js";
 import { launchApp } from "../../utils/appManager.js";
@@ -136,6 +136,19 @@ export class CommandPromptApp extends Application {
     }
     const [cmd, ...args] = matches.map((arg) => arg.replace(/"/g, ""));
 
+    // Check for drive change command (e.g., "A:")
+    if (cmd.match(/^[A-Z]:$/i)) {
+      const drive = cmd.toUpperCase();
+      const mountPath = "/" + drive;
+      if (drive === "C:" || mounts.has(mountPath)) {
+        this.currentDirectory = mountPath;
+      } else {
+        this.terminal.write("General failure reading drive " + drive + "\r\n");
+      }
+      this.prompt();
+      return;
+    }
+
     switch (cmd.toLowerCase()) {
       case "help":
         this.terminal.write("Available commands:\r\n");
@@ -157,6 +170,21 @@ export class CommandPromptApp extends Application {
 
       case "dir":
         const dirPath = args.length > 0 ? this.resolvePath(args[0]) : this.currentDirectory;
+        if (dirPath === null) {
+          this.terminal.write("Invalid directory\r\n");
+          break;
+        }
+
+        // Check drive accessibility
+        const dirDriveMatch = dirPath.match(/^\/([A-Z]:)/i);
+        if (dirDriveMatch) {
+          const drive = dirDriveMatch[1].toUpperCase();
+          if (drive !== "C:" && !mounts.has("/" + drive)) {
+            this.terminal.write("General failure reading drive " + drive + "\r\n");
+            break;
+          }
+        }
+
         try {
           const files = await fs.promises.readdir(dirPath);
           this.terminal.write(` Directory of ${this._getDisplayPath(dirPath)}\r\n\r\n`);
@@ -182,9 +210,23 @@ export class CommandPromptApp extends Application {
         }
 
         const newPath = this.resolvePath(args[0]);
+        if (newPath === null) {
+          this.terminal.write("Invalid directory\r\n");
+          break;
+        }
+
         try {
           const stats = await fs.promises.stat(newPath);
           if (stats.isDirectory()) {
+            // Check drive accessibility for A: and E:
+            const driveMatch = newPath.match(/^\/([A-Z]:)/i);
+            if (driveMatch) {
+              const drive = driveMatch[1].toUpperCase();
+              if (drive !== "C:" && !mounts.has("/" + drive)) {
+                this.terminal.write("General failure reading drive " + drive + "\r\n");
+                break;
+              }
+            }
             this.currentDirectory = newPath;
           } else {
             this.terminal.write(`Directory not found: ${args[0]}\r\n`);
@@ -365,8 +407,10 @@ export class CommandPromptApp extends Application {
         continue;
       }
       if (part === "..") {
-        if (currentParts.length > 0) {
+        if (currentParts.length > 1) {
           currentParts.pop();
+        } else {
+          return null; // Move above drive root
         }
       } else {
         currentParts.push(part);
@@ -404,6 +448,5 @@ export class CommandPromptApp extends Application {
     if (this.terminal) {
       this.terminal.dispose();
     }
-    super._onClose();
   }
 }

@@ -53,10 +53,28 @@ test('Command Prompt ZenFS integration', async ({ page }) => {
     await page.waitForTimeout(1000);
     await expect(cmdWin).toContainText('C:\\TESTDIR>');
 
-    // Test TYPE (create a file first via another app or just assume we can't easily create one via keyboard in cmd yet without a 'copy con' or similar which I didn't implement)
-    // Wait, I implemented COPY.
+    // Test CD .. from drive root
+    await page.keyboard.type('CD \\');
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(1000);
+    await expect(cmdWin).toContainText('C:\\>');
+    await page.keyboard.type('CD ..');
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(1000);
+    await expect(cmdWin).toContainText('Invalid directory');
 
-    // Let's try to create a file using another method or just test DIR again.
+    // Test drive change
+    await page.keyboard.type('A:');
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(1000);
+    // A: is likely not mounted in the E2E environment
+    await expect(cmdWin).toContainText('General failure reading drive A:');
+
+    // Test going back to C:
+    await page.keyboard.type('C:');
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(1000);
+    await expect(cmdWin).toContainText('C:\\>');
 
     await page.screenshot({ path: 'command_prompt_test.png' });
 });
