@@ -8,7 +8,6 @@ import { themes } from "./config/themes.js";
 import { colorSchemes } from "./config/colorSchemes.js";
 import { setupCounter } from "./counter.js";
 import { initDesktop } from "./components/desktop.js";
-import { initFileSystem } from "./utils/zenfs-init.js";
 import { getItem, LOCAL_STORAGE_KEYS } from "./utils/localStorage.js";
 import { apps, appClasses } from "./config/apps.js";
 import { ICONS } from "./config/icons.js";
@@ -316,12 +315,6 @@ async function initializeOS() {
       await new Promise((resolve) => setTimeout(resolve, 50));
       createMainUI();
       initColorModeManager(document.body);
-      finalizeBootProcessStep(logElement, "OK");
-    });
-
-    await executeBootStep(async () => {
-      let logElement = startBootProcessStep("Initializing file system...");
-      await initFileSystem();
       finalizeBootProcessStep(logElement, "OK");
     });
 
