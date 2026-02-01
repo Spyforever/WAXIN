@@ -33,6 +33,8 @@ import { initColorModeManager } from "./utils/colorModeManager.js";
 import screensaver from "./utils/screensaverUtils.js";
 import { initScreenManager } from "./utils/screenManager.js";
 import { fs } from "@zenfs/core";
+import { initFileSystem } from "./utils/zenfs-init.js";
+import { RecycleBinManager } from "./apps/zenexplorer/utils/RecycleBinManager.js";
 
 // Window Management System
 class WindowManagerSystem {
@@ -213,6 +215,26 @@ async function initializeOS() {
       let logElement = startBootProcessStep("Connecting to network...");
       await new Promise((resolve) => setTimeout(resolve, 1000));
       finalizeBootProcessStep(logElement, navigator.onLine ? "OK" : "FAILED");
+    });
+
+    await executeBootStep(async () => {
+      const baseMsg = "Initializing file system...";
+      let logElement = startBootProcessStep(baseMsg);
+      await initFileSystem((subStep) => {
+        if (logElement && logElement.firstChild) {
+          logElement.firstChild.nodeValue = `${baseMsg} ${subStep}`;
+        }
+      });
+      if (logElement && logElement.firstChild) {
+        logElement.firstChild.nodeValue = baseMsg;
+      }
+      finalizeBootProcessStep(logElement, "OK");
+    });
+
+    await executeBootStep(async () => {
+      let logElement = startBootProcessStep("Initializing Recycle Bin...");
+      await RecycleBinManager.init();
+      finalizeBootProcessStep(logElement, "OK");
     });
 
     const createAssetLogCallbacks = (logElement, baseMessage) => {
