@@ -21,6 +21,7 @@ export class DoomApp extends Application {
     this.iframe = null;
     this.isMounted = false;
     this.baseLocalPath = "/C:/Program Files/Doom";
+    this._boundHandleMessage = this._handleMessage.bind(this);
   }
 
   async _createWindow() {
@@ -48,7 +49,7 @@ export class DoomApp extends Application {
   }
 
   async _onLaunch() {
-    window.addEventListener("message", this._handleMessage.bind(this));
+    window.addEventListener("message", this._boundHandleMessage);
   }
 
   async _handleMessage(event) {
@@ -123,7 +124,7 @@ export class DoomApp extends Application {
   }
 
   async _onClose() {
-    window.removeEventListener("message", this._handleMessage.bind(this));
+    window.removeEventListener("message", this._boundHandleMessage);
 
     if (this.isMounted && this.iframe && this.iframe.contentWindow) {
       const FS = this.iframe.contentWindow.Module.FS;
@@ -144,7 +145,7 @@ export class DoomApp extends Application {
 
               syncData.push({
                 path: fullPath,
-                data: FS.readFile(fullPath),
+                data: new Uint8Array(FS.readFile(fullPath)),
               });
             }
           } catch (e) {}
