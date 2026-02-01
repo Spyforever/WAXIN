@@ -1,6 +1,5 @@
 import { Application, openApps } from "../Application.js";
 import { mounts } from "@zenfs/core";
-import { initFileSystem } from "../../utils/zenfs-init.js";
 import { ICONS } from "../../config/icons.js";
 import { getAssociation } from "../../utils/directory.js";
 import { launchApp } from "../../utils/appManager.js";
@@ -12,25 +11,29 @@ import browseUiIcons from "../../assets/icons/browse-ui-icons.png";
 import browseUiIconsGrayscale from "../../assets/icons/browse-ui-icons-grayscale.png";
 import "../explorer/explorer.css"; // Reuse explorer styles
 
-// Extracted modules
-import { ZenSidebar } from "./components/ZenSidebar.js";
-import { FileOperations } from "./FileOperations.js";
-import { MenuBarBuilder } from "./MenuBarBuilder.js";
-import { ZenNavigationController } from "./ZenNavigationController.js";
-import { ZenDirectoryView } from "./components/ZenDirectoryView.js";
-import { ZenDriveManager } from "./utils/ZenDriveManager.js";
-import { ZenContextMenuBuilder } from "./utils/ZenContextMenuBuilder.js";
-import { ZenKeyboardHandler } from "./utils/ZenKeyboardHandler.js";
-import { RecycleBinManager } from "./utils/RecycleBinManager.js";
-import { PropertiesManager } from "./utils/PropertiesManager.js";
-import ZenDragDropManager from "./utils/ZenDragDropManager.js";
-import ZenLayoutManager from "./utils/ZenLayoutManager.js";
-import { ZenShellManager } from "./utils/ZenShellManager.js";
-import { getToolbarItems } from "./utils/ZenToolbarBuilder.js";
-import { ControlPanelExtension } from "./shell/ControlPanelExtension.js";
+// Reorganized modules
+import { Sidebar } from "./interface/Sidebar.js";
+import { FileOperations } from "./fileoperations/FileOperations.js";
+import { MenuBarBuilder } from "./interface/MenuBarBuilder.js";
+import { NavigationController } from "./navigation/NavigationController.js";
+import { DirectoryView } from "./interface/DirectoryView.js";
+import { DriveManager } from "./drives/DriveManager.js";
+import { ContextMenuBuilder } from "./interface/ContextMenuBuilder.js";
+import { KeyboardHandler } from "./interface/KeyboardHandler.js";
+import { RecycleBinManager } from "./fileoperations/RecycleBinManager.js";
+import { PropertiesManager } from "./fileoperations/PropertiesManager.js";
+import DragDropManager from "./fileoperations/DragDropManager.js";
+import LayoutManager from "./interface/LayoutManager.js";
+import { ShellManager } from "./extensions/ShellManager.js";
+import { joinPath } from "./navigation/PathUtils.js";
+import { getToolbarItems } from "./interface/ToolbarBuilder.js";
+import { sortFileInfos } from "./fileoperations/SortUtils.js";
+import { ControlPanelExtension } from "./extensions/ControlPanelExtension.js";
+import { DesktopExtension } from "./extensions/DesktopExtension.js";
 
 // Initialize Shell Extensions
-ZenShellManager.registerExtension(new ControlPanelExtension());
+ShellManager.registerExtension(new ControlPanelExtension());
+ShellManager.registerExtension(new DesktopExtension());
 
 export class ZenExplorerApp extends Application {
   static config = {
@@ -49,12 +52,12 @@ export class ZenExplorerApp extends Application {
     this.currentPath = "/";
     this.viewMode = "large";
     this.fileOps = new FileOperations(this);
-    this.navController = new ZenNavigationController(this);
+    this.navController = new NavigationController(this);
     this.navHistory = this.navController.navHistory; // Proxy for MenuBarBuilder
-    this.directoryView = new ZenDirectoryView(this);
-    this.driveManager = new ZenDriveManager(this);
-    this.contextMenuBuilder = new ZenContextMenuBuilder(this);
-    this.keyboardHandler = new ZenKeyboardHandler(this);
+    this.directoryView = new DirectoryView(this);
+    this.driveManager = new DriveManager(this);
+    this.contextMenuBuilder = new ContextMenuBuilder(this);
+    this.keyboardHandler = new KeyboardHandler(this);
   }
 
   async launch(data = null) {
@@ -124,8 +127,7 @@ export class ZenExplorerApp extends Application {
     }
 
     // 1. Initialize File System
-    await initFileSystem();
-    await RecycleBinManager.init();
+    // await initFileSystem();
 
     // 2. Setup Window
     const win = new window.$Window({
@@ -170,7 +172,7 @@ export class ZenExplorerApp extends Application {
     this.content = content;
 
     // 4a. Sidebar
-    this.sidebar = new ZenSidebar();
+    this.sidebar = new Sidebar();
     content.appendChild(this.sidebar.element);
 
     // 4b. Icon View
@@ -250,7 +252,7 @@ export class ZenExplorerApp extends Application {
     this.iconManager = new IconManager(this.iconContainer, {
       iconSelector: ".explorer-icon",
       onDragStart: (e, icon, selectedIcons) => {
-        ZenDragDropManager.startDrag(selectedIcons, this, e.clientX, e.clientY);
+        DragDropManager.startDrag(selectedIcons, this, e.clientX, e.clientY);
       },
       onItemContext: (e, icon) => {
         const menuItems = this.contextMenuBuilder.buildItemMenu(e, icon);
@@ -314,7 +316,7 @@ export class ZenExplorerApp extends Application {
     const fullPath = icon.getAttribute("data-path");
 
     // Try shell extension first
-    const handled = await ZenShellManager.onOpen(fullPath, this);
+    const handled = await ShellManager.onOpen(fullPath, this);
     if (handled) return;
 
     const association = getAssociation(name);
@@ -336,7 +338,7 @@ export class ZenExplorerApp extends Application {
       }
       this._updateToolbar();
     };
-    document.addEventListener("zen-undo-change", this._undoHandler);
+    document.addEventListener("undo-change", this._undoHandler);
   }
 
   /**
@@ -351,7 +353,7 @@ export class ZenExplorerApp extends Application {
       }
       this._updateToolbar();
     };
-    document.addEventListener("zen-clipboard-change", this._clipboardHandler);
+    document.addEventListener("clipboard-change", this._clipboardHandler);
   }
 
   /**
@@ -363,7 +365,7 @@ export class ZenExplorerApp extends Application {
       this.navigateTo(this.currentPath, true, true);
     };
     document.addEventListener(
-      "zen-recycle-bin-change",
+      "recycle-bin-change",
       this._recycleBinHandler,
     );
   }
@@ -379,7 +381,7 @@ export class ZenExplorerApp extends Application {
       }
       this.navigateTo(this.currentPath, true, true);
     };
-    document.addEventListener("zen-fs-change", this._fsHandler);
+    document.addEventListener("fs-change", this._fsHandler);
   }
 
   /**
@@ -388,11 +390,14 @@ export class ZenExplorerApp extends Application {
    */
   _setupLayoutListener() {
     this._layoutHandler = (e) => {
+      if (e.detail.sourceAppId === this.win.element.id) {
+        return;
+      }
       if (e.detail.path === this.currentPath) {
         this.navigateTo(this.currentPath, true, true);
       }
     };
-    document.addEventListener("zen-layout-change", this._layoutHandler);
+    document.addEventListener("layout-change", this._layoutHandler);
   }
 
   async navigateTo(path, isHistoryNav = false, skipMRU = false) {
@@ -400,10 +405,57 @@ export class ZenExplorerApp extends Application {
     if (this.iconContainer) {
       this.iconContainer.setAttribute("data-current-path", this.currentPath);
       // Update autoArrange state from layout
-      const layout = await ZenLayoutManager.getLayout(this.currentPath);
-      this._autoArrange = layout.autoArrange;
+      const layout = await LayoutManager.getLayout(this.currentPath);
+      this.autoArrange = layout.autoArrange;
     }
     return result;
+  }
+
+  async sortIcons(method) {
+    const layout = await LayoutManager.getLayout(this.currentPath);
+    layout.sortBy = null; // Don't persist the sort method
+
+    // Get current files and stats for sorting
+    const files = await ShellManager.readdir(this.currentPath);
+    const fileInfos = [];
+    for (const file of files) {
+      if (file === ".zen_layout.json") continue;
+      if (RecycleBinManager.isRecycleBinPath(this.currentPath) && file === ".metadata.json") continue;
+
+      const fullPath = joinPath(this.currentPath, file);
+      try {
+        const stat = await ShellManager.stat(fullPath);
+        fileInfos.push({ name: file, stat, isDirectory: stat.isDirectory() });
+      } catch (e) {
+        fileInfos.push({ name: file, stat: { size: 0, mtime: new Date(0) }, isDirectory: false });
+      }
+    }
+
+    // Perform sort
+    const sortedInfos = sortFileInfos(fileInfos, method, this.currentPath, []);
+
+    if (this.autoArrange) {
+      // Update order for grid view
+      layout.order = sortedInfos.map(info => info.name);
+      layout.positions = {};
+    } else {
+      // Update absolute positions in a grid
+      const gridX = 75;
+      const gridY = 85;
+      const containerWidth = this.iconContainer.clientWidth || 640;
+      const cols = Math.floor(containerWidth / gridX) || 1;
+
+      layout.positions = {};
+      sortedInfos.forEach((info, index) => {
+        const x = (index % cols) * gridX + 10;
+        const y = Math.floor(index / cols) * gridY + 10;
+        layout.positions[info.name] = { x, y };
+      });
+      layout.order = sortedInfos.map(info => info.name);
+    }
+
+    await LayoutManager.saveLayout(this.currentPath, layout, this.win.element.id);
+    this.directoryView.renderDirectoryContents(this.currentPath);
   }
 
   get autoArrange() {
@@ -427,8 +479,13 @@ export class ZenExplorerApp extends Application {
    * Toggle Auto Arrange for the current folder
    */
   async toggleAutoArrange() {
-    const layout = await ZenLayoutManager.getLayout(this.currentPath);
-    layout.autoArrange = !layout.autoArrange;
+    this.autoArrange = !this.autoArrange;
+    if (this.menuBar) {
+      this.menuBar.element.dispatchEvent(new Event("update"));
+    }
+
+    const layout = await LayoutManager.getLayout(this.currentPath);
+    layout.autoArrange = this.autoArrange;
     if (layout.autoArrange) {
       layout.positions = {}; // Delete manual positions when turning ON
     } else {
@@ -447,14 +504,14 @@ export class ZenExplorerApp extends Application {
         };
       });
     }
-    await ZenLayoutManager.saveLayout(this.currentPath, layout);
-    this.autoArrange = layout.autoArrange;
+    await LayoutManager.saveLayout(this.currentPath, layout, this.win.element.id);
     // Refresh the view to apply changes (e.g., add/remove classes and absolute positioning)
     this.directoryView.renderDirectoryContents(this.currentPath);
   }
 
   async handleRearrange(sourcePaths, x, y, offsets) {
-    const layout = await ZenLayoutManager.getLayout(this.currentPath);
+    const layout = await LayoutManager.getLayout(this.currentPath);
+    layout.sortBy = null;
 
     if (!layout.autoArrange) {
       // Free-form placement
@@ -512,7 +569,8 @@ export class ZenExplorerApp extends Application {
       layout.order = newOrder;
     }
 
-    await ZenLayoutManager.saveLayout(this.currentPath, layout);
+    await LayoutManager.saveLayout(this.currentPath, layout, this.win.element.id);
+    this.directoryView.renderDirectoryContents(this.currentPath);
   }
 
   enterRenameMode(icon) {
@@ -609,7 +667,7 @@ export class ZenExplorerApp extends Application {
         this.navigateTo(this.currentPath, true, true);
       }
     };
-    document.addEventListener("zen-floppy-change", this._floppyHandler);
+    document.addEventListener("floppy-change", this._floppyHandler);
   }
 
   /**
@@ -624,7 +682,7 @@ export class ZenExplorerApp extends Application {
         this.navigateTo(this.currentPath, true, true);
       }
     };
-    document.addEventListener("zen-cd-change", this._cdHandler);
+    document.addEventListener("cd-change", this._cdHandler);
   }
 
   /**
@@ -641,7 +699,7 @@ export class ZenExplorerApp extends Application {
       }
     };
     document.addEventListener(
-      "zen-removable-disk-change",
+      "removable-disk-change",
       this._removableDiskHandler,
     );
   }
@@ -652,36 +710,36 @@ export class ZenExplorerApp extends Application {
     }
     if (this._clipboardHandler) {
       document.removeEventListener(
-        "zen-clipboard-change",
+        "clipboard-change",
         this._clipboardHandler,
       );
     }
     if (this._floppyHandler) {
-      document.removeEventListener("zen-floppy-change", this._floppyHandler);
+      document.removeEventListener("floppy-change", this._floppyHandler);
     }
     if (this._cdHandler) {
-      document.removeEventListener("zen-cd-change", this._cdHandler);
+      document.removeEventListener("cd-change", this._cdHandler);
     }
     if (this._removableDiskHandler) {
       document.removeEventListener(
-        "zen-removable-disk-change",
+        "removable-disk-change",
         this._removableDiskHandler,
       );
     }
     if (this._recycleBinHandler) {
       document.removeEventListener(
-        "zen-recycle-bin-change",
+        "recycle-bin-change",
         this._recycleBinHandler,
       );
     }
     if (this._undoHandler) {
-      document.removeEventListener("zen-undo-change", this._undoHandler);
+      document.removeEventListener("undo-change", this._undoHandler);
     }
     if (this._fsHandler) {
-      document.removeEventListener("zen-fs-change", this._fsHandler);
+      document.removeEventListener("fs-change", this._fsHandler);
     }
     if (this._layoutHandler) {
-      document.removeEventListener("zen-layout-change", this._layoutHandler);
+      document.removeEventListener("layout-change", this._layoutHandler);
     }
   }
 }

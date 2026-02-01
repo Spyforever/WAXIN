@@ -1,5 +1,4 @@
 import { fs } from "@zenfs/core";
-import { initFileSystem } from "./zenfs-init.js";
 
 /**
  * Checks if a path is a ZenFS virtual path.
@@ -71,7 +70,6 @@ export function getMimeType(filename) {
  * @returns {Promise<Blob>}
  */
 export async function getZenFSFileAsBlob(path) {
-  await initFileSystem();
   const data = await fs.promises.readFile(path);
   const type = getMimeType(path);
   return new Blob([data], { type });
@@ -83,7 +81,6 @@ export async function getZenFSFileAsBlob(path) {
  * @returns {Promise<string>}
  */
 export async function getZenFSFileAsText(path) {
-  await initFileSystem();
   return await fs.promises.readFile(path, "utf8");
 }
 

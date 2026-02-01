@@ -2,9 +2,9 @@ import { Application } from "../Application.js";
 import { Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import "./command-prompt.css";
-import directory from "../../config/directory.js";
+import { fs, mounts } from "@zenfs/core";
 import { apps } from "../../config/apps.js";
-import { findItemByPath } from "../../utils/directory.js";
+import { getAssociation } from "../../utils/directory.js";
 import { launchApp } from "../../utils/appManager.js";
 import { ICONS } from "../../config/icons.js";
 
@@ -23,7 +23,7 @@ export class CommandPromptApp extends Application {
   constructor(config) {
     super(config);
     this.terminal = null;
-    this.currentDirectory = "/drive-c"; // Start at C:/
+    this.currentDirectory = "/C:/WINDOWS"; // Start at C:\WINDOWS
     this.commandHistory = [];
     this.historyIndex = -1;
     this.currentCommand = "";
@@ -119,7 +119,7 @@ export class CommandPromptApp extends Application {
     }
   }
 
-  processCommand(command) {
+  async processCommand(command) {
     command = command.trim();
     if (!command) {
       this.prompt();
@@ -129,51 +129,199 @@ export class CommandPromptApp extends Application {
     this.commandHistory.push(command);
     this.historyIndex = this.commandHistory.length;
 
-    const [cmd, ...args] = command
-      .match(/(?:[^\s"]+|"[^"]*")+/g)
-      .map((arg) => arg.replace(/"/g, ""));
+    const matches = command.match(/(?:[^\s"]+|"[^"]*")+/g);
+    if (!matches) {
+      this.prompt();
+      return;
+    }
+    const [cmd, ...args] = matches.map((arg) => arg.replace(/"/g, ""));
+
+    // Check for drive change command (e.g., "A:")
+    if (cmd.match(/^[A-Z]:$/i)) {
+      const drive = cmd.toUpperCase();
+      const mountPath = "/" + drive;
+      if (drive === "C:" || mounts.has(mountPath)) {
+        this.currentDirectory = mountPath;
+      } else {
+        this.terminal.write("General failure reading drive " + drive + "\r\n");
+      }
+      this.prompt();
+      return;
+    }
 
     switch (cmd.toLowerCase()) {
       case "help":
         this.terminal.write("Available commands:\r\n");
-        this.terminal.write("  DIR - Lists files and directories\r\n");
-        this.terminal.write(
-          "  CD <directory> - Changes the current directory\r\n",
-        );
-        this.terminal.write(
-          "  CHDIR <directory> - Changes the current directory\r\n",
-        );
-        this.terminal.write("  CLS - Clears the screen\r\n");
-        this.terminal.write("  HELP - Displays this help message\r\n");
-        this.terminal.write("  <app-id> - Launches an application\r\n");
+        this.terminal.write("  DIR [path]        - Lists files and directories\r\n");
+        this.terminal.write("  CD [path]         - Changes the current directory\r\n");
+        this.terminal.write("  CHDIR [path]      - Changes the current directory\r\n");
+        this.terminal.write("  MD <path>         - Creates a directory\r\n");
+        this.terminal.write("  MKDIR <path>      - Creates a directory\r\n");
+        this.terminal.write("  RD <path>         - Removes a directory\r\n");
+        this.terminal.write("  RMDIR <path>      - Removes a directory\r\n");
+        this.terminal.write("  DEL <file>        - Deletes a file\r\n");
+        this.terminal.write("  REN <old> <new>   - Renames a file or directory\r\n");
+        this.terminal.write("  TYPE <file>       - Displays the contents of a text file\r\n");
+        this.terminal.write("  COPY <src> <dest> - Copies a file\r\n");
+        this.terminal.write("  CLS               - Clears the screen\r\n");
+        this.terminal.write("  HELP              - Displays this help message\r\n");
+        this.terminal.write("  <app-id>          - Launches an application\r\n");
         break;
 
       case "dir":
-        const item = findItemByPath(this.currentDirectory);
-        if (item && item.children) {
-          item.children.forEach((child) => {
-            this.terminal.write(this._formatDirEntry(child));
-          });
+        const dirPath = args.length > 0 ? this.resolvePath(args[0]) : this.currentDirectory;
+        if (dirPath === null) {
+          this.terminal.write("Invalid directory\r\n");
+          break;
+        }
+
+        // Check drive accessibility
+        const dirDriveMatch = dirPath.match(/^\/([A-Z]:)/i);
+        if (dirDriveMatch) {
+          const drive = dirDriveMatch[1].toUpperCase();
+          if (drive !== "C:" && !mounts.has("/" + drive)) {
+            this.terminal.write("General failure reading drive " + drive + "\r\n");
+            break;
+          }
+        }
+
+        try {
+          const files = await fs.promises.readdir(dirPath);
+          this.terminal.write(` Directory of ${this._getDisplayPath(dirPath)}\r\n\r\n`);
+          for (const file of files) {
+            try {
+              const fullPath = dirPath + (dirPath.endsWith("/") ? "" : "/") + file;
+              const stats = await fs.promises.stat(fullPath);
+              this.terminal.write(this._formatDirEntry(file, stats));
+            } catch (e) {
+              // Skip files that can't be stat'd
+            }
+          }
+        } catch (e) {
+          this.terminal.write(`File Not Found\r\n`);
         }
         break;
 
       case "chdir":
       case "cd":
         if (args.length === 0) {
-          this.terminal.write("Usage: cd <directory>\r\n");
+          this.terminal.write(`${this.currentDirectory.replace(/\//g, "\\")}\r\n`);
           break;
         }
 
         const newPath = this.resolvePath(args[0]);
-        const targetItem = findItemByPath(newPath);
+        if (newPath === null) {
+          this.terminal.write("Invalid directory\r\n");
+          break;
+        }
 
-        if (
-          targetItem &&
-          (targetItem.type === "folder" || targetItem.type === "drive")
-        ) {
-          this.currentDirectory = newPath;
-        } else {
+        try {
+          const stats = await fs.promises.stat(newPath);
+          if (stats.isDirectory()) {
+            // Check drive accessibility for A: and E:
+            const driveMatch = newPath.match(/^\/([A-Z]:)/i);
+            if (driveMatch) {
+              const drive = driveMatch[1].toUpperCase();
+              if (drive !== "C:" && !mounts.has("/" + drive)) {
+                this.terminal.write("General failure reading drive " + drive + "\r\n");
+                break;
+              }
+            }
+            this.currentDirectory = newPath;
+          } else {
+            this.terminal.write(`Directory not found: ${args[0]}\r\n`);
+          }
+        } catch (e) {
           this.terminal.write(`Directory not found: ${args[0]}\r\n`);
+        }
+        break;
+
+      case "mkdir":
+      case "md":
+        if (args.length === 0) {
+          this.terminal.write("The syntax of the command is incorrect.\r\n");
+          break;
+        }
+        try {
+          await fs.promises.mkdir(this.resolvePath(args[0]));
+        } catch (e) {
+          this.terminal.write(`Error creating directory: ${e.message}\r\n`);
+        }
+        break;
+
+      case "rmdir":
+      case "rd":
+        if (args.length === 0) {
+          this.terminal.write("The syntax of the command is incorrect.\r\n");
+          break;
+        }
+        try {
+          await fs.promises.rmdir(this.resolvePath(args[0]));
+        } catch (e) {
+          this.terminal.write(`Error removing directory: ${e.message}\r\n`);
+        }
+        break;
+
+      case "del":
+        if (args.length === 0) {
+          this.terminal.write("The syntax of the command is incorrect.\r\n");
+          break;
+        }
+        try {
+          await fs.promises.unlink(this.resolvePath(args[0]));
+        } catch (e) {
+          this.terminal.write(`Error deleting file: ${e.message}\r\n`);
+        }
+        break;
+
+      case "ren":
+        if (args.length < 2) {
+          this.terminal.write("The syntax of the command is incorrect.\r\n");
+          break;
+        }
+        try {
+          await fs.promises.rename(this.resolvePath(args[0]), this.resolvePath(args[1]));
+        } catch (e) {
+          this.terminal.write(`Error renaming file: ${e.message}\r\n`);
+        }
+        break;
+
+      case "type":
+        if (args.length === 0) {
+          this.terminal.write("The syntax of the command is incorrect.\r\n");
+          break;
+        }
+        try {
+          const content = await fs.promises.readFile(this.resolvePath(args[0]), "utf8");
+          this.terminal.write(content.replace(/\n/g, "\r\n") + "\r\n");
+        } catch (e) {
+          this.terminal.write(`Error reading file: ${e.message}\r\n`);
+        }
+        break;
+
+      case "copy":
+        if (args.length < 2) {
+          this.terminal.write("The syntax of the command is incorrect.\r\n");
+          break;
+        }
+        try {
+          const src = this.resolvePath(args[0]);
+          const dest = this.resolvePath(args[1]);
+          const data = await fs.promises.readFile(src);
+          let finalDest = dest;
+          try {
+            const destStat = await fs.promises.stat(dest);
+            if (destStat.isDirectory()) {
+              const fileName = src.split("/").pop();
+              finalDest = dest + (dest.endsWith("/") ? "" : "/") + fileName;
+            }
+          } catch (e) {
+            // Destination does not exist, use as is
+          }
+          await fs.promises.writeFile(finalDest, data);
+          this.terminal.write("        1 file(s) copied.\r\n");
+        } catch (e) {
+          this.terminal.write(`Error copying file: ${e.message}\r\n`);
         }
         break;
 
@@ -190,78 +338,115 @@ export class CommandPromptApp extends Application {
         if (app) {
           launchApp(app.id);
         } else {
-          this.terminal.write(
-            `'${cmd}' is not recognized as an internal or external command,\r\noperable program or batch file.\r\n`,
-          );
+          // Check if it's a file in current directory
+          const filePath = this.resolvePath(cmd);
+          try {
+            const stats = await fs.promises.stat(filePath);
+            if (stats.isFile()) {
+              const association = getAssociation(cmd);
+              if (association && association.appId) {
+                launchApp(association.appId, filePath);
+              } else {
+                this.terminal.write(`No association found for file: ${cmd}\r\n`);
+              }
+            } else {
+              this.terminal.write(
+                `'${cmd}' is not recognized as an internal or external command,\r\noperable program or batch file.\r\n`,
+              );
+            }
+          } catch (e) {
+            this.terminal.write(
+              `'${cmd}' is not recognized as an internal or external command,\r\noperable program or batch file.\r\n`,
+            );
+          }
         }
         break;
     }
     this.prompt();
   }
 
-  prompt() {
-    let pathString = this.currentDirectory
-      .replace("/drive-c", "C:")
-      .replace(new RegExp("/", "g"), "\\");
-    if (pathString === "C:") {
-      pathString = "C:\\";
+  _getDisplayPath(path) {
+    let pathString = path;
+    const driveMatch = pathString.match(/^\/([A-Z]:)(.*)/i);
+    if (driveMatch) {
+      pathString = driveMatch[1] + driveMatch[2].replace(/\//g, "\\");
+    } else {
+      pathString = pathString.replace(/\//g, "\\");
+      if (pathString === "") pathString = "\\";
     }
-    this.terminal.write(`${pathString}>`);
+
+    if (pathString.match(/^[A-Z]:$/i)) {
+      pathString += "\\";
+    }
+    return pathString;
+  }
+
+  prompt() {
+    this.terminal.write(`${this._getDisplayPath(this.currentDirectory)}>`);
   }
 
   resolvePath(path) {
-    if (path.startsWith("C:") || path.startsWith("C:\\")) {
-      return "/drive-c" + path.substring(2).replace(/\\/g, "/");
+    if (path.match(/^[A-Z]:/i)) {
+      const drive = path.substring(0, 2).toUpperCase();
+      let rest = path.substring(2).replace(/\\/g, "/");
+      if (rest === "" || rest === "\\") rest = "/";
+      if (!rest.startsWith("/")) rest = "/" + rest;
+      return "/" + drive + (rest === "/" ? "" : rest);
     }
 
     const parts = path.split(/[\\/]/);
-    let currentParts = this.currentDirectory.split("/");
+    let currentParts = this.currentDirectory.split("/").filter((p) => p !== "");
+
+    if (path.startsWith("/") || path.startsWith("\\")) {
+      // Absolute path from drive root
+      currentParts = [currentParts[0]]; // Keep only the drive (e.g., "C:")
+    }
 
     for (const part of parts) {
       if (part === "" || part === ".") {
         continue;
       }
       if (part === "..") {
-        if (currentParts.length > 2) {
+        if (currentParts.length > 1) {
           currentParts.pop();
+        } else {
+          return null; // Move above drive root
         }
       } else {
         currentParts.push(part);
       }
     }
 
-    return currentParts.join("/");
+    return "/" + currentParts.join("/");
   }
 
-  _formatDirEntry(item) {
-    const parts = item.name.split('.');
-    const hasExtension = parts.length > 1;
-    let baseName = (hasExtension ? parts[0] : item.name).toUpperCase();
+  _formatDirEntry(name, stats) {
+    const isDirectory = stats.isDirectory();
+    const date = stats.mtime || new Date();
+    const dateStr = `${(date.getMonth() + 1).toString().padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}-${date.getFullYear().toString().substring(2)}`;
+    const hours = date.getHours();
+    const ampm = hours >= 12 ? "p" : "a";
+    const displayHours = hours % 12 || 12;
+    const timeStr = `${displayHours.toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}${ampm}`;
 
-    let truncatedName = baseName;
-    if (baseName.length > 8) {
-      truncatedName = `${baseName.substring(0, 6)}~1`;
+    const parts = name.split(".");
+    let ext = "";
+    let base = name;
+    if (!isDirectory && parts.length > 1) {
+      ext = parts.pop().toUpperCase().substring(0, 3);
+      base = parts.join(".");
     }
 
-    let extension = "";
-    if (item.type === "folder") {
-      extension = "<DIR>";
-    } else if (item.type === "app") {
-      extension = "EXE";
-    } else if (hasExtension) {
-      extension = parts.pop().toUpperCase().substring(0, 3);
-    }
+    const dosName = base.toUpperCase().substring(0, 8).padEnd(8);
+    const dosExt = isDirectory ? "<DIR>   " : ext.padEnd(8);
+    const sizeStr = isDirectory ? "        " : stats.size.toLocaleString().padStart(8);
 
-    const nameCol = truncatedName.padEnd(12);
-    const extCol = extension.padEnd(8);
-
-    return `${nameCol}${extCol}${item.name}\r\n`;
+    return `${dosName} ${dosExt} ${sizeStr}  ${dateStr}  ${timeStr}  ${name}\r\n`;
   }
 
   _onClose() {
     if (this.terminal) {
       this.terminal.dispose();
     }
-    super._onClose();
   }
 }

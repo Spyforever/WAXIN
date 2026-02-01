@@ -1,0 +1,288 @@
+import { ShowDialogWindow } from "../../../components/DialogWindow.js";
+import { mounts } from "@zenfs/core";
+import {
+  requestBusyState,
+  releaseBusyState,
+} from "../../../utils/busyStateManager.js";
+import { getDisplayName, getParentPath } from "../navigation/PathUtils.js";
+import ClipboardManager from "../fileoperations/ClipboardManager.js";
+import { PropertiesManager } from "../fileoperations/PropertiesManager.js";
+import UndoManager from "../fileoperations/UndoManager.js";
+import { RemovableDiskManager } from "../drives/RemovableDiskManager.js";
+
+export class MenuBarBuilder {
+  constructor(app) {
+    this.app = app;
+  }
+
+  build() {
+    return new window.MenuBar({
+      "&File": this._getFileMenuItems(),
+      "&Edit": this._getEditMenuItems(),
+      "&View": this._getViewMenuItems(),
+      "&Go": this._getGoMenuItems(),
+      "&Help": this._getHelpMenuItems(),
+    });
+  }
+
+  _getEditMenuItems() {
+    const selectedIcons = this.app.iconManager?.selectedIcons || new Set();
+    const selectedPaths = [...selectedIcons].map((icon) =>
+      icon.getAttribute("data-path"),
+    );
+    const containsRootItem = selectedPaths.some(
+      (p) => getParentPath(p) === "/",
+    );
+    const isRoot = this.app.currentPath === "/";
+
+    return [
+      {
+        label: UndoManager.getUndoLabel(),
+        shortcutLabel: "Ctrl+Z",
+        action: () => this.app.fileOps.undo(),
+        enabled: () => UndoManager.canUndo(),
+      },
+      "MENU_DIVIDER",
+      {
+        label: "Cu&t",
+        shortcutLabel: "Ctrl+X",
+        action: () => {
+          this.app.fileOps.cutItems(selectedPaths);
+        },
+        enabled: () => selectedPaths.length > 0 && !containsRootItem,
+      },
+      {
+        label: "&Copy",
+        shortcutLabel: "Ctrl+C",
+        action: () => {
+          this.app.fileOps.copyItems(selectedPaths);
+        },
+        enabled: () => selectedPaths.length > 0,
+      },
+      {
+        label: "&Paste",
+        shortcutLabel: "Ctrl+V",
+        action: () => this.app.fileOps.pasteItems(this.app.currentPath),
+        enabled: () => !ClipboardManager.isEmpty() && !isRoot,
+      },
+    ];
+  }
+
+  _getFileMenuItems() {
+    const selectedIcons = this.app.iconManager?.selectedIcons || new Set();
+    const selectedPaths = [...selectedIcons].map((icon) =>
+      icon.getAttribute("data-path"),
+    );
+    const containsRootItem = selectedPaths.some(
+      (p) => getParentPath(p) === "/",
+    );
+    const isRoot = this.app.currentPath === "/";
+
+    return [
+      {
+        label: "&Open",
+        action: () => {
+                    const selectedPaths = [...this.app.iconManager.selectedIcons]
+                        .map(icon => icon.getAttribute("data-path"));
+                    const firstSelected = [...this.app.iconManager.selectedIcons][0];
+                    if (firstSelected) {
+                        const type = firstSelected.getAttribute("data-type");
+                        if (type === "directory") {
+                            this.app.navigateTo(selectedPaths[0]);
+                        } else {
+                            this.app.openFile(firstSelected);
+                        }
+                    }
+                },
+        enabled: () => selectedPaths.length > 0,
+        default: true,
+      },
+      {
+        label: "&Insert Floppy",
+        action: () => this.app.insertFloppy(),
+        enabled: () => !mounts.has("/A:"),
+      },
+      {
+        label: "&Eject Floppy",
+        action: () => this.app.ejectFloppy(),
+        enabled: () => mounts.has("/A:"),
+      },
+      "MENU_DIVIDER",
+      {
+        label: "&Insert CD",
+        action: () => this.app.insertCD(),
+        enabled: () => !mounts.has("/E:"),
+      },
+      {
+        label: "&Eject CD",
+        action: () => this.app.ejectCD(),
+        enabled: () => mounts.has("/E:"),
+      },
+      {
+        label: "&Insert Removable Disk",
+        action: () => this.app.driveManager.insertRemovableDisk(),
+        enabled: () => RemovableDiskManager.getAvailableLetter() !== null,
+      },
+      "MENU_DIVIDER",
+      {
+        label: "&New",
+        enabled: () => !isRoot,
+        submenu: [
+          {
+            label: "&Folder",
+            action: () => this.app.fileOps.createNewFolder(),
+            enabled: () => !isRoot,
+          },
+          {
+                        label: "&Text Document",
+                        action: () => this.app.fileOps.createNewTextFile(),
+            
+            enabled: () => !isRoot,
+                    },
+        ],
+      },
+      "MENU_DIVIDER",
+      {
+        label: "&Delete",
+        action: () => {
+          this.app.fileOps.deleteItems(selectedPaths);
+        },
+        enabled: () => selectedPaths.length > 0 && !containsRootItem,
+      },
+      {
+        label: "&Rename",
+        action: () => {
+          const firstSelected = [...this.app.iconManager.selectedIcons][0];
+          if (firstSelected) {
+            this.app.fileOps.renameItem(
+              firstSelected.getAttribute("data-path"),
+            );
+          }
+        },
+        enabled: () => selectedPaths.length === 1 && !containsRootItem,
+      },
+      "MENU_DIVIDER",
+      {
+        radioItems: this.app.navHistory.getMRUFolders().map((entry) => ({
+          label: getDisplayName(entry.path),
+          value: entry.id,
+        })),
+        getValue: () => {
+          return this.app.navHistory.getSelectedMRUId();
+        },
+        setValue: (id) => {
+          const entry = this.app.navHistory
+            .getMRUFolders()
+            .find((e) => e.id === id);
+          if (entry) {
+            this.app.navHistory.markAsManuallySelectedById(id);
+            this.app.navigateTo(entry.path, false, true);
+          }
+        },
+      },
+      "MENU_DIVIDER",
+      {
+        label: "&Properties",
+        action: async () => {
+          const selectedIcons = this.app.iconManager?.selectedIcons || new Set();
+          const selectedPaths = [...selectedIcons].map((icon) =>
+            icon.getAttribute("data-path"),
+          );
+          const busyId = `properties-${Math.random()}`;
+          requestBusyState(busyId, this.app.win.element);
+          try {
+            if (selectedPaths.length > 0) {
+              await PropertiesManager.show(selectedPaths);
+            } else {
+              await PropertiesManager.show([this.app.currentPath]);
+            }
+          } finally {
+            releaseBusyState(busyId, this.app.win.element);
+          }
+        },
+      },
+      "MENU_DIVIDER",
+      {
+        label: "&Close",
+        action: () => this.app.win.close(),
+      },
+    ];
+  }
+
+  _getViewMenuItems() {
+    return [
+      {
+        radioItems: [
+          { label: "Large Icons", value: "large" },
+          { label: "Small Icons", value: "small" },
+          { label: "List", value: "list" },
+          { label: "Details", value: "details" },
+        ],
+        getValue: () => this.app.viewMode,
+        setValue: (value) => this.app.setViewMode(value),
+      },
+      "MENU_DIVIDER",
+      {
+        label: "Arrange &Icons",
+        submenu: [
+          { label: "by &Name", action: () => this.app.sortIcons("name") },
+          { label: "by &Size", action: () => this.app.sortIcons("size") },
+          { label: "by &Type", action: () => this.app.sortIcons("type") },
+          { label: "by &Date", action: () => this.app.sortIcons("date") },
+          "MENU_DIVIDER",
+          {
+            label: "&Auto Arrange",
+            enabled: () =>
+              this.app.viewMode === "large" || this.app.viewMode === "small",
+            checkbox: {
+              check: () => this.app.autoArrange,
+              toggle: () => this.app.toggleAutoArrange(),
+            },
+          },
+        ],
+      },
+      "MENU_DIVIDER",
+      {
+        label: "&Refresh",
+        shortcutLabel: "F5",
+        action: () => this.app.navigateTo(this.app.currentPath, true, true),
+      },
+    ];
+  }
+
+  _getGoMenuItems() {
+    return [
+      {
+        label: "&Back",
+        action: () => this.app.goBack(),
+        enabled: () => this.app.navHistory.canGoBack(),
+      },
+      {
+        label: "&Forward",
+        action: () => this.app.goForward(),
+        enabled: () => this.app.navHistory.canGoForward(),
+      },
+      {
+        label: "&Up One Level",
+        action: () => this.app.goUp(),
+        enabled: () => this.app.currentPath !== "/",
+      },
+    ];
+  }
+
+  _getHelpMenuItems() {
+    return [
+      {
+        label: "&About",
+        action: () => {
+          ShowDialogWindow({
+            title: "About ZenFS",
+            text: "ZenExplorer v0.1<br>Powered by ZenFS",
+            modal: true,
+            buttons: [{ label: "OK" }],
+          });
+        },
+      },
+    ];
+  }
+}

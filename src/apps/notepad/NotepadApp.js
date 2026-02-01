@@ -1,6 +1,5 @@
 import { Application } from '../Application.js';
 import { fs } from "@zenfs/core";
-import { initFileSystem } from "../../utils/zenfs-init.js";
 import './notepad.css';
 import '../../components/notepad-editor.css';
 import { languages } from '../../config/languages.js';
@@ -213,7 +212,6 @@ export class NotepadApp extends Application {
             const isZenFSPath = data.startsWith('/') && !data.startsWith('http');
             if (isZenFSPath) {
                 try {
-                    await initFileSystem();
                     const text = await fs.promises.readFile(data, 'utf8');
                     this.zenfsPath = data;
                     this.fileName = data.split("/").pop();
@@ -764,7 +762,6 @@ export class NotepadApp extends Application {
     async saveLocally() {
         if (!this.zenfsPath) return;
         try {
-            await initFileSystem();
             await fs.promises.writeFile(this.zenfsPath, this.editor.getValue());
             this.isDirty = false;
             this.updateTitle();
