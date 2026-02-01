@@ -56,6 +56,7 @@ export function getIconForFile(fileName, isDir) {
 export async function renderFileIcon(fileName, fullPath, isDir, options = {}) {
   // Check shell extension icon first
   const shellIcon = ShellManager.getIconObj(fullPath);
+  const fileStat = options.stat || await ShellManager.stat(fullPath).catch(() => ({}));
 
   const iconDiv = document.createElement("div");
   iconDiv.className = "explorer-icon";
@@ -63,6 +64,7 @@ export async function renderFileIcon(fileName, fullPath, isDir, options = {}) {
   iconDiv.setAttribute("data-path", fullPath);
   iconDiv.setAttribute("data-type", isDir ? "directory" : "file");
   iconDiv.setAttribute("data-name", fileName);
+  iconDiv.setAttribute("data-is-virtual", fileStat.isVirtual ? "true" : "false");
 
   const iconInner = document.createElement("div");
   iconInner.className = "icon";

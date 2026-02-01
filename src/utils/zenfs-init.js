@@ -44,6 +44,11 @@ export async function initFileSystem(onProgress) {
             await fs.promises.mkdir('/C:/WINDOWS');
         }
 
+        // Ensure WINDOWS/Desktop directory exists for the Desktop shell extension
+        if (!fs.existsSync('/C:/WINDOWS/Desktop')) {
+            await fs.promises.mkdir('/C:/WINDOWS/Desktop');
+        }
+
         isInitialized = true;
         console.log("ZenFS initialized successfully.");
     } catch (error) {
