@@ -21,12 +21,20 @@ test('Command Prompt ZenFS integration', async ({ page }) => {
     const terminal = cmdWin.locator('.xterm-helper-textarea');
     await terminal.focus();
 
+    // Verify initial prompt
+    await expect(cmdWin).toContainText('C:\\WINDOWS>');
+
+    // Go to root for easier testing of original logic
+    await page.keyboard.type('CD \\');
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(1000);
+    await expect(cmdWin).toContainText('C:\\>');
+
     // Test DIR
     await page.keyboard.type('DIR');
     await page.keyboard.press('Enter');
     await page.waitForTimeout(1000);
     // We expect to see some files from C: drive.
-    // Since it's IndexedDB, it might be empty initially or have some default folders like WINDOWS.
     await expect(cmdWin).toContainText('WINDOWS');
 
     // Test MKDIR

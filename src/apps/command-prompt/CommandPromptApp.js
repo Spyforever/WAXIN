@@ -23,7 +23,7 @@ export class CommandPromptApp extends Application {
   constructor(config) {
     super(config);
     this.terminal = null;
-    this.currentDirectory = "/C:"; // Start at C:/
+    this.currentDirectory = "/C:/WINDOWS"; // Start at C:\WINDOWS
     this.commandHistory = [];
     this.historyIndex = -1;
     this.currentCommand = "";
@@ -354,6 +354,11 @@ export class CommandPromptApp extends Application {
 
     const parts = path.split(/[\\/]/);
     let currentParts = this.currentDirectory.split("/").filter((p) => p !== "");
+
+    if (path.startsWith("/") || path.startsWith("\\")) {
+      // Absolute path from drive root
+      currentParts = [currentParts[0]]; // Keep only the drive (e.g., "C:")
+    }
 
     for (const part of parts) {
       if (part === "" || part === ".") {
