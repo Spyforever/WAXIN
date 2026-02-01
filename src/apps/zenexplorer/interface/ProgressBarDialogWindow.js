@@ -1,4 +1,4 @@
-import { getDisplayName } from "../utils/PathUtils.js";
+import { getDisplayName } from "../navigation/PathUtils.js";
 import { ShowDialogWindow } from "../../../components/DialogWindow.js";
 
 /**

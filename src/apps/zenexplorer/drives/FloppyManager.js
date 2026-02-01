@@ -1,10 +1,10 @@
 /**
- * ZenFloppyManager - Singleton to track the label of the mounted floppy in ZenFS
+ * FloppyManager - Singleton to track the label of the mounted floppy in ZenFS
  */
 
 let floppyLabel = null;
 
-export const ZenFloppyManager = {
+export const FloppyManager = {
     setLabel(label) {
         floppyLabel = label;
     },

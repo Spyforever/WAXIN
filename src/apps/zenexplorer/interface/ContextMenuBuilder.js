@@ -3,16 +3,16 @@ import {
   requestBusyState,
   releaseBusyState,
 } from "../../../utils/busyStateManager.js";
-import { RecycleBinManager } from "./RecycleBinManager.js";
-import { PropertiesManager } from "./PropertiesManager.js";
-import { ZenRemovableDiskManager } from "./ZenRemovableDiskManager.js";
-import { getParentPath, getPathName } from "./PathUtils.js";
-import ZenClipboardManager from "./ZenClipboardManager.js";
-import { ZenShellManager } from "./ZenShellManager.js";
+import { RecycleBinManager } from "../fileoperations/RecycleBinManager.js";
+import { PropertiesManager } from "../fileoperations/PropertiesManager.js";
+import { RemovableDiskManager } from "../drives/RemovableDiskManager.js";
+import { getParentPath, getPathName } from "../navigation/PathUtils.js";
+import ClipboardManager from "../fileoperations/ClipboardManager.js";
+import { ShellManager } from "../extensions/ShellManager.js";
 import { ShowDialogWindow } from "../../../components/DialogWindow.js";
 import { playSound } from "../../../utils/soundManager.js";
 
-export class ZenContextMenuBuilder {
+export class ContextMenuBuilder {
   constructor(app) {
     this.app = app;
   }
@@ -24,13 +24,14 @@ export class ZenContextMenuBuilder {
       i.getAttribute("data-path"),
     );
     const isRootItem = selectedPaths.some((p) => getParentPath(p) === "/");
+    const isOnReadOnlyDrive = selectedPaths.some(p => p.startsWith("/E:"));
     const isFloppy = path === "/A:";
     const isFloppyMounted = mounts.has("/A:");
     const isCD = path === "/E:";
     const isCDMounted = mounts.has("/E:");
-    const driveLetterMatch = path.match(/^\/([A-Z]):$/i);
+    const driveLetterMatch = path.match(/^\/([A-Z]):$/);
     const driveLetter = driveLetterMatch ? driveLetterMatch[1].toUpperCase() : null;
-    const isRemovableDiskMounted = driveLetter && ZenRemovableDiskManager.isMounted(driveLetter);
+    const isRemovableDiskMounted = driveLetter && RemovableDiskManager.isMounted(driveLetter);
     const isRecycledItem = RecycleBinManager.isRecycledItemPath(path);
     const isRecycleBin = RecycleBinManager.isRecycleBinPath(path);
 
@@ -67,7 +68,7 @@ export class ZenContextMenuBuilder {
         {
           label: "Open",
           action: async () => {
-            const handled = await ZenShellManager.onOpen(path, this.app);
+            const handled = await ShellManager.onOpen(path, this.app);
             if (handled) return;
 
             if (type === "directory") {
@@ -79,13 +80,6 @@ export class ZenContextMenuBuilder {
           default: true,
         },
       ];
-
-      if (isRecycleBin) {
-        menuItems.push({
-          label: "Empty Recycle Bin",
-          action: () => this.app.fileOps.emptyRecycleBin(),
-        });
-      }
 
       if (isFloppy) {
         if (isFloppyMounted) {
@@ -138,13 +132,13 @@ export class ZenContextMenuBuilder {
           label: "Paste",
           action: () => this.app.fileOps.pasteItems(path),
           enabled: () =>
-            !ZenClipboardManager.isEmpty() && type === "directory",
+            !ClipboardManager.isEmpty() && type === "directory",
         },
         "MENU_DIVIDER",
         {
           label: "Delete",
           action: () => this.app.fileOps.deleteItems(selectedPaths),
-          enabled: () => !isRootItem && !isRecycleBin,
+          enabled: () => !isRootItem && !isRecycleBin && !isOnReadOnlyDrive,
         },
         {
           label: "Rename",
@@ -211,7 +205,7 @@ export class ZenContextMenuBuilder {
       {
         label: "Paste",
         action: () => this.app.fileOps.pasteItems(this.app.currentPath),
-        enabled: () => !ZenClipboardManager.isEmpty() && !isRoot,
+        enabled: () => !ClipboardManager.isEmpty() && !isRoot,
       },
       "MENU_DIVIDER",
       {

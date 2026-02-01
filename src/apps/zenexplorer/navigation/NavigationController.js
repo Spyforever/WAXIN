@@ -1,19 +1,15 @@
-import { fs, mounts } from "@zenfs/core";
+import { mounts } from "@zenfs/core";
 import {
   requestBusyState,
   releaseBusyState,
-} from "../../utils/busyStateManager.js";
+} from "../../../utils/busyStateManager.js";
 import { NavigationHistory } from "./NavigationHistory.js";
 import {
-  formatPathForDisplay,
-  getDisplayName,
   getParentPath,
-} from "./utils/PathUtils.js";
-import { ICONS } from "../../config/icons.js";
-import { RecycleBinManager } from "./utils/RecycleBinManager.js";
-import { ZenShellManager } from "./utils/ZenShellManager.js";
+} from "./PathUtils.js";
+import { ShellManager } from "../extensions/ShellManager.js";
 
-export class ZenNavigationController {
+export class NavigationController {
   constructor(app) {
     this.app = app;
     this.navHistory = new NavigationHistory();
@@ -48,7 +44,7 @@ export class ZenNavigationController {
         return;
       }
 
-      const stats = await ZenShellManager.stat(normalizedPath);
+      const stats = await ShellManager.stat(normalizedPath);
 
       if (!stats.isDirectory()) {
         throw new Error("Not a directory");

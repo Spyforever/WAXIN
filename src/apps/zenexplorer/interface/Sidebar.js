@@ -1,9 +1,9 @@
 /**
- * ZenSidebar component for ZenExplorer
+ * Sidebar component for ZenExplorer
  * Manages the sidebar UI element with icon and title
  */
 
-export class ZenSidebar {
+export class Sidebar {
     constructor() {
         this.element = this._createSidebar();
         this.icon = this.element.querySelector(".sidebar-icon");

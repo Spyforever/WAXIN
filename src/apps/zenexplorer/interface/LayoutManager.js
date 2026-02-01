@@ -1,18 +1,18 @@
 import { fs } from "@zenfs/core";
-import { joinPath, getPathName } from "./PathUtils.js";
-import { ZenShellManager } from "./ZenShellManager.js";
+import { joinPath, getPathName } from "../navigation/PathUtils.js";
+import { ShellManager } from "../extensions/ShellManager.js";
 
 /**
- * ZenLayoutManager - Manages folder layouts (icon positions and order)
+ * LayoutManager - Manages folder layouts (icon positions and order)
  */
-export const ZenLayoutManager = {
+export const LayoutManager = {
   /**
    * Get the layout file path for a given directory path.
    * Redirects root and virtual folders to /C:/WINDOWS for persistence.
    * @private
    */
   _getLayoutPath(path) {
-    if (path === "/" || ZenShellManager.getExtensionForPath(path)) {
+    if (path === "/" || ShellManager.getExtensionForPath(path)) {
       const name = getPathName(path);
       return `/C:/WINDOWS/${name}.zen_layout.json`;
     }
@@ -52,7 +52,7 @@ export const ZenLayoutManager = {
       await fs.promises.writeFile(layoutPath, JSON.stringify(layout, null, 2));
       // Notify other windows
       document.dispatchEvent(
-        new CustomEvent("zen-layout-change", { detail: { path, sourceAppId } }),
+        new CustomEvent("layout-change", { detail: { path, sourceAppId } }),
       );
     } catch (e) {
       console.error("Failed to save layout:", e);
@@ -86,4 +86,4 @@ export const ZenLayoutManager = {
   },
 };
 
-export default ZenLayoutManager;
+export default LayoutManager;

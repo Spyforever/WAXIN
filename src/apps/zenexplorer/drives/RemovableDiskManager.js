@@ -1,10 +1,10 @@
 /**
- * ZenRemovableDiskManager - Singleton to track mounted removable disks
+ * RemovableDiskManager - Singleton to track mounted removable disks
  */
 
 const mountedDisks = new Map(); // letter -> label
 
-export const ZenRemovableDiskManager = {
+export const RemovableDiskManager = {
     mount(letter, label) {
         mountedDisks.set(letter.toUpperCase(), label);
     },

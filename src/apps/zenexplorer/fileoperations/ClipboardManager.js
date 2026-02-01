@@ -1,15 +1,15 @@
 /**
- * ZenClipboardManager - Independent clipboard for ZenExplorer
+ * ClipboardManager - Independent clipboard for ZenExplorer
  */
 
-const ZenClipboardManager = {
+const ClipboardManager = {
     items: [],
     operation: null, // 'cut' or 'copy'
 
     set(items, operation) {
         this.items = items;
         this.operation = operation;
-        document.dispatchEvent(new CustomEvent('zen-clipboard-change', { detail: this }));
+        document.dispatchEvent(new CustomEvent('clipboard-change', { detail: this }));
     },
 
     get() {
@@ -22,7 +22,7 @@ const ZenClipboardManager = {
     clear() {
         this.items = [];
         this.operation = null;
-        document.dispatchEvent(new CustomEvent('zen-clipboard-change', { detail: this }));
+        document.dispatchEvent(new CustomEvent('clipboard-change', { detail: this }));
     },
 
     isEmpty() {
@@ -30,4 +30,4 @@ const ZenClipboardManager = {
     },
 };
 
-export default ZenClipboardManager;
+export default ClipboardManager;

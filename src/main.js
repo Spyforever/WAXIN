@@ -34,7 +34,7 @@ import screensaver from "./utils/screensaverUtils.js";
 import { initScreenManager } from "./utils/screenManager.js";
 import { fs } from "@zenfs/core";
 import { initFileSystem } from "./utils/zenfs-init.js";
-import { RecycleBinManager } from "./apps/zenexplorer/utils/RecycleBinManager.js";
+import { RecycleBinManager } from "./apps/zenexplorer/fileoperations/RecycleBinManager.js";
 
 // Window Management System
 class WindowManagerSystem {

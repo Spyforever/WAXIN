@@ -242,18 +242,18 @@
 }
 
 /* Custom Drag and Drop Styles */
-.zen-drag-ghost {
+.drag-ghost {
     pointer-events: none;
     user-select: none;
     filter: opacity(0.8);
 }
 
-.zen-drag-ghost .ghost-item {
+.drag-ghost .ghost-item {
     background: transparent !important;
     border: none !important;
 }
 
-.zen-drag-ghost .explorer-icon {
+.drag-ghost .explorer-icon {
     margin: 0;
 }
 
@@ -267,6 +267,6 @@
     filter: var(--icon-filter);
 }
 
-body.zen-dragging * {
+body.dragging * {
     cursor: grabbing !important;
 }

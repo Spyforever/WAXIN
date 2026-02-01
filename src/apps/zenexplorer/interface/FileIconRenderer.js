@@ -1,8 +1,8 @@
 import { ICONS } from "../../../config/icons.js";
 import { getAssociation } from "../../../utils/directory.js";
-import { getDisplayName } from "../utils/PathUtils.js";
-import { RecycleBinManager } from "../utils/RecycleBinManager.js";
-import { ZenShellManager } from "../utils/ZenShellManager.js";
+import { getDisplayName } from "../navigation/PathUtils.js";
+import { RecycleBinManager } from "../fileoperations/RecycleBinManager.js";
+import { ShellManager } from "../extensions/ShellManager.js";
 
 /**
  * FileIconRenderer - Handles rendering of file/folder icons in ZenExplorer
@@ -55,7 +55,7 @@ export function getIconForFile(fileName, isDir) {
  */
 export async function renderFileIcon(fileName, fullPath, isDir, options = {}) {
   // Check shell extension icon first
-  const shellIcon = ZenShellManager.getIconObj(fullPath);
+  const shellIcon = ShellManager.getIconObj(fullPath);
 
   const iconDiv = document.createElement("div");
   iconDiv.className = "explorer-icon";
@@ -78,13 +78,14 @@ export async function renderFileIcon(fileName, fullPath, isDir, options = {}) {
     const isEmpty =
       options.recycleBinEmpty !== undefined
         ? options.recycleBinEmpty
-        : await RecycleBinManager.isEmpty();
+        : await RecycleBinManager.isEmpty(fullPath);
     iconObj = isEmpty ? ICONS.recycleBinEmpty : ICONS.recycleBinFull;
   }
   // Special handling for items INSIDE Recycle Bin
   else if (RecycleBinManager.isRecycledItemPath(fullPath)) {
+    const recyclePath = RecycleBinManager.getRecyclePath(fullPath);
     const metadata =
-      options.metadata || (await RecycleBinManager.getMetadata());
+      options.metadata || (recyclePath ? await RecycleBinManager.getMetadata(recyclePath) : {});
     const entry = metadata[fileName]; // fileName is the ID
     if (entry) {
       iconObj = getIconObjForFile(entry.originalName, isDir);

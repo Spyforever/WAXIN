@@ -6,11 +6,11 @@ import {
   requestBusyState,
   releaseBusyState,
 } from "../../../utils/busyStateManager.js";
-import { ZenFloppyManager } from "./ZenFloppyManager.js";
-import { ZenCDManager } from "./ZenCDManager.js";
-import { ZenRemovableDiskManager } from "./ZenRemovableDiskManager.js";
+import { FloppyManager } from "./FloppyManager.js";
+import { CDManager } from "./CDManager.js";
+import { RemovableDiskManager } from "./RemovableDiskManager.js";
 
-export class ZenDriveManager {
+export class DriveManager {
   constructor(app) {
     this.app = app;
   }
@@ -42,14 +42,14 @@ export class ZenDriveManager {
       // Close dialog immediately after selection
       if (dialogWin) dialogWin.close();
 
-      const busyRequesterId = "zen-floppy-mount";
+      const busyRequesterId = "floppy-mount";
       requestBusyState(busyRequesterId, this.app.win.element);
 
       try {
         const floppyFs = await WebAccess.create({ handle });
         mount("/A:", floppyFs);
-        ZenFloppyManager.setLabel(handle.name);
-        document.dispatchEvent(new CustomEvent("zen-floppy-change"));
+        FloppyManager.setLabel(handle.name);
+        document.dispatchEvent(new CustomEvent("floppy-change"));
       } finally {
         releaseBusyState(busyRequesterId, this.app.win.element);
       }
@@ -65,12 +65,12 @@ export class ZenDriveManager {
    */
   async ejectFloppy() {
     if (mounts.has("/A:")) {
-      const busyId = "zen-floppy-eject";
+      const busyId = "floppy-eject";
       requestBusyState(busyId, this.app.win.element);
       try {
         umount("/A:");
-        ZenFloppyManager.clear();
-        document.dispatchEvent(new CustomEvent("zen-floppy-change"));
+        FloppyManager.clear();
+        document.dispatchEvent(new CustomEvent("floppy-change"));
       } finally {
         releaseBusyState(busyId, this.app.win.element);
       }
@@ -113,7 +113,7 @@ export class ZenDriveManager {
       // Close dialog immediately after selection
       if (dialogWin) dialogWin.close();
 
-      const busyRequesterId = "zen-cd-mount";
+      const busyRequesterId = "cd-mount";
       requestBusyState(busyRequesterId, this.app.win.element);
 
       try {
@@ -123,8 +123,8 @@ export class ZenDriveManager {
         mount("/E:", isoFs);
         // Strip extension for label
         const label = file.name.replace(/\.[^/.]+$/, "");
-        ZenCDManager.setLabel(label);
-        document.dispatchEvent(new CustomEvent("zen-cd-change"));
+        CDManager.setLabel(label);
+        document.dispatchEvent(new CustomEvent("cd-change"));
       } finally {
         releaseBusyState(busyRequesterId, this.app.win.element);
       }
@@ -140,12 +140,12 @@ export class ZenDriveManager {
    */
   async ejectCD() {
     if (mounts.has("/E:")) {
-      const busyId = "zen-cd-eject";
+      const busyId = "cd-eject";
       requestBusyState(busyId, this.app.win.element);
       try {
         umount("/E:");
-        ZenCDManager.clear();
-        document.dispatchEvent(new CustomEvent("zen-cd-change"));
+        CDManager.clear();
+        document.dispatchEvent(new CustomEvent("cd-change"));
       } finally {
         releaseBusyState(busyId, this.app.win.element);
       }
@@ -156,7 +156,7 @@ export class ZenDriveManager {
    * Insert Removable Disk
    */
   async insertRemovableDisk() {
-    const letter = ZenRemovableDiskManager.getAvailableLetter();
+    const letter = RemovableDiskManager.getAvailableLetter();
     if (!letter) {
       alert("No more drive letters available.");
       return;
@@ -165,7 +165,7 @@ export class ZenDriveManager {
     try {
       const handle = await window.showDirectoryPicker();
 
-      const busyRequesterId = `zen-removable-mount-${letter}`;
+      const busyRequesterId = `removable-mount-${letter}`;
       requestBusyState(busyRequesterId, this.app.win.element);
 
       try {
@@ -177,8 +177,8 @@ export class ZenDriveManager {
 
         const diskFs = await WebAccess.create({ handle });
         mount(mountPoint, diskFs);
-        ZenRemovableDiskManager.mount(letter, handle.name);
-        document.dispatchEvent(new CustomEvent("zen-removable-disk-change"));
+        RemovableDiskManager.mount(letter, handle.name);
+        document.dispatchEvent(new CustomEvent("removable-disk-change"));
       } finally {
         releaseBusyState(busyRequesterId, this.app.win.element);
       }
@@ -195,11 +195,11 @@ export class ZenDriveManager {
   async ejectRemovableDisk(letter) {
     const mountPoint = `/${letter}:`;
     if (mounts.has(mountPoint)) {
-      const busyId = `zen-removable-eject-${letter}`;
+      const busyId = `removable-eject-${letter}`;
       requestBusyState(busyId, this.app.win.element);
       try {
         umount(mountPoint);
-        ZenRemovableDiskManager.unmount(letter);
+        RemovableDiskManager.unmount(letter);
 
         try {
           if (fs.existsSync(mountPoint)) {
@@ -209,7 +209,7 @@ export class ZenDriveManager {
           console.warn(`Failed to remove mount point ${mountPoint}:`, err);
         }
 
-        document.dispatchEvent(new CustomEvent("zen-removable-disk-change"));
+        document.dispatchEvent(new CustomEvent("removable-disk-change"));
       } finally {
         releaseBusyState(busyId, this.app.win.element);
       }

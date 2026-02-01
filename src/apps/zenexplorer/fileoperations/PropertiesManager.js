@@ -7,10 +7,10 @@ import {
   getDisplayName,
   joinPath,
   getPathName,
-} from "./PathUtils.js";
-import { getIconForFile } from "../components/FileIconRenderer.js";
+} from "../navigation/PathUtils.js";
+import { getIconForFile } from "../interface/FileIconRenderer.js";
 import { RecycleBinManager } from "./RecycleBinManager.js";
-import { ZenShellManager } from "./ZenShellManager.js";
+import { ShellManager } from "../extensions/ShellManager.js";
 
 /**
  * PropertiesManager - Handles showing properties for files and folders in ZenExplorer
@@ -26,7 +26,7 @@ export class PropertiesManager {
     try {
       const items = await Promise.all(
         paths.map(async (path) => {
-          const stats = await ZenShellManager.stat(path);
+          const stats = await ShellManager.stat(path);
           return { path, stats };
         }),
       );
@@ -54,7 +54,8 @@ export class PropertiesManager {
     let iconUrl = getIconForFile(name, isDir);
 
     if (isRecycled) {
-      const metadata = await RecycleBinManager.getMetadata();
+      const recyclePath = RecycleBinManager.getRecyclePath(path);
+      const metadata = recyclePath ? await RecycleBinManager.getMetadata(recyclePath) : {};
       const entry = metadata[name]; // name is the ID
       if (entry) {
         name = entry.originalName;
@@ -112,14 +113,14 @@ export class PropertiesManager {
           if (controller.signal.aborted) return;
           sizeEl.textContent = this._formatSize(size);
 
-          const children = await ZenShellManager.readdir(path);
+          const children = await ShellManager.readdir(path);
           let filesCount = 0;
           let foldersCount = 0;
           for (const child of children) {
             if (controller.signal.aborted) return;
             try {
               const childPath = joinPath(path, child);
-              const childStats = await ZenShellManager.stat(childPath);
+              const childStats = await ShellManager.stat(childPath);
               if (childStats.isDirectory()) foldersCount++;
               else filesCount++;
             } catch (e) {}
@@ -217,11 +218,11 @@ export class PropertiesManager {
   static async _getRecursiveSize(path, signal) {
     let size = 0;
     try {
-      const files = await ZenShellManager.readdir(path);
+      const files = await ShellManager.readdir(path);
       for (const file of files) {
         if (signal?.aborted) return 0;
         const fullPath = joinPath(path, file);
-        const stats = await ZenShellManager.stat(fullPath);
+        const stats = await ShellManager.stat(fullPath);
         if (stats.isDirectory()) {
           size += await this._getRecursiveSize(fullPath, signal);
         } else {
