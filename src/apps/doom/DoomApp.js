@@ -18,8 +18,9 @@ export class DoomApp extends Application {
 
   constructor(config) {
     super(config);
-    this.module = null;
+    this.iframe = null;
     this.isMounted = false;
+    this.baseLocalPath = "/C:/Program Files/Doom";
   }
 
   async _createWindow() {
@@ -30,84 +31,55 @@ export class DoomApp extends Application {
       resizable: this.resizable,
       maximizable: this.maximizable,
       icons: this.icon,
+      id: "doom", // Fixed ID for easier testing/access
     });
 
-    const canvas = document.createElement("canvas");
-    canvas.id = "canvas";
-    canvas.style.width = "100%";
-    canvas.style.height = "100%";
-    canvas.style.backgroundColor = "black";
-    canvas.style.display = "block";
-    // Prevent context menu on canvas
-    canvas.oncontextmenu = (e) => e.preventDefault();
-    // Allow focus for keyboard input
-    canvas.tabIndex = -1;
+    const iframe = document.createElement("iframe");
+    iframe.src = "games/doom/index.html";
+    iframe.style.width = "100%";
+    iframe.style.height = "100%";
+    iframe.style.border = "none";
 
-    win.$content.append(canvas);
-
+    win.$content.append(iframe);
+    this.iframe = iframe;
     this.win = win;
+
     return win;
   }
 
   async _onLaunch() {
-    const canvas = this.win.$content.find("canvas")[0];
+    window.addEventListener("message", this._handleMessage.bind(this));
+  }
 
-    // Clean up any existing script/module before fresh launch
-    this._cleanupModule();
-
-    // Ensure we don't have multiple canvases with same ID causing trouble
-    // although we just created a unique one, some engines might hardcode searches
-
-    // Prepare Emscripten Module
-    window.Module = {
-      canvas: canvas,
-      noInitialRun: true,
-      print: (text) => console.log(text),
-      printErr: (text) => console.error(text),
-      locateFile: (path) => {
-        if (path.endsWith(".wasm")) return "games/doom/websockets-doom.wasm";
-        return path;
-      },
-      onRuntimeInitialized: async () => {
-        await this._setupFileSystem();
-        this._startGame();
-      },
-    };
-
-    this.module = window.Module;
-
-    // Load Doom script
-    const script = document.createElement("script");
-    script.id = "doom-script";
-    // Use cache buster to ensure re-execution
-    script.src = `games/doom/websockets-doom.js?v=${Date.now()}`;
-    document.body.appendChild(script);
-
-    this.win.focus();
-    canvas.focus();
+  async _handleMessage(event) {
+    if (event.data && event.data.type === "DOOM_READY") {
+      await this._setupFileSystem();
+      this._startGame();
+    }
   }
 
   async _setupFileSystem() {
-    const FS = this.module.FS;
-    const baseLocalPath = "/C:/Program Files/Doom";
+    if (!this.iframe || !this.iframe.contentWindow) return;
 
-    if (this.isMounted) {
-      try {
-        fs.umount(baseLocalPath);
-        this.isMounted = false;
-      } catch (e) {}
+    const guestModule = this.iframe.contentWindow.Module;
+    if (!guestModule || !guestModule.FS) {
+      console.error("Doom guest module or FS not found");
+      return;
     }
 
-    // 1. Load all persistent files from ZenFS back into Emscripten MEMFS
+    const FS = guestModule.FS;
+
+    // 1. Sync persistent files from host ZenFS to iframe MEMFS
     try {
       const loadRecursive = async (localPath, emPath) => {
+        if (!fs.existsSync(localPath)) return;
         const entries = await fs.promises.readdir(localPath);
         for (const entry of entries) {
           const fullLocalPath = `${localPath}/${entry}`;
           const fullEmPath = emPath === "/" ? `/${entry}` : `${emPath}/${entry}`;
           const stat = await fs.promises.stat(fullLocalPath);
           if (stat.isDirectory()) {
-            try { FS.mkdir(fullEmPath); } catch(e) {}
+            try { FS.mkdir(fullEmPath); } catch (e) {}
             await loadRecursive(fullLocalPath, fullEmPath);
           } else {
             const data = await fs.promises.readFile(fullLocalPath);
@@ -115,24 +87,25 @@ export class DoomApp extends Application {
           }
         }
       };
-      await loadRecursive(baseLocalPath, "/");
+      await loadRecursive(this.baseLocalPath, "/");
     } catch (e) {
       console.warn("Failed to load persistent files from ZenFS:", e);
     }
 
-    // 3. Mount Emscripten FS to ZenFS folder
+    // 2. Mount iframe's FS to host ZenFS
     try {
       const emscriptenFS = Emscripten.create({ FS: FS });
-      fs.mount(baseLocalPath, emscriptenFS);
+      fs.mount(this.baseLocalPath, emscriptenFS);
       this.isMounted = true;
-      // Dispatch event to refresh explorer
-      document.dispatchEvent(new CustomEvent("zen-fs-change", { detail: { path: baseLocalPath } }));
+      document.dispatchEvent(new CustomEvent("zen-fs-change", { detail: { path: this.baseLocalPath } }));
     } catch (e) {
       console.error("Failed to mount Emscripten FS:", e);
     }
   }
 
   _startGame() {
+    if (!this.iframe || !this.iframe.contentWindow) return;
+    const guestWindow = this.iframe.contentWindow;
     const commonArgs = [
       "-iwad", "doom1.wad",
       "-window",
@@ -141,29 +114,21 @@ export class DoomApp extends Application {
       "-config", "default.cfg",
       "-servername", "doomflare",
     ];
-    if (typeof window.callMain === "function") {
-      window.callMain(commonArgs);
-    } else if (this.module.callMain) {
-      this.module.callMain(commonArgs);
+
+    if (typeof guestWindow.callMain === "function") {
+      guestWindow.callMain(commonArgs);
+    } else if (guestWindow.Module && guestWindow.Module.callMain) {
+      guestWindow.Module.callMain(commonArgs);
     }
   }
 
   async _onClose() {
-    if (this.module) {
-      if (this.module.pauseMainLoop) {
-        this.module.pauseMainLoop();
-      }
-      // Try to stop audio if SDL is used
-      if (window.SDL && window.SDL.audioContext) {
-        window.SDL.audioContext.suspend();
-      }
-    }
+    window.removeEventListener("message", this._handleMessage.bind(this));
 
-    if (this.isMounted) {
-      const baseLocalPath = "/C:/Program Files/Doom";
-      const FS = this.module.FS;
+    if (this.isMounted && this.iframe && this.iframe.contentWindow) {
+      const FS = this.iframe.contentWindow.Module.FS;
 
-      // 1. Sync files from Emscripten to memory recursively
+      // 1. Collect files from iframe FS to sync back
       const syncData = [];
       const collectFiles = (path) => {
         const entries = FS.readdir(path).filter((e) => e !== "." && e !== "..");
@@ -174,6 +139,9 @@ export class DoomApp extends Application {
             if (FS.isDir(stat.mode)) {
               collectFiles(fullPath);
             } else {
+              // Optimization: Don't sync back the large static WAD file
+              if (entry.toLowerCase() === "doom1.wad") continue;
+
               syncData.push({
                 path: fullPath,
                 data: FS.readFile(fullPath),
@@ -184,17 +152,17 @@ export class DoomApp extends Application {
       };
       collectFiles("/");
 
-      // 2. Unmount
+      // 2. Unmount from host ZenFS
       try {
-        fs.umount(baseLocalPath);
+        fs.umount(this.baseLocalPath);
         this.isMounted = false;
       } catch (e) {
         console.error("Failed to unmount Doom FS:", e);
       }
 
-      // 3. Write back to ZenFS (IndexedDB)
+      // 3. Persist changed files back to host ZenFS (IndexedDB)
       for (const item of syncData) {
-        const targetPath = `${baseLocalPath}${item.path}`;
+        const targetPath = `${this.baseLocalPath}${item.path}`;
         const targetDir = targetPath.substring(0, targetPath.lastIndexOf("/"));
 
         if (!fs.existsSync(targetDir)) {
@@ -204,26 +172,9 @@ export class DoomApp extends Application {
       }
 
       document.dispatchEvent(
-        new CustomEvent("zen-fs-change", { detail: { path: baseLocalPath } }),
+        new CustomEvent("zen-fs-change", { detail: { path: this.baseLocalPath } }),
       );
     }
-
-    this._cleanupModule();
-  }
-
-  _cleanupModule() {
-    const script = document.getElementById("doom-script");
-    if (script) script.remove();
-
-    if (this.module && this.module.pauseMainLoop) {
-      this.module.pauseMainLoop();
-    }
-
-    // Clear globals to avoid pollution and leaks
-    delete window.Module;
-    delete window.FS;
-    delete window.callMain;
-    this.module = null;
   }
 
   async _mkdirRecursive(path) {
