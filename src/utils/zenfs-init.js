@@ -44,6 +44,13 @@ export async function initFileSystem(onProgress) {
             await fs.promises.mkdir('/C:/WINDOWS');
         }
 
+        // Ensure Program Files/Doom exists
+        if (!fs.existsSync('/C:/Program Files')) {
+            await fs.promises.mkdir('/C:/Program Files');
+        }
+        if (!fs.existsSync('/C:/Program Files/Doom')) {
+            await fs.promises.mkdir('/C:/Program Files/Doom');
+        }
         // Ensure WINDOWS/Desktop directory exists for the Desktop shell extension
         if (!fs.existsSync('/C:/WINDOWS/Desktop')) {
             await fs.promises.mkdir('/C:/WINDOWS/Desktop');

@@ -319,6 +319,38 @@ async function initializeOS() {
     });
 
     await executeBootStep(async () => {
+      const doomFiles = ["doom1.wad", "default.cfg"];
+      const baseRemotePath = "games/doom/";
+      const baseLocalPath = "/C:/Program Files/Doom/";
+
+      let needed = false;
+      for (const file of doomFiles) {
+        if (!fs.existsSync(baseLocalPath + file)) {
+          needed = true;
+          break;
+        }
+      }
+
+      if (needed) {
+        let logElement = startBootProcessStep("Loading Doom game data...");
+        for (const file of doomFiles) {
+          if (!fs.existsSync(baseLocalPath + file)) {
+            if (logElement && logElement.firstChild) {
+              logElement.firstChild.nodeValue = `Loading Doom game data: ${file}...`;
+            }
+            const response = await fetch(baseRemotePath + file);
+            const buffer = await response.arrayBuffer();
+            await fs.promises.writeFile(baseLocalPath + file, new Uint8Array(buffer));
+          }
+        }
+        if (logElement && logElement.firstChild) {
+          logElement.firstChild.nodeValue = "Loading Doom game data...";
+        }
+        finalizeBootProcessStep(logElement, "OK");
+      }
+    });
+
+    await executeBootStep(async () => {
       let logElement = startBootProcessStep("Initializing taskbar...");
       await new Promise((resolve) => setTimeout(resolve, 50));
       taskbar.init();
