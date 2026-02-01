@@ -276,21 +276,24 @@ export class FileOperations {
                                     await this.removeRecursiveWithProgress(path, dialog);
                                 }
                                 if (alreadyInRecycle && !dialog.cancelled) {
-                                    const metadata = await RecycleBinManager.getMetadata();
-                                    let changed = false;
-                                    for (const path of paths) {
-                                        const id = getPathName(path);
-                                        if (metadata[id]) { delete metadata[id]; changed = true; }
-                                    }
-                                    if (changed) {
-                                        await RecycleBinManager.saveMetadata(metadata);
-                                        document.dispatchEvent(new CustomEvent("recycle-bin-change"));
+                                    const recyclePath = RecycleBinManager.getRecyclePath(paths[0]);
+                                    if (recyclePath) {
+                                        const metadata = await RecycleBinManager.getMetadata(recyclePath);
+                                        let changed = false;
+                                        for (const path of paths) {
+                                            const id = getPathName(path);
+                                            if (metadata[id]) { delete metadata[id]; changed = true; }
+                                        }
+                                        if (changed) {
+                                            await RecycleBinManager.saveMetadata(recyclePath, metadata);
+                                            document.dispatchEvent(new CustomEvent("recycle-bin-change"));
+                                        }
                                     }
                                 }
                             } else {
-                                const recycledIds = await RecycleBinManager.moveItemsToRecycleBin(paths, dialog);
-                                if (recycledIds.length > 0) {
-                                    UndoManager.push({ type: 'delete', data: { recycledIds } });
+                                const recycledPaths = await RecycleBinManager.moveItemsToRecycleBin(paths, dialog);
+                                if (recycledPaths.length > 0) {
+                                    UndoManager.push({ type: 'delete', data: { recycledPaths } });
                                 }
                             }
                             if (isPermanent && !alreadyInRecycle) {
@@ -392,8 +395,7 @@ export class FileOperations {
         const totalSize = await this.getTotalSize(paths);
         const dialog = new ProgressBarDialogWindow("restore", paths.length, totalSize);
         try {
-            const ids = paths.map(p => getPathName(p));
-            await RecycleBinManager.restoreItems(ids, dialog);
+            await RecycleBinManager.restoreItems(paths, dialog);
         } catch (e) {
             handleFileSystemError("restore", e, "items");
         } finally {
@@ -405,7 +407,10 @@ export class FileOperations {
     }
 
     async emptyRecycleBin() {
-        const isEmpty = await RecycleBinManager.isEmpty();
+        const recyclePath = RecycleBinManager.getRecyclePath(this.app.currentPath) || this.app.currentPath;
+        if (!RecycleBinManager.isRecycleBinPath(recyclePath)) return;
+
+        const isEmpty = await RecycleBinManager.isEmpty(recyclePath);
         if (isEmpty) return;
         ShowDialogWindow({
             title: "Confirm Empty Recycle Bin",
@@ -419,14 +424,14 @@ export class FileOperations {
                     action: async () => {
                         const busyId = `empty-recycle-${Math.random()}`;
                         requestBusyState(busyId, this.app.win.element);
-                        const metadata = await RecycleBinManager.getMetadata();
+                        const metadata = await RecycleBinManager.getMetadata(recyclePath);
                         const ids = Object.keys(metadata);
-                        const paths = ids.map(id => joinPath("/C:/Recycled", id));
+                        const paths = ids.map(id => joinPath(recyclePath, id));
                         const { ProgressBarDialogWindow } = await import("../interface/ProgressBarDialogWindow.js");
                         const totalSize = await this.getTotalSize(paths);
                         const dialog = new ProgressBarDialogWindow("empty", ids.length, totalSize);
                         try {
-                            await RecycleBinManager.emptyRecycleBin(dialog);
+                            await RecycleBinManager.emptyRecycleBin(recyclePath, dialog);
                             const { playSound } = await import("../../../utils/soundManager.js");
                             playSound("EmptyRecycleBin");
                         } catch (e) {
@@ -496,7 +501,7 @@ export class FileOperations {
         }
     }
 
-    async _undoDelete(data) { await RecycleBinManager.restoreItems(data.recycledIds); }
+    async _undoDelete(data) { await RecycleBinManager.restoreItems(data.recycledPaths || data.recycledIds); }
 
     async _undoCreate(data) {
         try { await fs.promises.rm(data.path, { recursive: true }); }

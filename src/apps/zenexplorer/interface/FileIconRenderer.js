@@ -78,13 +78,14 @@ export async function renderFileIcon(fileName, fullPath, isDir, options = {}) {
     const isEmpty =
       options.recycleBinEmpty !== undefined
         ? options.recycleBinEmpty
-        : await RecycleBinManager.isEmpty();
+        : await RecycleBinManager.isEmpty(fullPath);
     iconObj = isEmpty ? ICONS.recycleBinEmpty : ICONS.recycleBinFull;
   }
   // Special handling for items INSIDE Recycle Bin
   else if (RecycleBinManager.isRecycledItemPath(fullPath)) {
+    const recyclePath = RecycleBinManager.getRecyclePath(fullPath);
     const metadata =
-      options.metadata || (await RecycleBinManager.getMetadata());
+      options.metadata || (recyclePath ? await RecycleBinManager.getMetadata(recyclePath) : {});
     const entry = metadata[fileName]; // fileName is the ID
     if (entry) {
       iconObj = getIconObjForFile(entry.originalName, isDir);

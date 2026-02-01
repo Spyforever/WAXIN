@@ -24,6 +24,7 @@ export class ContextMenuBuilder {
       i.getAttribute("data-path"),
     );
     const isRootItem = selectedPaths.some((p) => getParentPath(p) === "/");
+    const isOnReadOnlyDrive = selectedPaths.some(p => p.startsWith("/E:"));
     const isFloppy = path === "/A:";
     const isFloppyMounted = mounts.has("/A:");
     const isCD = path === "/E:";
@@ -79,13 +80,6 @@ export class ContextMenuBuilder {
           default: true,
         },
       ];
-
-      if (isRecycleBin) {
-        menuItems.push({
-          label: "Empty Recycle Bin",
-          action: () => this.app.fileOps.emptyRecycleBin(),
-        });
-      }
 
       if (isFloppy) {
         if (isFloppyMounted) {
@@ -144,7 +138,7 @@ export class ContextMenuBuilder {
         {
           label: "Delete",
           action: () => this.app.fileOps.deleteItems(selectedPaths),
-          enabled: () => !isRootItem && !isRecycleBin,
+          enabled: () => !isRootItem && !isRecycleBin && !isOnReadOnlyDrive,
         },
         {
           label: "Rename",

@@ -127,7 +127,6 @@ export class ZenExplorerApp extends Application {
 
     // 1. Initialize File System
     await initFileSystem();
-    await RecycleBinManager.init();
 
     // 2. Setup Window
     const win = new window.$Window({
