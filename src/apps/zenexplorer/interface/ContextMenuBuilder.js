@@ -20,10 +20,12 @@ export class ContextMenuBuilder {
   buildItemMenu(e, icon) {
     const path = icon.getAttribute("data-path");
     const type = icon.getAttribute("data-type");
-    const selectedPaths = [...this.app.iconManager.selectedIcons].map((i) =>
+    const selectedIcons = [...this.app.iconManager.selectedIcons];
+    const selectedPaths = selectedIcons.map((i) =>
       i.getAttribute("data-path"),
     );
     const isRootItem = selectedPaths.some((p) => getParentPath(p) === "/");
+    const anyVirtual = selectedIcons.some(i => i.getAttribute("data-is-virtual") === "true");
     const isOnReadOnlyDrive = selectedPaths.some(p => p.startsWith("/E:"));
     const isFloppy = path === "/A:";
     const isFloppyMounted = mounts.has("/A:");
@@ -121,7 +123,7 @@ export class ContextMenuBuilder {
         {
           label: "Cut",
           action: () => this.app.fileOps.cutItems(selectedPaths),
-          enabled: () => !isRootItem && !isRecycleBin,
+          enabled: () => !isRootItem && !isRecycleBin && !anyVirtual,
         },
         {
           label: "Copy",
@@ -138,13 +140,13 @@ export class ContextMenuBuilder {
         {
           label: "Delete",
           action: () => this.app.fileOps.deleteItems(selectedPaths),
-          enabled: () => !isRootItem && !isRecycleBin && !isOnReadOnlyDrive,
+          enabled: () => !isRootItem && !isRecycleBin && !isOnReadOnlyDrive && !anyVirtual,
         },
         {
           label: "Rename",
           action: () => this.app.fileOps.renameItem(path),
           enabled: () =>
-            !isRootItem && selectedPaths.length === 1 && !isRecycleBin,
+            !isRootItem && selectedPaths.length === 1 && !isRecycleBin && !anyVirtual,
         },
         "MENU_DIVIDER",
         {

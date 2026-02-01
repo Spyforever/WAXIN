@@ -142,7 +142,7 @@ export class DirectoryView {
             const td = document.createElement("td");
             if (i === 0) {
               td.className = "name-cell";
-              const iconObj = await renderFileIcon(file, fullPath, isDir, { metadata, recycleBinEmpty });
+              const iconObj = await renderFileIcon(file, fullPath, isDir, { metadata, recycleBinEmpty, stat: fileStat });
               const iconPart = iconObj.querySelector(".icon");
               const labelPart = iconObj.querySelector(".icon-label");
               if (iconPart) td.appendChild(iconPart);
@@ -177,9 +177,9 @@ export class DirectoryView {
 
     const icons = [];
     for (const info of sortedInfos) {
-      const { name: file, fullPath, isDirectory: isDir } = info;
+      const { name: file, fullPath, stat: fileStat, isDirectory: isDir } = info;
       try {
-        const iconDiv = await renderFileIcon(file, fullPath, isDir, { metadata, recycleBinEmpty });
+        const iconDiv = await renderFileIcon(file, fullPath, isDir, { metadata, recycleBinEmpty, stat: fileStat });
         this.app.iconManager.configureIcon(iconDiv);
         iconDiv.addEventListener("click", (e) => {
           if (this._isRenaming) return;
