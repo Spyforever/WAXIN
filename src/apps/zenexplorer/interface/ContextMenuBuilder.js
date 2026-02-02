@@ -168,6 +168,7 @@ export class ContextMenuBuilder {
 
   buildBackgroundMenu(e) {
     const isRoot = this.app.currentPath === "/";
+    const isVirtualDesktop = this.app.currentPath === "/Desktop";
     const menuItems = [
       {
         label: "View",
@@ -207,17 +208,17 @@ export class ContextMenuBuilder {
       {
         label: "Paste",
         action: () => this.app.fileOps.pasteItems(this.app.currentPath),
-        enabled: () => !ClipboardManager.isEmpty() && !isRoot,
+        enabled: () => !ClipboardManager.isEmpty() && (!isRoot || isVirtualDesktop),
       },
       "MENU_DIVIDER",
       {
         label: "New",
-        enabled: () => !isRoot,
+        enabled: () => !isRoot || isVirtualDesktop,
         submenu: [
           {
             label: "Folder",
             action: () => this.app.fileOps.createNewFolder(),
-            enabled: () => !isRoot,
+            enabled: () => !isRoot || isVirtualDesktop,
           },
           {
             label: "Text Document",

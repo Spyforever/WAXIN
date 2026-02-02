@@ -40,7 +40,7 @@ test.describe('Desktop Shell Extension', () => {
     await page.evaluate(() => window.System.launchApp('zenexplorer'));
     await page.waitForSelector('.window[data-app-id="zenexplorer"]');
 
-    // Navigate to C:\\WINDOWS\\Desktop
+    // Navigate to C:\WINDOWS\Desktop
     const addressBar = page.locator('.window[data-app-id="zenexplorer"] .address-bar input');
     await addressBar.fill('C:\\WINDOWS\\Desktop');
     await addressBar.press('Enter');
@@ -53,12 +53,77 @@ test.describe('Desktop Shell Extension', () => {
     await expect(myComputerIcon).not.toBeVisible();
   });
 
+  test('should allow file operations in /Desktop and reflect in C:\\WINDOWS\\Desktop', async ({ page }) => {
+    // Launch ZenExplorer and go to /Desktop
+    await page.evaluate(() => window.System.launchApp('zenexplorer'));
+    await page.waitForSelector('.window[data-app-id="zenexplorer"]');
+    const addressBar = page.locator('.window[data-app-id="zenexplorer"] .address-bar input');
+    await addressBar.fill('Desktop');
+    await addressBar.press('Enter');
+
+    // Wait for view
+    await page.waitForSelector('.window[data-app-id="zenexplorer"] .explorer-icon-view');
+
+    // Create a new folder via context menu
+    await page.click('.window[data-app-id="zenexplorer"] .explorer-icon-view', { button: 'right' });
+    await page.click('.menu-item:has-text("New")');
+    await page.click('.menu-item:has-text("Folder")');
+
+    // Wait for the new folder to appear in /Desktop
+    await page.waitForSelector('.window[data-app-id="zenexplorer"] .explorer-icon[data-name="New Folder"]');
+
+    // Verify it exists in real filesystem
+    const existsInRealFS = await page.evaluate(async () => {
+      try {
+        const stats = await window.fs.promises.stat('/C:/WINDOWS/Desktop/New Folder');
+        return stats.isDirectory();
+      } catch (e) {
+        return false;
+      }
+    });
+    expect(existsInRealFS).toBe(true);
+
+    // Rename the folder in /Desktop
+    await page.evaluate(async () => {
+      await window.fs.promises.rename('/C:/WINDOWS/Desktop/New Folder', '/C:/WINDOWS/Desktop/RenamedFolder');
+      // Trigger refresh
+      document.dispatchEvent(new CustomEvent('fs-change'));
+    });
+
+    await page.waitForSelector('.window[data-app-id="zenexplorer"] .explorer-icon[data-name="RenamedFolder"]');
+    await expect(page.locator('.window[data-app-id="zenexplorer"] .explorer-icon[data-name="New Folder"]')).not.toBeVisible();
+
+    // Delete the folder in /Desktop via context menu
+    const renamedFolder = page.locator('.window[data-app-id="zenexplorer"] .explorer-icon[data-name="RenamedFolder"]');
+    await renamedFolder.click({ button: 'right' });
+    await page.click('.menu-item:has-text("Delete")');
+
+    // Wait for and confirm delete dialog
+    const dialog = page.locator('.window:has-text("Confirm File Delete")');
+    await expect(dialog).toBeVisible();
+    await dialog.locator('button:has-text("Yes")').click();
+
+    // Wait for it to disappear
+    await expect(renamedFolder).not.toBeVisible({ timeout: 10000 });
+
+    // Verify it's gone from real filesystem
+    const goneFromRealFS = await page.evaluate(async () => {
+      try {
+        await window.fs.promises.stat('/C:/WINDOWS/Desktop/RenamedFolder');
+        return false;
+      } catch (e) {
+        return true;
+      }
+    });
+    expect(goneFromRealFS).toBe(true);
+  });
+
   test('should show Desktop folder with correct icon in C:\\WINDOWS', async ({ page }) => {
     // Launch ZenExplorer
     await page.evaluate(() => window.System.launchApp('zenexplorer'));
     await page.waitForSelector('.window[data-app-id="zenexplorer"]');
 
-    // Navigate to C:\\WINDOWS
+    // Navigate to C:\WINDOWS
     const addressBar = page.locator('.window[data-app-id="zenexplorer"] .address-bar input');
     await addressBar.fill('C:\\WINDOWS');
     await addressBar.press('Enter');

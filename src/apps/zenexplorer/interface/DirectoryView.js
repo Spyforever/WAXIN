@@ -285,7 +285,7 @@ export class DirectoryView {
         try {
           const parentPath = getParentPath(fullPath);
           const newPath = joinPath(parentPath, newName);
-          await fs.promises.rename(fullPath, newPath);
+          await fs.promises.rename(ShellManager.getRealPath(fullPath), ShellManager.getRealPath(newPath));
           UndoManager.push({ type: "rename", data: { from: fullPath, to: newPath } });
         } catch (e) {
           alert(`Error renaming: ${e.message}`);

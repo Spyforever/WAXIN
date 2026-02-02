@@ -105,6 +105,22 @@ export class DesktopExtension {
   }
 
   /**
+   * Get the real filesystem path for a virtual desktop path
+   * @param {string} path
+   * @returns {string}
+   */
+  getRealPath(path) {
+    if (path === this.virtualPath) {
+      return this.realPath;
+    }
+    if (path.startsWith(this.virtualPath + "/")) {
+      const relativePath = path.substring(this.virtualPath.length);
+      return joinPath(this.realPath, relativePath);
+    }
+    return path;
+  }
+
+  /**
    * Get custom icon for a path
    * @param {string} path
    * @param {number} size
