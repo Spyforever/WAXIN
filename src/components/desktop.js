@@ -1150,7 +1150,7 @@ export async function initDesktop(profile = null) {
 
   init(); // Initialize the taskbar manager
 
-  const launchStartupApps = () => {
+  const launchStartupApps = async () => {
     if (profile) {
       // Launch apps from profile
       if (profile.startup && profile.startup.length > 0) {
@@ -1162,7 +1162,7 @@ export async function initDesktop(profile = null) {
       }
     } else {
       // Launch startup apps from storage
-      const startupApps = getStartupApps();
+      const startupApps = await getStartupApps();
       if (startupApps && startupApps.length > 0) {
         startupApps.forEach((appId) => {
           launchApp(appId);

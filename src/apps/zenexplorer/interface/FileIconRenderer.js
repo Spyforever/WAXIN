@@ -1,8 +1,10 @@
-import { ICONS } from "../../../config/icons.js";
+import { ICONS, SHORTCUT_OVERLAY } from "../../../config/icons.js";
 import { getAssociation } from "../../../utils/directory.js";
 import { getDisplayName } from "../navigation/PathUtils.js";
 import { RecycleBinManager } from "../fileoperations/RecycleBinManager.js";
 import { ShellManager } from "../extensions/ShellManager.js";
+import { fs } from "@zenfs/core";
+import { apps } from "../../../config/apps.js";
 
 /**
  * FileIconRenderer - Handles rendering of file/folder icons in ZenExplorer
@@ -73,7 +75,31 @@ export async function renderFileIcon(fileName, fullPath, isDir, options = {}) {
   iconWrapper.className = "icon-wrapper";
 
   let iconObj = shellIcon || getIconObjForFile(fileName, isDir);
+
+  // Special handling for Start Menu and Favorites folders in Explorer
+  if (isDir && (fullPath.includes("/WINDOWS/Start Menu") || fullPath.includes("/WINDOWS/Favorites"))) {
+    iconObj = ICONS.programs;
+  }
+
   let displayName = getDisplayName(fileName);
+  let isShortcut = false;
+
+  // Special handling for shortcuts (.lnk files)
+  if (!isDir && fileName.endsWith(".lnk")) {
+    isShortcut = true;
+    try {
+      const content = await fs.promises.readFile(fullPath, "utf8");
+      const data = JSON.parse(content);
+      if (data.type === "shortcut" && data.appId) {
+        const app = apps.find((a) => a.id === data.appId);
+        if (app) {
+          iconObj = app.icon;
+        }
+      }
+    } catch (e) {
+      console.error("Failed to read shortcut icon", e);
+    }
+  }
 
   // Special handling for Recycle Bin folder
   if (RecycleBinManager.isRecycleBinPath(fullPath)) {
@@ -106,6 +132,20 @@ export async function renderFileIcon(fileName, fullPath, isDir, options = {}) {
   iconImg16.className = "icon-16";
   iconImg16.draggable = false;
   iconWrapper.appendChild(iconImg16);
+
+  if (isShortcut) {
+    const overlayImg32 = document.createElement("img");
+    overlayImg32.src = SHORTCUT_OVERLAY[32];
+    overlayImg32.className = "shortcut-overlay shortcut-overlay-32 icon-32";
+    overlayImg32.draggable = false;
+    iconWrapper.appendChild(overlayImg32);
+
+    const overlayImg16 = document.createElement("img");
+    overlayImg16.src = SHORTCUT_OVERLAY[16];
+    overlayImg16.className = "shortcut-overlay shortcut-overlay-16 icon-16";
+    overlayImg16.draggable = false;
+    iconWrapper.appendChild(overlayImg16);
+  }
 
   iconInner.appendChild(iconWrapper);
 
