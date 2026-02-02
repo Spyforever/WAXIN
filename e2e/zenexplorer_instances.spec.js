@@ -25,8 +25,10 @@ test('ZenExplorer directory-based singleton behavior', async ({ page }) => {
     // Function to launch ZenExplorer
     const launchZenExplorer = async (stepName) => {
         await page.click('button:has-text("Start")');
-        await page.locator('.start-menu-item:has-text("Programs")').hover();
-        await page.click('text=File Manager (ZenFS)');
+        const programs = page.locator('.start-menu-item:has-text("Programs")');
+        await expect(programs).toBeVisible({ timeout: 10000 });
+        await programs.dispatchEvent('pointerenter');
+        await page.click('text=File Manager (ZenFS)', { timeout: 10000 });
     };
 
     // 1. Launch first instance (defaults to / aka My Computer)
