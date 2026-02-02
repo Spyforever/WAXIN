@@ -1,10 +1,9 @@
 import { getItem, LOCAL_STORAGE_KEYS } from "./localStorage.js";
-import { getDesktopContents } from "./directory.js";
 import { apps } from "../config/apps.js";
 
 export function getItemFromIcon(icon) {
   const fileId = icon.getAttribute("data-file-id");
-  const filePath = icon.getAttribute("data-file-path");
+  // const filePath = icon.getAttribute("data-file-path");
   const appId = icon.getAttribute("data-app-id");
 
   if (fileId) {
@@ -13,22 +12,9 @@ export function getItemFromIcon(icon) {
     return { ...file, itemType: "dropped-file", source: "desktop" };
   }
 
-  const desktopContents = getDesktopContents();
-
-  if (filePath) {
-    const file = desktopContents.find(
-      (item) => item.path === filePath && item.type !== "app",
-    );
-    if (file) {
-      return { ...file, itemType: "virtual-file", source: "desktop" };
-    }
-  }
-
+  // getDesktopContents removed, this utility is legacy
   const appItem = apps.find((a) => a.id === appId);
-  const isDesktopApp = desktopContents.some(
-    (item) => item.id === appId && item.type === "app",
-  );
-  if (appItem && isDesktopApp) {
+  if (appItem) {
     return { ...appItem, itemType: "app", source: "desktop" };
   }
 

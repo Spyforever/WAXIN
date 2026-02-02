@@ -25,88 +25,12 @@ function findNodeById(nodes, id) {
   return null;
 }
 
-function findDesktopFolder() {
-  const driveC = directory.find((d) => d.id === "drive-c");
-  if (driveC && driveC.children) {
-    const userFolder = driveC.children.find((f) => f.id === "folder-user");
-    if (userFolder && userFolder.children) {
-      return userFolder.children.find((f) => f.id === "folder-desktop");
-    }
-  }
-  return null;
-}
-
 function findProgramFilesFolder() {
   const driveC = directory.find((d) => d.id === "drive-c");
   if (driveC && driveC.children) {
     return driveC.children.find((f) => f.id === "folder-program-files");
   }
   return null;
-}
-
-export function getDesktopContents() {
-  const desktopFolder = findDesktopFolder();
-  if (!desktopFolder || !desktopFolder.children) {
-    return [];
-  }
-
-  const systemIcons = new Set([
-    "my-computer",
-    "my-documents",
-    "recycle-bin",
-    "network-neighborhood",
-    "my-briefcase",
-  ]);
-
-  const desktopItems = desktopFolder.children.map((item) => {
-    if (item.type === "app") {
-      const appConfig = apps.find((a) => a.id === item.appId);
-      if (appConfig) {
-        return {
-          id: appConfig.id,
-          name: appConfig.title,
-          type: "app",
-          isSystemIcon: systemIcons.has(appConfig.id),
-          appId: appConfig.id, // Keep appId for setupIcons
-        };
-      }
-    } else if (item.type === "shortcut") {
-      const targetNode = findNodeById(directory, item.targetId);
-      if (targetNode && targetNode.type === "app") {
-        const appConfig = apps.find((a) => a.id === targetNode.appId);
-        if (appConfig) {
-          return {
-            id: item.id,
-            name: item.name,
-            type: "shortcut",
-            app: appConfig.id,
-            path: `/${item.id}`,
-            icon: appConfig.icon,
-          };
-        }
-      }
-    } else if (item.type === "file") {
-      const association = getAssociation(item.name);
-      return {
-        id: item.id,
-        name: item.name,
-        type: "file",
-        app: association.appId,
-        path: item.contentUrl,
-      };
-    } else if (item.type === "folder") {
-      return {
-        id: item.id,
-        name: item.name,
-        type: "folder",
-        app: "explorer",
-        path: `/drive-c/folder-user/folder-desktop/${item.id}`,
-      };
-    }
-    return null;
-  });
-
-  return desktopItems.filter(Boolean);
 }
 
 export function addAppDefinition(appId) {
@@ -207,32 +131,3 @@ export function findItemByPath(path) {
   return currentItem;
 }
 
-export function addDesktopShortcut(appId, appTitle) {
-  const targetId = addAppDefinition(appId); // Ensure app def exists
-  const desktopFolder = findDesktopFolder();
-
-  if (desktopFolder && desktopFolder.children && targetId) {
-    const shortcut = {
-      id: `shortcut-to-${appId}`,
-      type: "shortcut",
-      targetId: targetId,
-      name: appTitle,
-    };
-    const exists = desktopFolder.children.some((c) => c.id === shortcut.id);
-    if (!exists) {
-      desktopFolder.children.push(shortcut);
-    }
-  }
-}
-
-export function removeDesktopShortcut(appId) {
-  removeAppDefinition(appId); // Also remove the app def
-  const desktopFolder = findDesktopFolder();
-  if (desktopFolder && desktopFolder.children) {
-    const shortcutId = `shortcut-to-${appId}`;
-    const index = desktopFolder.children.findIndex((c) => c.id === shortcutId);
-    if (index > -1) {
-      desktopFolder.children.splice(index, 1);
-    }
-  }
-}
