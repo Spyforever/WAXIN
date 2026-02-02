@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('ZenExplorer C: formatting', async ({ page }) => {
+test('ZenExplorer C: formatting', async ({ page }, testInfo) => {
     test.setTimeout(120000);
     await page.goto('http://localhost:5173/win98-web/');
 
@@ -23,5 +23,5 @@ test('ZenExplorer C: formatting', async ({ page }) => {
     await expect(addressBar).toHaveValue('C:\\');
     await expect(zenWin.locator('.window-title')).toHaveText('(C:)');
 
-    await page.screenshot({ path: 'c_drive.png' });
+    await page.screenshot({ path: testInfo.outputPath('c_drive.png') });
 });

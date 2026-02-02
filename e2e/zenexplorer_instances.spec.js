@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('ZenExplorer directory-based singleton behavior', async ({ page }) => {
+test('ZenExplorer directory-based singleton behavior', async ({ page }, testInfo) => {
     test.setTimeout(120000);
     await page.goto('http://localhost:5173/win98-web/');
 
@@ -78,5 +78,5 @@ test('ZenExplorer directory-based singleton behavior', async ({ page }) => {
     // Now we should have two windows with title "(C:)"
     await expect(page.locator('.window-title').filter({ hasText: /^\(C:\)$/ })).toHaveCount(2, { timeout: 15000 });
 
-    await page.screenshot({ path: 'zen_instances_final.png' });
+    await page.screenshot({ path: testInfo.outputPath('zen_instances_final.png') });
 });
