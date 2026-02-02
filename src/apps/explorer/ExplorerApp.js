@@ -7,7 +7,6 @@ import { launchApp } from "../../utils/appManager.js";
 import {
   getAssociation,
   findItemByPath,
-  getDesktopContents,
 } from "../../utils/directory.js";
 import {
   convertInternalPathToWindows,
@@ -761,32 +760,15 @@ export class ExplorerApp extends Application {
         return;
       }
 
-      if (path === SPECIAL_FOLDER_PATHS.desktop) {
-        const desktopContents = getDesktopContents();
-        const desktopApps = desktopContents.apps.map((appId) => {
-          const app = apps.find((a) => a.id === appId);
-          return { ...app, appId: app.id, isStatic: true };
-        });
-        const allDroppedFiles = getItem(LOCAL_STORAGE_KEYS.DROPPED_FILES) || [];
-        const desktopFiles = allDroppedFiles.filter(
-          (file) => file.path === SPECIAL_FOLDER_PATHS.desktop,
-        );
-        const staticFiles = desktopContents.files.map((file) => ({
-          ...file,
-          isStatic: true,
-        }));
-        children = [...desktopApps, ...staticFiles, ...desktopFiles];
-      } else {
-        const staticChildren = (item.children || []).map((child) => ({
-          ...child,
-          isStatic: true,
-        }));
-        const allDroppedFiles = getItem(LOCAL_STORAGE_KEYS.DROPPED_FILES) || [];
-        const droppedFilesInThisFolder = allDroppedFiles.filter(
-          (file) => file.path === path,
-        );
-        children = [...staticChildren, ...droppedFilesInThisFolder];
-      }
+      const staticChildren = (item.children || []).map((child) => ({
+        ...child,
+        isStatic: true,
+      }));
+      const allDroppedFiles = getItem(LOCAL_STORAGE_KEYS.DROPPED_FILES) || [];
+      const droppedFilesInThisFolder = allDroppedFiles.filter(
+        (file) => file.path === path,
+      );
+      children = [...staticChildren, ...droppedFilesInThisFolder];
 
       // Sort children alphabetically by name, but only for subfolders
       if (path !== "/") {

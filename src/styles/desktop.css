@@ -79,10 +79,11 @@ html {
     overflow: hidden;
     display: grid;
     grid-auto-flow: column;
-    grid-template-rows: repeat(auto-fill, 60px);
-    grid-auto-columns: 60px;
-    gap: 5px;
+    grid-template-rows: repeat(auto-fill, 80px);
+    grid-auto-columns: 75px;
+    gap: 0;
     align-content: start;
+    padding: 5px;
 }
 
 /* When dragging, disable grid so icons stay put */
@@ -90,30 +91,14 @@ html {
     display: block;
 }
 
-.desktop-icon {
-    width: 70px;
-    text-align: center;
-    color: var(--HilightText);
-    margin: 3px;
-    /*z-index: 1; /* Ensure icons are on top of other elements */
+.desktop .explorer-icon {
+    color: white;
+    text-shadow: 1px 1px 1px black;
 }
 
-.desktop-icon .icon {
-    display: block;
-    /* width: 32px;
-    height: 32px; */
-    margin: auto;
-}
-
-.desktop-icon .icon img {
-    width: 32px;
-    height: 32px;
-}
-
-.desktop-icon .icon-label {
-    font-family: var(--font-family-menu);
-    font-size: var(--font-size-menu);
-    overflow-wrap: break-word;
+.desktop .explorer-icon .icon-label {
+    white-space: normal;
+    word-break: break-word;
 }
 
 .highlighted-icon {
@@ -125,14 +110,8 @@ html {
     color: var(--highlight-text);
 }
 
-.icon-label.selected {
-    border: 1px dotted var(--HilightText);
-    height: auto; /* Allow height to be controlled by content/JS */
-    min-height: 1.2em; /* Ensure at least one line is visible */
-    white-space: normal !important; /* Allow text to wrap */
-    word-break: break-word; /* Ensure long words break */
-    line-height: 1.2; /* Adjust line height for better appearance */
-    padding: 2px; /* Add some padding for better text visibility */
+.desktop .explorer-icon.selected .icon-label {
+    text-shadow: none;
 }
 
 .lasso {

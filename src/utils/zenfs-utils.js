@@ -107,3 +107,55 @@ export async function existsAsync(path) {
         return false;
     }
 }
+
+/**
+ * Adds a shortcut to the desktop (/C:/WINDOWS/Desktop).
+ * @param {string} appId The ID of the app to add.
+ * @param {string} appTitle The title of the shortcut.
+ */
+export async function addDesktopShortcut(appId, appTitle) {
+  const desktopPath = "/C:/WINDOWS/Desktop";
+  try {
+    if (!(await existsAsync(desktopPath))) {
+      await fs.promises.mkdir(desktopPath, { recursive: true });
+    }
+    const lnkPath = `${desktopPath}/${appTitle}.lnk`;
+
+    if (!(await existsAsync(lnkPath))) {
+      await fs.promises.writeFile(lnkPath, JSON.stringify({
+        type: "shortcut",
+        appId: appId,
+      }, null, 2));
+      document.dispatchEvent(new CustomEvent("fs-change", { detail: { path: lnkPath } }));
+    }
+  } catch (error) {
+    console.error("Failed to add desktop shortcut to ZenFS", error);
+  }
+}
+
+/**
+ * Removes a shortcut from the desktop (/C:/WINDOWS/Desktop).
+ * @param {string} appId The ID of the app to remove.
+ */
+export async function removeDesktopShortcut(appId) {
+  const desktopPath = "/C:/WINDOWS/Desktop";
+  try {
+    if (await existsAsync(desktopPath)) {
+      const files = await fs.promises.readdir(desktopPath);
+      for (const file of files) {
+        if (file.endsWith(".lnk")) {
+          const content = await fs.promises.readFile(`${desktopPath}/${file}`, "utf8");
+          try {
+            const data = JSON.parse(content);
+            if (data.appId === appId) {
+              await fs.promises.unlink(`${desktopPath}/${file}`);
+            }
+          } catch (e) {}
+        }
+      }
+      document.dispatchEvent(new CustomEvent("fs-change", { detail: { path: desktopPath } }));
+    }
+  } catch (error) {
+    console.error("Failed to remove desktop shortcut from ZenFS", error);
+  }
+}
