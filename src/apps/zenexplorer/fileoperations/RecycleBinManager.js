@@ -1,5 +1,6 @@
 import { fs } from "@zenfs/core";
 import { joinPath, getPathName, getParentPath } from "../navigation/PathUtils.js";
+import { ShellManager } from "../extensions/ShellManager.js";
 
 export class RecycleBinManager {
     static async init() {
@@ -8,7 +9,8 @@ export class RecycleBinManager {
     }
 
     static getDriveRoot(path) {
-        const match = path.match(/^(\/[A-Z]:)/i);
+        const realPath = ShellManager.getRealPath(path);
+        const match = realPath.match(/^(\/[A-Z]:)/i);
         return match ? match[1] : "/";
     }
 
@@ -78,8 +80,9 @@ export class RecycleBinManager {
                     dialog.update(path, sourceDir, recyclePath, 0);
                 }
 
+                const realPath = ShellManager.getRealPath(path);
                 try {
-                    await fs.promises.rename(path, targetPath);
+                    await fs.promises.rename(realPath, targetPath);
                     if (dialog) {
                         const stats = await fs.promises.stat(targetPath);
                         dialog.finishItem(stats.isDirectory() ? 0 : stats.size);
@@ -277,13 +280,15 @@ export class RecycleBinManager {
 
     static async copyRecursive(src, dest, dialog = null) {
         if (dialog && dialog.cancelled) return;
-        const stats = await fs.promises.stat(src);
+        const realSrc = ShellManager.getRealPath(src);
+        const realDest = ShellManager.getRealPath(dest);
+        const stats = await fs.promises.stat(realSrc);
         const sourceDir = getParentPath(src);
         const destDir = getParentPath(dest);
 
         if (stats.isDirectory()) {
-            await fs.promises.mkdir(dest, { recursive: true });
-            const files = await fs.promises.readdir(src);
+            await fs.promises.mkdir(realDest, { recursive: true });
+            const files = await fs.promises.readdir(realSrc);
             for (const file of files) {
                 if (dialog && dialog.cancelled) return;
                 await this.copyRecursive(joinPath(src, file), joinPath(dest, file), dialog);
@@ -292,8 +297,8 @@ export class RecycleBinManager {
             if (dialog) {
                 dialog.update(src, sourceDir, destDir, 0);
             }
-            const data = await fs.promises.readFile(src);
-            await fs.promises.writeFile(dest, data);
+            const data = await fs.promises.readFile(realSrc);
+            await fs.promises.writeFile(realDest, data);
             if (dialog) {
                 dialog.finishItem(stats.size);
                 dialog.update(src, sourceDir, destDir, 0);
@@ -304,26 +309,27 @@ export class RecycleBinManager {
     static async removeRecursive(path, dialog = null, reportProgress = true) {
         if (dialog && dialog.cancelled) return;
         let stats;
+        const realPath = ShellManager.getRealPath(path);
         try {
-            stats = await fs.promises.stat(path);
+            stats = await fs.promises.stat(realPath);
         } catch (e) {
             return;
         }
 
         if (stats.isDirectory()) {
-            const files = await fs.promises.readdir(path);
+            const files = await fs.promises.readdir(realPath);
             for (const file of files) {
                 if (dialog && dialog.cancelled) return;
                 await this.removeRecursive(joinPath(path, file), dialog, reportProgress);
             }
             if (dialog && dialog.cancelled) return;
-            await fs.promises.rmdir(path);
+            await fs.promises.rmdir(realPath);
         } else {
             if (dialog && reportProgress) {
                 const sourceDir = getParentPath(path);
                 dialog.update(path, sourceDir, null, 0);
             }
-            await fs.promises.unlink(path);
+            await fs.promises.unlink(realPath);
             if (dialog && reportProgress) {
                 dialog.finishItem(stats.size);
                 const sourceDir = getParentPath(path);

@@ -129,6 +129,19 @@ export class ShellManager {
   }
 
   /**
+   * Get the real filesystem path for a virtual path if an extension supports it
+   * @param {string} path
+   * @returns {string}
+   */
+  static getRealPath(path) {
+    const ext = this.getExtensionForPath(path);
+    if (ext && ext.getRealPath) {
+      return ext.getRealPath(path);
+    }
+    return path;
+  }
+
+  /**
    * Handle opening a path via shell extension
    * @param {string} path
    * @param {Object} app - ZenExplorerApp instance

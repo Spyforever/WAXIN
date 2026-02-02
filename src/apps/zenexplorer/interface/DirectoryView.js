@@ -253,8 +253,8 @@ export class DirectoryView {
     const path = icon.getAttribute("data-path");
     const isRootItem = getParentPath(path) === "/";
     const isRecycleBin = RecycleBinManager.isRecycleBinPath(path);
-    const isShellItem = ShellManager.getExtensionForPath(path);
-    if (isRootItem || isRecycleBin || isShellItem) return;
+    const isVirtual = icon.getAttribute("data-is-virtual") === "true";
+    if (isRootItem || isRecycleBin || isVirtual) return;
     this._isRenaming = true;
     const label = icon.querySelector(".icon-label");
     const fullPath = icon.getAttribute("data-path");
@@ -285,7 +285,7 @@ export class DirectoryView {
         try {
           const parentPath = getParentPath(fullPath);
           const newPath = joinPath(parentPath, newName);
-          await fs.promises.rename(fullPath, newPath);
+          await fs.promises.rename(ShellManager.getRealPath(fullPath), ShellManager.getRealPath(newPath));
           UndoManager.push({ type: "rename", data: { from: fullPath, to: newPath } });
         } catch (e) {
           alert(`Error renaming: ${e.message}`);
