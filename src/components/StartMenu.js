@@ -11,6 +11,7 @@ import { findItemByPath, getAssociation } from "../utils/directory.js";
 import windowsStartMenuBar from "../assets/img/win98start.png";
 import { ICONS } from "../config/icons.js";
 import startMenuConfig from "../config/startmenu.js";
+import { getMenuFromZenFS, START_MENU_PATH, FAVORITES_PATH } from "../utils/startMenuUtils.js";
 import { playSound } from "../utils/soundManager.js";
 import { ShowDialogWindow } from "./DialogWindow.js";
 import { createShutdownDialogContent } from "./ShutdownDialog.js";
@@ -94,7 +95,7 @@ class StartMenu {
   getStartMenuHTML() {
     const dynamicItemsHTML = startMenuConfig
       .map((item) => {
-        const hasSubmenu = item.submenu && item.submenu.length >= 0;
+        const hasSubmenu = (item.submenu && item.submenu.length >= 0) || item.isDynamic;
         return `
         <li class="start-menu-item ${hasSubmenu ? "has-submenu" : ""}" role="menuitem" tabindex="0" data-id="${this.escapeHtml(item.label)}">
           <img src="${item.icon}" alt="${this.escapeHtml(item.label)}">
@@ -233,6 +234,7 @@ class StartMenu {
   attachDynamicSubmenu(menuItem, getSubmenuItems) {
     let activeMenu = null;
     let closeTimeout;
+    let isLoading = false;
 
     const closeAndCleanup = () => {
       if (!activeMenu) return;
@@ -249,10 +251,11 @@ class StartMenu {
       }
     };
 
-    const openMenu = () => {
+    const openMenu = async () => {
       clearTimeout(closeTimeout);
-      if (activeMenu) return;
+      if (isLoading || activeMenu) return;
 
+      isLoading = true;
       if (this.openSubmenus.length > 0) {
         [...this.openSubmenus].forEach((menu) => {
           menu.close();
@@ -263,7 +266,14 @@ class StartMenu {
         this.openSubmenus = [];
       }
 
-      const submenuItems = getSubmenuItems(); // Generate items dynamically
+      let submenuItems;
+      try {
+        submenuItems = await getSubmenuItems(); // Generate items dynamically
+      } catch (e) {
+        console.error("Failed to get dynamic submenu items", e);
+        isLoading = false;
+        return;
+      }
 
       const menuWrapper = document.createElement("div");
       menuWrapper.className = "menu-popup-wrapper";
@@ -316,6 +326,7 @@ class StartMenu {
 
       if (typeof window.playSound === "function") window.playSound("MenuPopup");
       this.openSubmenus.push(activeMenu);
+      isLoading = false;
       this.addTrackedEventListener(menuWrapper, "pointerenter", () => {
         clearTimeout(closeTimeout);
       });
@@ -331,9 +342,14 @@ class StartMenu {
       );
       if (!menuItem) return;
 
-      if (itemConfig.id === "startup-folder") {
-        this.attachDynamicSubmenu(menuItem, () => {
-          const startupAppsList = getStartupApps();
+      if (itemConfig.isDynamic) {
+        this.attachDynamicSubmenu(menuItem, async () => {
+          const menu = await getMenuFromZenFS(itemConfig.path);
+          return menu.length > 0 ? menu : [{ label: "(Empty)", enabled: false }];
+        });
+      } else if (itemConfig.id === "startup-folder") {
+        this.attachDynamicSubmenu(menuItem, async () => {
+          const startupAppsList = await getStartupApps();
           if (startupAppsList.length === 0) {
             return [{ label: "(Empty)", enabled: false }];
           }

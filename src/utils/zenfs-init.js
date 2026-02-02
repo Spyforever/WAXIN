@@ -1,7 +1,20 @@
 import { resolveMountConfig, InMemory, fs } from "@zenfs/core";
 import { IndexedDB } from "@zenfs/dom";
+import { migrateToZenFS, START_MENU_PATH, FAVORITES_PATH } from "./startMenuUtils.js";
+import startMenuConfig from "../config/startmenu.js";
+import { getStartupApps } from "./startupManager.js";
+import { apps } from "../config/apps.js";
 
 let isInitialized = false;
+
+async function existsAsync(path) {
+    try {
+        await fs.promises.stat(path);
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
 
 export async function initFileSystem(onProgress) {
     if (isInitialized) return;
@@ -25,35 +38,72 @@ export async function initFileSystem(onProgress) {
             name: "win98-c-drive",
         });
         // Ensure C: mount point exists in root
-        if (!fs.existsSync('/C:')) {
+        if (!(await existsAsync('/C:'))) {
             await fs.promises.mkdir('/C:');
         }
         fs.mount('/C:', cDriveFs);
 
         if (onProgress) onProgress("Checking system folders...");
         // Ensure A: and E: drive directory exists in the root
-        if (!fs.existsSync('/A:')) {
+        if (!(await existsAsync('/A:'))) {
             await fs.promises.mkdir('/A:');
         }
-        if (!fs.existsSync('/E:')) {
+        if (!(await existsAsync('/E:'))) {
             await fs.promises.mkdir('/E:');
         }
 
         // Ensure WINDOWS directory exists on C: for persistence
-        if (!fs.existsSync('/C:/WINDOWS')) {
+        if (!(await existsAsync('/C:/WINDOWS'))) {
             await fs.promises.mkdir('/C:/WINDOWS');
         }
 
         // Ensure Program Files/Doom exists
-        if (!fs.existsSync('/C:/Program Files')) {
+        if (!(await existsAsync('/C:/Program Files'))) {
             await fs.promises.mkdir('/C:/Program Files');
         }
-        if (!fs.existsSync('/C:/Program Files/Doom')) {
+        if (!(await existsAsync('/C:/Program Files/Doom'))) {
             await fs.promises.mkdir('/C:/Program Files/Doom');
         }
         // Ensure WINDOWS/Desktop directory exists for the Desktop shell extension
-        if (!fs.existsSync('/C:/WINDOWS/Desktop')) {
+        if (!(await existsAsync('/C:/WINDOWS/Desktop'))) {
             await fs.promises.mkdir('/C:/WINDOWS/Desktop');
+        }
+
+        if (onProgress) onProgress("Initializing Start Menu...");
+        if (!(await existsAsync(START_MENU_PATH))) {
+            const programsConfig = startMenuConfig.find(item => item.label === "Programs");
+            if (programsConfig && programsConfig.submenu) {
+                await migrateToZenFS(programsConfig.submenu, START_MENU_PATH);
+            }
+
+            // Migrate startup apps from localStorage to ZenFS
+            const startupApps = await getStartupApps();
+            if (startupApps.length > 0) {
+                const startupPath = `${START_MENU_PATH}/StartUp`;
+                if (!(await existsAsync(startupPath))) {
+                    await fs.promises.mkdir(startupPath, { recursive: true });
+                }
+                for (const appId of startupApps) {
+                    const app = apps.find(a => a.id === appId);
+                    const label = app ? app.title : appId;
+                    const lnkPath = `${startupPath}/${label}.lnk`;
+                    if (!(await existsAsync(lnkPath))) {
+                        await fs.promises.writeFile(lnkPath, JSON.stringify({
+                            type: "shortcut",
+                            appId: appId,
+                            label: label
+                        }, null, 2));
+                    }
+                }
+            }
+        }
+
+        if (onProgress) onProgress("Initializing Favorites...");
+        if (!(await existsAsync(FAVORITES_PATH))) {
+            const favoritesConfig = startMenuConfig.find(item => item.label === "Favorites");
+            if (favoritesConfig && favoritesConfig.submenu) {
+                await migrateToZenFS(favoritesConfig.submenu, FAVORITES_PATH);
+            }
         }
 
         isInitialized = true;
