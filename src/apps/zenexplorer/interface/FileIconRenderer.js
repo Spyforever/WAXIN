@@ -81,7 +81,7 @@ export async function renderFileIcon(fileName, fullPath, isDir, options = {}) {
     iconObj = ICONS.programs;
   }
 
-  let displayName = getDisplayName(fileName);
+  let displayName = options.stat?.originalName || getDisplayName(fileName);
   let isShortcut = false;
 
   // Special handling for shortcuts (.lnk files)

@@ -36,6 +36,7 @@ export class ContextMenuBuilder {
     const isRemovableDiskMounted = driveLetter && RemovableDiskManager.isMounted(driveLetter);
     const isRecycledItem = RecycleBinManager.isRecycledItemPath(path);
     const isRecycleBin = RecycleBinManager.isRecycleBinPath(path);
+    const isGlobalRecycleBin = path === "/Recycle Bin" || path === "/Desktop/Recycle Bin";
 
     let menuItems = [];
 
@@ -118,6 +119,15 @@ export class ContextMenuBuilder {
         });
       }
 
+      if (isRecycleBin) {
+          menuItems.push({
+              label: "Empty Recycle Bin",
+              action: () => RecycleBinManager.emptyAllRecycleBins(),
+              enabled: () => !RecycleBinManager.isEmpty(path)
+          });
+          menuItems.push("MENU_DIVIDER");
+      }
+
       menuItems.push(
         "MENU_DIVIDER",
         {
@@ -169,7 +179,19 @@ export class ContextMenuBuilder {
   buildBackgroundMenu(e) {
     const isRoot = this.app.currentPath === "/";
     const isVirtualDesktop = this.app.currentPath === "/Desktop";
-    const menuItems = [
+    const isGlobalRecycleBin = this.app.currentPath === "/Recycle Bin";
+    const menuItems = [];
+
+    if (isGlobalRecycleBin) {
+        menuItems.push({
+            label: "Empty Recycle Bin",
+            action: () => RecycleBinManager.emptyAllRecycleBins(),
+            enabled: () => !RecycleBinManager.isEmpty("/Recycle Bin")
+        });
+        menuItems.push("MENU_DIVIDER");
+    }
+
+    menuItems.push(
       {
         label: "View",
         submenu: [
@@ -208,17 +230,17 @@ export class ContextMenuBuilder {
       {
         label: "Paste",
         action: () => this.app.fileOps.pasteItems(this.app.currentPath),
-        enabled: () => !ClipboardManager.isEmpty() && (!isRoot || isVirtualDesktop),
+        enabled: () => !ClipboardManager.isEmpty() && ((!isRoot || isVirtualDesktop) && !isGlobalRecycleBin),
       },
       "MENU_DIVIDER",
       {
         label: "New",
-        enabled: () => !isRoot || isVirtualDesktop,
+        enabled: () => (!isRoot || isVirtualDesktop) && !isGlobalRecycleBin,
         submenu: [
           {
             label: "Folder",
             action: () => this.app.fileOps.createNewFolder(),
-            enabled: () => !isRoot || isVirtualDesktop,
+            enabled: () => (!isRoot || isVirtualDesktop) && !isGlobalRecycleBin,
           },
           {
             label: "Text Document",
@@ -239,7 +261,7 @@ export class ContextMenuBuilder {
           }
         },
       },
-    ];
+    );
     return menuItems;
   }
 }

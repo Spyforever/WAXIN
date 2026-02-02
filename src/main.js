@@ -382,6 +382,7 @@ async function initializeOS() {
     window.playSound = playSound;
     window.setTheme = setTheme;
     window.fs = fs;
+    window.RecycleBinManager = RecycleBinManager;
     window.System.launchApp = launchApp;
     console.log("azOS initialized");
 

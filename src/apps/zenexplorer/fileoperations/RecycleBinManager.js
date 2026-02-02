@@ -1,4 +1,4 @@
-import { fs } from "@zenfs/core";
+import { fs, mounts } from "@zenfs/core";
 import { joinPath, getPathName, getParentPath } from "../navigation/PathUtils.js";
 import { ShellManager } from "../extensions/ShellManager.js";
 
@@ -15,6 +15,12 @@ export class RecycleBinManager {
     }
 
     static getRecyclePath(path) {
+        // If it's already a virtual path in the global recycle bin, it might need translation
+        if (path.startsWith("/Recycle Bin/")) {
+            const real = ShellManager.getRealPath(path);
+            if (real) return getParentPath(real);
+        }
+
         const driveRoot = this.getDriveRoot(path);
         if (driveRoot === "/" || driveRoot.toUpperCase() === "/E:") return null;
         return joinPath(driveRoot, "Recycled");
@@ -109,6 +115,7 @@ export class RecycleBinManager {
         }
 
         if (allRecycledPaths.length > 0) {
+            this.refreshFullState();
             document.dispatchEvent(new CustomEvent("recycle-bin-change"));
         }
 
@@ -122,7 +129,8 @@ export class RecycleBinManager {
     static async restoreItems(itemPaths, dialog = null) {
         const groups = {};
         for (const itemPath of itemPaths) {
-            const match = itemPath.match(/^(\/[A-Z]:\/Recycled)\/([^/]+)$/i);
+            const realItemPath = ShellManager.getRealPath(itemPath);
+            const match = realItemPath.match(/^(\/[A-Z]:\/Recycled)\/([^/]+)$/i);
             if (!match) continue;
             const recyclePath = match[1];
             const id = match[2];
@@ -181,6 +189,7 @@ export class RecycleBinManager {
         }
 
         if (anyChanged) {
+            this.refreshFullState();
             document.dispatchEvent(new CustomEvent("recycle-bin-change"));
         }
     }
@@ -190,6 +199,10 @@ export class RecycleBinManager {
     }
 
     static async emptyRecycleBin(recyclePath, dialog = null) {
+        if (recyclePath === "/Recycle Bin") {
+            return this.emptyAllRecycleBins(dialog);
+        }
+
         const metadata = await this.getMetadata(recyclePath);
         const ids = Object.keys(metadata);
 
@@ -219,20 +232,60 @@ export class RecycleBinManager {
         } else {
             await this.saveMetadata(recyclePath, {});
         }
+        this.refreshFullState();
         document.dispatchEvent(new CustomEvent("recycle-bin-change"));
     }
 
+    static async emptyAllRecycleBins(dialog = null) {
+        const drives = Array.from(mounts.keys())
+            .filter(m => m.match(/^\/[A-Z]:$/i))
+            .map(m => m.substring(1, 2).toUpperCase());
+        for (const drive of drives) {
+            const recyclePath = `/${drive}:/Recycled`;
+            try {
+                await fs.promises.stat(recyclePath);
+                await this.emptyRecycleBin(recyclePath, dialog);
+            } catch (e) {}
+        }
+        this.refreshFullState();
+        document.dispatchEvent(new CustomEvent("recycle-bin-change"));
+    }
+
+    static async isAnyBinFull() {
+        const drives = Array.from(mounts.keys())
+            .filter(m => m.match(/^\/[A-Z]:$/i))
+            .map(m => m.substring(1, 2).toUpperCase());
+        for (const drive of drives) {
+            const recyclePath = `/${drive}:/Recycled`;
+            try {
+                const isEmpty = await this.isEmpty(recyclePath);
+                if (!isEmpty) return true;
+            } catch (e) {}
+        }
+        return false;
+    }
+
+    static refreshFullState() {
+        // Trigger a refresh of icons that might depend on empty/full state
+        document.dispatchEvent(new CustomEvent("desktop-refresh"));
+        document.dispatchEvent(new CustomEvent("theme-changed"));
+    }
+
     static async isEmpty(recyclePath) {
+        if (recyclePath === "/Recycle Bin") {
+            return !(await this.isAnyBinFull());
+        }
         const metadata = await this.getMetadata(recyclePath);
         return Object.keys(metadata).length === 0;
     }
 
     static isRecycleBinPath(path) {
-        return !!path.match(/^\/[A-Z]:\/Recycled$/i);
+        return !!path.match(/^\/[A-Z]:\/Recycled$/i) || path === "/Recycle Bin" || path === "/Desktop/Recycle Bin";
     }
 
     static isRecycledItemPath(path) {
-        const match = path.match(/^(\/[A-Z]:\/Recycled)\/([^/]+)$/i);
+        const realPath = ShellManager.getRealPath(path);
+        const match = realPath.match(/^(\/[A-Z]:\/Recycled)\/([^/]+)$/i);
         if (!match) return false;
         return match[2] !== ".metadata.json";
     }

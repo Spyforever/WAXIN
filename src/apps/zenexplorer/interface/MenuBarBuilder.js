@@ -9,6 +9,7 @@ import ClipboardManager from "../fileoperations/ClipboardManager.js";
 import { PropertiesManager } from "../fileoperations/PropertiesManager.js";
 import UndoManager from "../fileoperations/UndoManager.js";
 import { RemovableDiskManager } from "../drives/RemovableDiskManager.js";
+import { RecycleBinManager } from "../fileoperations/RecycleBinManager.js";
 
 export class MenuBarBuilder {
   constructor(app) {
@@ -34,6 +35,7 @@ export class MenuBarBuilder {
       (p) => getParentPath(p) === "/",
     );
     const isRoot = this.app.currentPath === "/";
+    const isRecycleBin = RecycleBinManager.isRecycleBinPath(this.app.currentPath);
 
     return [
       {
@@ -49,7 +51,7 @@ export class MenuBarBuilder {
         action: () => {
           this.app.fileOps.cutItems(selectedPaths);
         },
-        enabled: () => selectedPaths.length > 0 && !containsRootItem,
+        enabled: () => selectedPaths.length > 0 && !containsRootItem && !isRecycleBin,
       },
       {
         label: "&Copy",
@@ -57,13 +59,13 @@ export class MenuBarBuilder {
         action: () => {
           this.app.fileOps.copyItems(selectedPaths);
         },
-        enabled: () => selectedPaths.length > 0,
+        enabled: () => selectedPaths.length > 0 && !isRecycleBin,
       },
       {
         label: "&Paste",
         shortcutLabel: "Ctrl+V",
         action: () => this.app.fileOps.pasteItems(this.app.currentPath),
-        enabled: () => !ClipboardManager.isEmpty() && !isRoot,
+        enabled: () => !ClipboardManager.isEmpty() && !isRoot && !isRecycleBin,
       },
     ];
   }
@@ -77,8 +79,31 @@ export class MenuBarBuilder {
       (p) => getParentPath(p) === "/",
     );
     const isRoot = this.app.currentPath === "/";
+    const isRecycleBin = RecycleBinManager.isRecycleBinPath(this.app.currentPath);
+    const anyRecycledItem = selectedPaths.some(p => RecycleBinManager.isRecycledItemPath(p));
 
-    return [
+    const items = [];
+
+    if (anyRecycledItem) {
+        items.push({
+            label: "&Restore",
+            action: () => this.app.fileOps.restoreItems(selectedPaths),
+        });
+    }
+
+    if (isRecycleBin) {
+        items.push({
+            label: "Empty Recycle &Bin",
+            action: () => this.app.fileOps.emptyRecycleBin(),
+            enabled: () => !RecycleBinManager.isEmpty(this.app.currentPath),
+        });
+    }
+
+    if (items.length > 0) {
+        items.push("MENU_DIVIDER");
+    }
+
+    items.push(
       {
         label: "&Open",
         action: () => {
@@ -126,19 +151,18 @@ export class MenuBarBuilder {
       "MENU_DIVIDER",
       {
         label: "&New",
-        enabled: () => !isRoot,
+        enabled: () => !isRoot && !isRecycleBin,
         submenu: [
           {
             label: "&Folder",
             action: () => this.app.fileOps.createNewFolder(),
-            enabled: () => !isRoot,
+            enabled: () => !isRoot && !isRecycleBin,
           },
           {
-                        label: "&Text Document",
-                        action: () => this.app.fileOps.createNewTextFile(),
-            
-            enabled: () => !isRoot,
-                    },
+            label: "&Text Document",
+            action: () => this.app.fileOps.createNewTextFile(),
+            enabled: () => !isRoot && !isRecycleBin,
+          },
         ],
       },
       "MENU_DIVIDER",
@@ -147,7 +171,7 @@ export class MenuBarBuilder {
         action: () => {
           this.app.fileOps.deleteItems(selectedPaths);
         },
-        enabled: () => selectedPaths.length > 0 && !containsRootItem,
+        enabled: () => selectedPaths.length > 0 && !containsRootItem && !isRecycleBin,
       },
       {
         label: "&Rename",
@@ -159,7 +183,7 @@ export class MenuBarBuilder {
             );
           }
         },
-        enabled: () => selectedPaths.length === 1 && !containsRootItem,
+        enabled: () => selectedPaths.length === 1 && !containsRootItem && !isRecycleBin,
       },
       "MENU_DIVIDER",
       {
@@ -206,7 +230,8 @@ export class MenuBarBuilder {
         label: "&Close",
         action: () => this.app.win.close(),
       },
-    ];
+    );
+    return items;
   }
 
   _getViewMenuItems() {
