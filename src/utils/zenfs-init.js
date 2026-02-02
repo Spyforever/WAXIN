@@ -91,7 +91,6 @@ export async function initFileSystem(onProgress) {
                         await fs.promises.writeFile(lnkPath, JSON.stringify({
                             type: "shortcut",
                             appId: appId,
-                            label: label
                         }, null, 2));
                     }
                 }

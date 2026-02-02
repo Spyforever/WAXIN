@@ -70,7 +70,6 @@ export async function addStartupApp(appId) {
       await fs.promises.writeFile(lnkPath, JSON.stringify({
         type: "shortcut",
         appId: appId,
-        label: label
       }, null, 2));
     }
   } catch (error) {

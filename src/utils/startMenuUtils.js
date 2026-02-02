@@ -45,7 +45,6 @@ export async function migrateToZenFS(config, targetPath) {
         type: "shortcut",
         appId: item.appId,
         args: item.args || null,
-        label: item.label,
       };
       await fs.promises.writeFile(lnkPath, JSON.stringify(lnkData, null, 2));
     } else if (item.label === "Windows Explorer") {
@@ -54,7 +53,6 @@ export async function migrateToZenFS(config, targetPath) {
         const lnkData = {
           type: "shortcut",
           appId: "my-computer",
-          label: item.label,
         };
         await fs.promises.writeFile(lnkPath, JSON.stringify(lnkData, null, 2));
     }
@@ -68,12 +66,14 @@ export async function migrateToZenFS(config, targetPath) {
  */
 export async function loadLnk(path) {
   try {
+    const filename = path.split("/").pop();
+    const label = filename.replace(".lnk", "");
     const content = await fs.promises.readFile(path, "utf8");
     const data = JSON.parse(content);
     const app = apps.find((a) => a.id === data.appId);
 
     return {
-      label: data.label || (app ? app.title : path.split("/").pop().replace(".lnk", "")),
+      label: label,
       icon: app ? app.icon[16] : ICONS.file[16],
       action: () => launchApp(data.appId, data.args),
     };
