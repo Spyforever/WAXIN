@@ -1,56 +1,10 @@
 import { fs } from "@zenfs/core";
 import { apps } from "../config/apps.js";
 import { launchApp } from "./appManager.js";
-import { ICONS, SHORTCUT_OVERLAY } from "../config/icons.js";
+import { ICONS } from "../config/icons.js";
 import { getAssociation } from "./directory.js";
 
 export const START_MENU_PATH = "/C:/WINDOWS/Start Menu/Programs";
-
-const iconCache = new Map();
-
-/**
- * Composites a shortcut overlay onto a base icon
- * @param {string} baseIconUrl - URL of the base icon
- * @param {number} size - Size of the icon (16 or 32)
- * @returns {Promise<string>} Data URL of the composited icon
- */
-async function compositeIcon(baseIconUrl, size = 16) {
-  const cacheKey = `${baseIconUrl}-${size}`;
-  if (iconCache.has(cacheKey)) {
-    return iconCache.get(cacheKey);
-  }
-
-  const result = await new Promise((resolve) => {
-    const canvas = document.createElement("canvas");
-    canvas.width = size;
-    canvas.height = size;
-    const ctx = canvas.getContext("2d");
-
-    const baseImg = new Image();
-    const overlayImg = new Image();
-
-    let loadedCount = 0;
-    const onLoaded = () => {
-      loadedCount++;
-      if (loadedCount === 2) {
-        ctx.drawImage(baseImg, 0, 0, size, size);
-        ctx.drawImage(overlayImg, 0, 0, size, size);
-        resolve(canvas.toDataURL());
-      }
-    };
-
-    baseImg.onload = onLoaded;
-    overlayImg.onload = onLoaded;
-    baseImg.onerror = () => resolve(baseIconUrl); // Fallback if image fails to load
-    overlayImg.onerror = () => resolve(baseIconUrl);
-
-    baseImg.src = baseIconUrl;
-    overlayImg.src = SHORTCUT_OVERLAY[size];
-  });
-
-  iconCache.set(cacheKey, result);
-  return result;
-}
 export const FAVORITES_PATH = "/C:/WINDOWS/Favorites";
 
 /**
@@ -117,12 +71,10 @@ export async function loadLnk(path) {
     const content = await fs.promises.readFile(path, "utf8");
     const data = JSON.parse(content);
     const app = apps.find((a) => a.id === data.appId);
-    const baseIcon = app ? app.icon[16] : ICONS.file[16];
-    const iconWithOverlay = await compositeIcon(baseIcon, 16);
 
     return {
       label: label,
-      icon: iconWithOverlay,
+      icon: app ? app.icon[16] : ICONS.file[16],
       action: () => launchApp(data.appId, data.args),
     };
   } catch (error) {

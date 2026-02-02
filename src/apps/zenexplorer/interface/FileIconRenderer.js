@@ -75,6 +75,12 @@ export async function renderFileIcon(fileName, fullPath, isDir, options = {}) {
   iconWrapper.className = "icon-wrapper";
 
   let iconObj = shellIcon || getIconObjForFile(fileName, isDir);
+
+  // Special handling for Start Menu and Favorites folders in Explorer
+  if (isDir && (fullPath.includes("/WINDOWS/Start Menu") || fullPath.includes("/WINDOWS/Favorites"))) {
+    iconObj = ICONS.programs;
+  }
+
   let displayName = getDisplayName(fileName);
   let isShortcut = false;
 
