@@ -66,7 +66,7 @@ export class ControlPanelExtension {
     const name = getPathName(path);
     const item = this.items.find((i) => i.name === name);
     if (item) {
-      return new VirtualStats({ isDirectory: false });
+      return new VirtualStats({ isDirectory: false, isVirtual: true });
     }
 
     throw new Error(`ENOENT: no such file or directory, stat '${path}'`);

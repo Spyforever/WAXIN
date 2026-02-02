@@ -7,6 +7,7 @@ import { ShowDialogWindow } from "../../../components/DialogWindow.js";
 import { showInputDialog } from "../interface/InputDialog.js";
 import { handleFileSystemError } from "./ErrorHandler.js";
 import { joinPath, normalizePath, getPathName, getParentPath } from "../navigation/PathUtils.js";
+import { ShellManager } from "../extensions/ShellManager.js";
 import ClipboardManager from "./ClipboardManager.js";
 import { RecycleBinManager } from "./RecycleBinManager.js";
 import UndoManager from "./UndoManager.js";
@@ -74,13 +75,13 @@ export class FileOperations {
                 const itemName = getPathName(itemPath);
                 const targetPath = await this.getUniquePastePath(destinationPath, itemName, "cut");
                 if (dialog) {
-                    const stats = await fs.promises.stat(itemPath);
+                    const stats = await fs.promises.stat(ShellManager.getRealPath(itemPath));
                     const sourceDir = getParentPath(itemPath);
                     dialog.update(itemPath, sourceDir, destinationPath, 0);
-                    await fs.promises.rename(itemPath, targetPath);
+                    await fs.promises.rename(ShellManager.getRealPath(itemPath), ShellManager.getRealPath(targetPath));
                     dialog.finishItem(stats.isDirectory() ? 0 : stats.size);
                 } else {
-                    await fs.promises.rename(itemPath, targetPath);
+                    await fs.promises.rename(ShellManager.getRealPath(itemPath), ShellManager.getRealPath(targetPath));
                 }
                 targetPaths.push(targetPath);
             }
@@ -133,7 +134,7 @@ export class FileOperations {
     async getUniquePastePath(destPath, originalName, operation) {
         let checkPath = normalizePath(joinPath(destPath, originalName));
         try {
-            await fs.promises.stat(checkPath);
+            await fs.promises.stat(ShellManager.getRealPath(checkPath));
         } catch (e) {
             return checkPath;
         }
@@ -178,10 +179,12 @@ export class FileOperations {
 
     async copyRecursive(src, dest, dialog = null) {
         if (dialog && dialog.cancelled) return;
-        const stats = await fs.promises.stat(src);
+        const realSrc = ShellManager.getRealPath(src);
+        const realDest = ShellManager.getRealPath(dest);
+        const stats = await fs.promises.stat(realSrc);
         if (stats.isDirectory()) {
-            await fs.promises.mkdir(dest, { recursive: true });
-            const files = await fs.promises.readdir(src);
+            await fs.promises.mkdir(realDest, { recursive: true });
+            const files = await fs.promises.readdir(realSrc);
             for (const file of files) {
                 if (dialog && dialog.cancelled) return;
                 await this.copyRecursive(joinPath(src, file), joinPath(dest, file), dialog);
@@ -191,8 +194,8 @@ export class FileOperations {
                 await this.copyFileWithProgress(src, dest, stats.size, dialog);
                 dialog.finishItem(stats.size);
             } else {
-                const data = await fs.promises.readFile(src);
-                await fs.promises.writeFile(dest, data);
+                const data = await fs.promises.readFile(realSrc);
+                await fs.promises.writeFile(realDest, data);
             }
         }
     }
@@ -201,8 +204,8 @@ export class FileOperations {
         const bufferSize = 64 * 1024;
         const buffer = new Uint8Array(bufferSize);
         let bytesReadTotal = 0;
-        const handleIn = await fs.promises.open(src, 'r');
-        const handleOut = await fs.promises.open(dest, 'w');
+        const handleIn = await fs.promises.open(ShellManager.getRealPath(src), 'r');
+        const handleOut = await fs.promises.open(ShellManager.getRealPath(dest), 'w');
         try {
             const sourceDir = getParentPath(src);
             const destDir = getParentPath(dest);
@@ -225,7 +228,8 @@ export class FileOperations {
         let total = 0;
         for (const path of paths) {
             try {
-                const stats = await fs.promises.stat(path);
+                const realPath = ShellManager.getRealPath(path);
+                const stats = await fs.promises.stat(realPath);
                 if (stats.isDirectory()) total += await this._getRecursiveSize(path);
                 else total += stats.size;
             } catch (e) {}
@@ -236,10 +240,12 @@ export class FileOperations {
     async _getRecursiveSize(path) {
         let size = 0;
         try {
-            const files = await fs.promises.readdir(path);
+            const realPath = ShellManager.getRealPath(path);
+            const files = await fs.promises.readdir(realPath);
             for (const file of files) {
                 const fullPath = joinPath(path, file);
-                const stats = await fs.promises.stat(fullPath);
+                const realFullPath = ShellManager.getRealPath(fullPath);
+                const stats = await fs.promises.stat(realFullPath);
                 if (stats.isDirectory()) size += await this._getRecursiveSize(fullPath);
                 else size += stats.size;
             }
@@ -323,7 +329,7 @@ export class FileOperations {
         try {
             const name = await this.getUniqueName(this.app.currentPath, "New Folder");
             const newPath = joinPath(this.app.currentPath, name);
-            await fs.promises.mkdir(newPath);
+            await fs.promises.mkdir(ShellManager.getRealPath(newPath));
             await this.app.navigateTo(this.app.currentPath, true, true);
             document.dispatchEvent(new CustomEvent("fs-change", { detail: { sourceAppId: this.app.win.element.id } }));
             this.app.enterRenameModeByPath(newPath);
@@ -340,7 +346,7 @@ export class FileOperations {
         try {
             const name = await this.getUniqueName(this.app.currentPath, "New Text Document", ".txt");
             const newPath = joinPath(this.app.currentPath, name);
-            await fs.promises.writeFile(newPath, "");
+            await fs.promises.writeFile(ShellManager.getRealPath(newPath), "");
             await this.app.navigateTo(this.app.currentPath, true, true);
             document.dispatchEvent(new CustomEvent("fs-change", { detail: { sourceAppId: this.app.win.element.id } }));
             this.app.enterRenameModeByPath(newPath);
@@ -354,19 +360,20 @@ export class FileOperations {
     async removeRecursiveWithProgress(path, dialog) {
         if (dialog && dialog.cancelled) return;
         let stats;
-        try { stats = await fs.promises.stat(path); } catch (e) { return; }
+        const realPath = ShellManager.getRealPath(path);
+        try { stats = await fs.promises.stat(realPath); } catch (e) { return; }
         const sourceDir = getParentPath(path);
         if (stats.isDirectory()) {
-            const files = await fs.promises.readdir(path);
+            const files = await fs.promises.readdir(realPath);
             for (const file of files) {
                 if (dialog && dialog.cancelled) return;
                 await this.removeRecursiveWithProgress(joinPath(path, file), dialog);
             }
             if (dialog && dialog.cancelled) return;
-            await fs.promises.rmdir(path);
+            await fs.promises.rmdir(realPath);
         } else {
             if (dialog) dialog.update(path, sourceDir, null, 0);
-            await fs.promises.unlink(path);
+            await fs.promises.unlink(realPath);
             if (dialog) {
                 dialog.finishItem(stats.size);
                 dialog.update(path, sourceDir, null, 0);
@@ -380,7 +387,7 @@ export class FileOperations {
         while (true) {
             const checkPath = joinPath(parentPath, name);
             try {
-                await fs.promises.stat(checkPath);
+                await fs.promises.stat(ShellManager.getRealPath(checkPath));
                 counter++;
                 name = `${baseName} (${counter})${extension}`;
             } catch (e) { return name; }
@@ -478,25 +485,25 @@ export class FileOperations {
     }
 
     async _undoRename(data) {
-        try { await fs.promises.stat(data.from); throw new Error(`The destination already contains an item named '${getPathName(data.from)}'.`); }
+        try { await fs.promises.stat(ShellManager.getRealPath(data.from)); throw new Error(`The destination already contains an item named '${getPathName(data.from)}'.`); }
         catch (e) { if (e.code !== 'ENOENT') throw e; }
-        await fs.promises.rename(data.to, data.from);
+        await fs.promises.rename(ShellManager.getRealPath(data.to), ShellManager.getRealPath(data.from));
     }
 
     async _undoMove(data) {
         for (let i = 0; i < data.to.length; i++) {
             const to = data.to[i];
             const from = data.from[i];
-            await fs.promises.stat(to);
-            try { await fs.promises.stat(from); throw new Error(`The destination already contains an item named '${getPathName(from)}'.`); }
+            await fs.promises.stat(ShellManager.getRealPath(to));
+            try { await fs.promises.stat(ShellManager.getRealPath(from)); throw new Error(`The destination already contains an item named '${getPathName(from)}'.`); }
             catch (e) { if (e.code !== 'ENOENT') throw e; }
         }
-        for (let i = 0; i < data.to.length; i++) await fs.promises.rename(data.to[i], data.from[i]);
+        for (let i = 0; i < data.to.length; i++) await fs.promises.rename(ShellManager.getRealPath(data.to[i]), ShellManager.getRealPath(data.from[i]));
     }
 
     async _undoCopy(data) {
         for (const path of data.created) {
-            try { await fs.promises.rm(path, { recursive: true }); }
+            try { await fs.promises.rm(ShellManager.getRealPath(path), { recursive: true }); }
             catch (e) { if (e.code !== 'ENOENT') throw e; }
         }
     }
@@ -504,7 +511,7 @@ export class FileOperations {
     async _undoDelete(data) { await RecycleBinManager.restoreItems(data.recycledPaths || data.recycledIds); }
 
     async _undoCreate(data) {
-        try { await fs.promises.rm(data.path, { recursive: true }); }
+        try { await fs.promises.rm(ShellManager.getRealPath(data.path), { recursive: true }); }
         catch (e) { if (e.code !== 'ENOENT') throw e; }
     }
 }

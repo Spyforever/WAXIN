@@ -130,8 +130,8 @@ export const ICONS = {
     32: new URL("../assets/icons/COMCTL32_20481-32.png", import.meta.url).href,
   },
   desktop_old: {
-    16: new URL("../assets/icons/desktop_old-4.png", import.meta.url).href,
-    32: new URL("../assets/icons/desktop_old-4.png", import.meta.url).href,
+    16: new URL("../assets/icons/desktop-4.png", import.meta.url).href,
+    32: new URL("../assets/icons/desktop-1.png", import.meta.url).href,
   },
   themetocss: {
     16: new URL("../assets/icons/word_001-16.png", import.meta.url).href,
