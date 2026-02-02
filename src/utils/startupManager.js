@@ -2,23 +2,10 @@ import { getItem, setItem } from "./localStorage.js";
 import { fs } from "@zenfs/core";
 import { START_MENU_PATH } from "./startMenuUtils.js";
 import { apps } from "../config/apps.js";
+import { existsAsync } from "./zenfs-utils.js";
 
 const STARTUP_APPS_KEY = "startup_apps";
 const STARTUP_PATH = `${START_MENU_PATH}/StartUp`;
-
-/**
- * Checks if a path exists using async stat
- * @param {string} path
- * @returns {Promise<boolean>}
- */
-async function existsAsync(path) {
-  try {
-    await fs.promises.stat(path);
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
 
 /**
  * Gets the list of startup app IDs from ZenFS and localStorage (fallback).

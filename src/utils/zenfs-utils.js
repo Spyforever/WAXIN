@@ -93,3 +93,17 @@ export async function getZenFSFileUrl(path) {
   const blob = await getZenFSFileAsBlob(path);
   return URL.createObjectURL(blob);
 }
+
+/**
+ * Checks if a path exists using async stat
+ * @param {string} path
+ * @returns {Promise<boolean>}
+ */
+export async function existsAsync(path) {
+    try {
+        await fs.promises.stat(path);
+        return true;
+    } catch (e) {
+        return false;
+    }
+}

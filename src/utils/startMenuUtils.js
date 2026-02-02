@@ -3,23 +3,11 @@ import { apps } from "../config/apps.js";
 import { launchApp } from "./appManager.js";
 import { ICONS } from "../config/icons.js";
 import { getAssociation } from "./directory.js";
+import { existsAsync } from "./zenfs-utils.js";
 
+export const PINNED_PATH = "/C:/WINDOWS/Start Menu";
 export const START_MENU_PATH = "/C:/WINDOWS/Start Menu/Programs";
 export const FAVORITES_PATH = "/C:/WINDOWS/Favorites";
-
-/**
- * Checks if a path exists using async stat
- * @param {string} path
- * @returns {Promise<boolean>}
- */
-async function existsAsync(path) {
-  try {
-    await fs.promises.stat(path);
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
 
 /**
  * Migrates a menu configuration to ZenFS as directories and .lnk files
@@ -62,9 +50,10 @@ export async function migrateToZenFS(config, targetPath) {
 /**
  * Reads a .lnk file and returns a menu item action
  * @param {string} path - Path to the .lnk file
+ * @param {number} iconSize - The size of the icon to return (16 or 32)
  * @returns {Promise<Object>} Menu item properties
  */
-export async function loadLnk(path) {
+export async function loadLnk(path, iconSize = 16) {
   try {
     const filename = path.split("/").pop();
     const label = filename.replace(".lnk", "");
@@ -74,12 +63,47 @@ export async function loadLnk(path) {
 
     return {
       label: label,
-      icon: app ? app.icon[16] : ICONS.file[16],
+      icon: app ? app.icon[iconSize] : ICONS.file[iconSize],
       action: () => launchApp(data.appId, data.args),
     };
   } catch (error) {
     console.error(`Failed to load shortcut: ${path}`, error);
     return null;
+  }
+}
+
+/**
+ * Builds pinned items list from a ZenFS directory (shortcuts only)
+ * @param {string} path - The ZenFS directory path
+ * @returns {Promise<Array>} Array of menu items
+ */
+export async function getPinnedItemsFromZenFS(path = PINNED_PATH) {
+  try {
+    if (!(await existsAsync(path))) {
+      return [];
+    }
+
+    const files = await fs.promises.readdir(path);
+    const menuItems = [];
+
+    for (const file of files) {
+      if (file === "Programs" || file === ".zen_layout.json" || file === ".metadata.json") continue;
+
+      const fullPath = `${path}/${file}`;
+      const stat = await fs.promises.stat(fullPath);
+
+      if (!stat.isDirectory() && file.endsWith(".lnk")) {
+        const item = await loadLnk(fullPath, 32);
+        if (item) {
+          menuItems.push(item);
+        }
+      }
+    }
+
+    return menuItems.sort((a, b) => a.label.localeCompare(b.label));
+  } catch (error) {
+    console.error(`Failed to read pinned items from ZenFS: ${path}`, error);
+    return [];
   }
 }
 

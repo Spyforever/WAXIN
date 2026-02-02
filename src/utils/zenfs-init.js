@@ -1,20 +1,12 @@
 import { resolveMountConfig, InMemory, fs } from "@zenfs/core";
 import { IndexedDB } from "@zenfs/dom";
-import { migrateToZenFS, START_MENU_PATH, FAVORITES_PATH } from "./startMenuUtils.js";
+import { migrateToZenFS, PINNED_PATH, START_MENU_PATH, FAVORITES_PATH } from "./startMenuUtils.js";
 import startMenuConfig from "../config/startmenu.js";
 import { getStartupApps } from "./startupManager.js";
 import { apps } from "../config/apps.js";
+import { existsAsync } from "./zenfs-utils.js";
 
 let isInitialized = false;
-
-async function existsAsync(path) {
-    try {
-        await fs.promises.stat(path);
-        return true;
-    } catch (e) {
-        return false;
-    }
-}
 
 export async function initFileSystem(onProgress) {
     if (isInitialized) return;
@@ -70,6 +62,20 @@ export async function initFileSystem(onProgress) {
         }
 
         if (onProgress) onProgress("Initializing Start Menu...");
+        // Ensure PINNED_PATH exists (C:/WINDOWS/Start Menu)
+        if (!(await existsAsync(PINNED_PATH))) {
+            await fs.promises.mkdir(PINNED_PATH, { recursive: true });
+        }
+
+        // Ensure About shortcut exists in PINNED_PATH
+        const aboutLnkPath = `${PINNED_PATH}/About.lnk`;
+        if (!(await existsAsync(aboutLnkPath))) {
+            await fs.promises.writeFile(aboutLnkPath, JSON.stringify({
+                type: "shortcut",
+                appId: "about",
+            }, null, 2));
+        }
+
         if (!(await existsAsync(START_MENU_PATH))) {
             const programsConfig = startMenuConfig.find(item => item.label === "Programs");
             if (programsConfig && programsConfig.submenu) {
