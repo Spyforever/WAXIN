@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('ZenExplorer inline rename mechanism', async ({ page }) => {
+test('ZenExplorer inline rename mechanism', async ({ page }, testInfo) => {
     test.setTimeout(120000);
     await page.goto('http://localhost:5173/win98-web/');
 
@@ -19,11 +19,11 @@ test('ZenExplorer inline rename mechanism', async ({ page }) => {
 
     const zenWin = page.locator('#zenexplorer');
     await expect(zenWin).toBeVisible();
-    await page.screenshot({ path: '1_zen_opened.png' });
+    await page.screenshot({ path: testInfo.outputPath('1_zen_opened.png') });
 
     // Navigate to C:
     await zenWin.locator('.explorer-icon').filter({ hasText: '(C:)' }).dblclick();
-    await page.screenshot({ path: '2_c_drive.png' });
+    await page.screenshot({ path: testInfo.outputPath('2_c_drive.png') });
 
     // 1. Test New Folder (inline)
     await zenWin.locator('.explorer-icon-view').click({ button: 'right' });
@@ -34,7 +34,7 @@ test('ZenExplorer inline rename mechanism', async ({ page }) => {
     const renameInput = zenWin.locator('.icon-label-input');
     await expect(renameInput).toBeVisible();
     await expect(renameInput).toHaveValue('New Folder');
-    await page.screenshot({ path: '3_new_folder_input.png' });
+    await page.screenshot({ path: testInfo.outputPath('3_new_folder_input.png') });
 
     // Rename to "TestFolder"
     await renameInput.fill('TestFolder');
@@ -44,7 +44,7 @@ test('ZenExplorer inline rename mechanism', async ({ page }) => {
     await expect(renameInput).not.toBeVisible();
     const folder = zenWin.locator('.explorer-icon[data-name="TestFolder"]');
     await expect(folder).toBeVisible();
-    await page.screenshot({ path: '4_folder_created.png' });
+    await page.screenshot({ path: testInfo.outputPath('4_folder_created.png') });
 
     // 2. Test click-to-rename
     // First click to select
@@ -59,7 +59,7 @@ test('ZenExplorer inline rename mechanism', async ({ page }) => {
     // Should see input again
     await expect(renameInput).toBeVisible();
     await expect(renameInput).toHaveValue('TestFolder');
-    await page.screenshot({ path: '5_click_to_rename.png' });
+    await page.screenshot({ path: testInfo.outputPath('5_click_to_rename.png') });
 
     // Cancel with Escape
     await renameInput.fill('ChangedName');
@@ -67,7 +67,7 @@ test('ZenExplorer inline rename mechanism', async ({ page }) => {
 
     // Should revert
     await expect(renameInput).not.toBeVisible();
-    await page.screenshot({ path: '6_after_cancel.png' });
+    await page.screenshot({ path: testInfo.outputPath('6_after_cancel.png') });
     await expect(zenWin.locator('.explorer-icon').filter({ hasText: /^TestFolder$/ })).toBeVisible();
 
     // 3. Test Blur to save
@@ -84,5 +84,5 @@ test('ZenExplorer inline rename mechanism', async ({ page }) => {
     // Should save
     await expect(renameInput).not.toBeVisible();
     await expect(zenWin.locator('.explorer-icon[data-name="BlurredName"]')).toBeVisible();
-    await page.screenshot({ path: '7_final.png' });
+    await page.screenshot({ path: testInfo.outputPath('7_final.png') });
 });

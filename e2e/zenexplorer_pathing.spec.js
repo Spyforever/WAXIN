@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('ZenExplorer pathing and root immutability', async ({ page }) => {
+test('ZenExplorer pathing and root immutability', async ({ page }, testInfo) => {
     test.setTimeout(120000);
     await page.goto('http://localhost:5173/win98-web/');
 
@@ -12,12 +12,12 @@ test('ZenExplorer pathing and root immutability', async ({ page }) => {
 
     await page.click('button:has-text("Start")');
     await page.click('text=Programs');
-    await page.screenshot({ path: 'before_click_zenfs.png' });
+    await page.screenshot({ path: testInfo.outputPath('before_click_zenfs.png') });
     await page.click('text=File Manager (ZenFS)');
 
     // Wait for a bit
     await page.waitForTimeout(2000);
-    await page.screenshot({ path: 'after_click_zenfs.png' });
+    await page.screenshot({ path: testInfo.outputPath('after_click_zenfs.png') });
 
     const zenWin = page.locator('#zenexplorer');
     await expect(zenWin).toBeVisible();
@@ -55,5 +55,5 @@ test('ZenExplorer pathing and root immutability', async ({ page }) => {
     const newMenuItem = page.locator('.menu-popup .menu-item:has-text("New")').filter({ visible: true });
     await expect(newMenuItem).toHaveAttribute('aria-disabled', 'true');
 
-    await page.screenshot({ path: 'zen_pathing.png' });
+    await page.screenshot({ path: testInfo.outputPath('zen_pathing.png') });
 });
