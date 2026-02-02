@@ -1,14 +1,15 @@
 import { fs } from "@zenfs/core";
 import { ICONS } from "../../../config/icons.js";
 import { VirtualStats } from "./ShellManager.js";
-import { getPathName } from "../navigation/PathUtils.js";
+import { getPathName, joinPath } from "../navigation/PathUtils.js";
 
 /**
  * DesktopExtension - Shell extension for the Desktop folder
  */
 export class DesktopExtension {
   constructor() {
-    this.path = "/C:/WINDOWS/Desktop";
+    this.virtualPath = "/Desktop";
+    this.realPath = "/C:/WINDOWS/Desktop";
     this.virtualItems = [
       {
         name: "My Computer",
@@ -24,7 +25,8 @@ export class DesktopExtension {
    * @returns {boolean}
    */
   handlesPath(path) {
-    return path === this.path || path.startsWith(this.path + "/");
+    return path === this.virtualPath || path.startsWith(this.virtualPath + "/") ||
+           path === this.realPath || path.startsWith(this.realPath + "/");
   }
 
   /**
@@ -33,17 +35,24 @@ export class DesktopExtension {
    * @returns {Promise<VirtualStats>}
    */
   async stat(path) {
-    if (path === this.path) {
+    if (path === this.virtualPath || path === this.realPath) {
       return new VirtualStats({ isDirectory: true });
     }
 
-    const name = getPathName(path);
-    const item = this.virtualItems.find((i) => i.name === name);
-    if (item) {
-      return new VirtualStats({ isDirectory: false, isVirtual: true });
+    // Handle virtual path children
+    if (path.startsWith(this.virtualPath + "/")) {
+      const name = getPathName(path);
+      const item = this.virtualItems.find((i) => i.name === name);
+      if (item) {
+        return new VirtualStats({ isDirectory: false, isVirtual: true });
+      }
+
+      // Fallback to real filesystem for other items in virtual folder
+      const relativePath = path.substring(this.virtualPath.length);
+      return fs.promises.stat(joinPath(this.realPath, relativePath));
     }
 
-    // Fallback to real filesystem for other items in this folder
+    // Fallback to real filesystem for real path items (ensures no virtual items)
     return fs.promises.stat(path);
   }
 
@@ -53,14 +62,26 @@ export class DesktopExtension {
    * @returns {Promise<string[]|null>}
    */
   async readdir(path) {
-    // If we are in the parent directory, ensure Desktop shows up
-    if (path === "/C:/WINDOWS") {
-      return ["Desktop"];
+    // Virtual Desktop path merges virtual items and real files
+    if (path === this.virtualPath) {
+      const virtualNames = this.virtualItems.map((i) => i.name);
+      try {
+        const realNames = await fs.promises.readdir(this.realPath);
+        // Use Set to avoid duplicates if a virtual item matches a real file
+        return [...new Set([...virtualNames, ...realNames])];
+      } catch (e) {
+        return virtualNames;
+      }
     }
-    // If we are in the Desktop directory, show virtual items
-    if (path === this.path) {
-      return this.virtualItems.map((i) => i.name);
+
+    // Subfolders of the virtual desktop stay virtual
+    if (path.startsWith(this.virtualPath + "/")) {
+      const relativePath = path.substring(this.virtualPath.length);
+      const realFullPath = joinPath(this.realPath, relativePath);
+      return fs.promises.readdir(realFullPath);
     }
+
+    // Returning null for the real path ensures virtual items are NOT shown there
     return null;
   }
 
@@ -70,7 +91,7 @@ export class DesktopExtension {
    * @returns {Object|null}
    */
   getIconObj(path) {
-    if (path === this.path) {
+    if (path === this.virtualPath || path === this.realPath) {
       return ICONS.desktop_old;
     }
 
@@ -101,11 +122,33 @@ export class DesktopExtension {
    * @returns {Promise<boolean>}
    */
   async onOpen(path, app) {
+    if (path === this.virtualPath) {
+      app.navigateTo(this.virtualPath);
+      return true;
+    }
+
     const name = getPathName(path);
     const item = this.virtualItems.find((i) => i.name === name);
     if (item) {
       app.navigateTo(item.target);
       return true;
+    }
+
+    // For real files opened from the virtual path, use the real path for the app
+    if (path.startsWith(this.virtualPath + "/")) {
+      const relativePath = path.substring(this.virtualPath.length);
+      const realFullPath = joinPath(this.realPath, relativePath);
+
+      const stats = await fs.promises.stat(realFullPath);
+      if (!stats.isDirectory()) {
+        const { getAssociation } = await import("../../../utils/directory.js");
+        const { launchApp } = await import("../../../utils/appManager.js");
+        const association = getAssociation(name);
+        if (association.appId) {
+          launchApp(association.appId, realFullPath);
+          return true;
+        }
+      }
     }
 
     return false;
