@@ -90,10 +90,19 @@ export async function renderFileIcon(fileName, fullPath, isDir, options = {}) {
     try {
       const content = await fs.promises.readFile(fullPath, "utf8");
       const data = JSON.parse(content);
-      if (data.type === "shortcut" && data.appId) {
-        const app = apps.find((a) => a.id === data.appId);
-        if (app) {
-          iconObj = app.icon;
+      if (data.type === "shortcut") {
+        if (data.appId) {
+          const app = apps.find((a) => a.id === data.appId);
+          if (app) {
+            iconObj = app.icon;
+          }
+        } else if (data.targetPath) {
+          try {
+            const targetStats = await ShellManager.stat(data.targetPath);
+            iconObj = getIconObjForFile(getPathName(data.targetPath), targetStats.isDirectory());
+          } catch (e) {
+            iconObj = ICONS.file;
+          }
         }
       }
     } catch (e) {

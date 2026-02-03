@@ -59,13 +59,46 @@ export async function loadLnk(path, iconSize = 16) {
     const label = filename.replace(".lnk", "");
     const content = await fs.promises.readFile(path, "utf8");
     const data = JSON.parse(content);
-    const app = apps.find((a) => a.id === data.appId);
 
-    return {
-      label: label,
-      icon: app ? app.icon[iconSize] : ICONS.file[iconSize],
-      action: () => launchApp(data.appId, data.args),
-    };
+    if (data.appId) {
+      const app = apps.find((a) => a.id === data.appId);
+      return {
+        label: label,
+        icon: app ? app.icon[iconSize] : ICONS.file[iconSize],
+        action: () => launchApp(data.appId, data.args),
+      };
+    } else if (data.targetPath) {
+      const targetName = data.targetPath.split("/").pop();
+      let icon = ICONS.file[iconSize];
+      let action = () => {};
+
+      try {
+        const stats = await fs.promises.stat(data.targetPath);
+        if (stats.isDirectory()) {
+          icon = ICONS.folderClosed[iconSize];
+          action = () => launchApp("zenexplorer", data.targetPath);
+        } else {
+          const association = getAssociation(targetName);
+          if (association) {
+            icon = association.icon[iconSize];
+            action = () => launchApp(association.appId, data.targetPath);
+          } else {
+            icon = ICONS.file[iconSize];
+            action = () => launchApp("notepad", data.targetPath);
+          }
+        }
+      } catch (e) {
+        console.warn(`Shortcut target not found: ${data.targetPath}`);
+      }
+
+      return {
+        label: label,
+        icon: icon,
+        action: action,
+      };
+    }
+
+    return null;
   } catch (error) {
     console.error(`Failed to load shortcut: ${path}`, error);
     return null;

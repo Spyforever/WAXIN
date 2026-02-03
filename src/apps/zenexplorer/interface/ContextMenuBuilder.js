@@ -1,4 +1,5 @@
 import { mounts } from "@zenfs/core";
+import { ICONS } from "../../../config/icons.js";
 import {
   requestBusyState,
   releaseBusyState,
@@ -135,6 +136,18 @@ export class ContextMenuBuilder {
       menuItems.push(
         "MENU_DIVIDER",
         {
+          label: "Send to",
+          enabled: () => !isRootItem && !isRecycleBin && !anyVirtual,
+          submenu: [
+            {
+              label: "Desktop (create shortcut)",
+              icon: ICONS.desktop_old[16],
+              action: () => this.app.fileOps.createShortcuts(selectedPaths, "/C:/WINDOWS/Desktop"),
+            },
+          ],
+        },
+        "MENU_DIVIDER",
+        {
           label: "Cut",
           action: () => this.app.fileOps.cutItems(selectedPaths),
           enabled: () => !isRootItem && !isRecycleBin && !anyVirtual,
@@ -149,6 +162,11 @@ export class ContextMenuBuilder {
           action: () => this.app.fileOps.pasteItems(path),
           enabled: () =>
             !ClipboardManager.isEmpty() && type === "directory",
+        },
+        {
+          label: "Create Shortcut",
+          action: () => this.app.fileOps.createShortcuts(selectedPaths),
+          enabled: () => !isRootItem && !isRecycleBin && !anyVirtual,
         },
         "MENU_DIVIDER",
         {

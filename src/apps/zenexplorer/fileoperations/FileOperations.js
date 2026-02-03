@@ -28,6 +28,46 @@ export class FileOperations {
         ClipboardManager.set(paths, "copy");
     }
 
+    async createShortcuts(paths, destinationPath = null) {
+        const dest = destinationPath || this.app.currentPath;
+        const targetPaths = [];
+        try {
+            for (const itemPath of paths) {
+                const itemName = getPathName(itemPath);
+                const targetLnkPath = await this.getUniquePastePath(dest, itemName, "shortcut");
+
+                let lnkData = { type: "shortcut" };
+
+                // Check if it's already a shortcut with an appId
+                const stats = await ShellManager.stat(itemPath).catch(() => ({}));
+                if (stats.isFile && stats.isFile() && itemPath.endsWith(".lnk")) {
+                    try {
+                        const content = await fs.promises.readFile(ShellManager.getRealPath(itemPath), "utf8");
+                        const data = JSON.parse(content);
+                        if (data.appId) {
+                            lnkData.appId = data.appId;
+                            lnkData.args = data.args;
+                        } else {
+                            lnkData.targetPath = data.targetPath || itemPath;
+                        }
+                    } catch (e) {
+                        lnkData.targetPath = itemPath;
+                    }
+                } else {
+                    lnkData.targetPath = itemPath;
+                }
+
+                await fs.promises.writeFile(ShellManager.getRealPath(targetLnkPath), JSON.stringify(lnkData, null, 2));
+                targetPaths.push(targetLnkPath);
+            }
+
+            await this.app.navigateTo(this.app.currentPath, true, true);
+            document.dispatchEvent(new CustomEvent("fs-change", { detail: { sourceAppId: this.app.win.element.id } }));
+        } catch (e) {
+            handleFileSystemError("create", e, "shortcut");
+        }
+    }
+
     async pasteItems(destinationPath) {
         const { items, operation } = ClipboardManager.get();
         if (items.length === 0) return;
@@ -153,6 +193,21 @@ export class FileOperations {
                     counter++;
                 } catch (e) { return checkPath; }
             }
+        } else if (operation === "shortcut") {
+            let candidateName = `Shortcut to ${originalName}.lnk`;
+            checkPath = normalizePath(joinPath(destPath, candidateName));
+            try {
+                await fs.promises.stat(ShellManager.getRealPath(checkPath));
+                let counter = 2;
+                while (true) {
+                    candidateName = `Shortcut (${counter}) to ${originalName}.lnk`;
+                    checkPath = normalizePath(joinPath(destPath, candidateName));
+                    try {
+                        await fs.promises.stat(ShellManager.getRealPath(checkPath));
+                        counter++;
+                    } catch (e) { return checkPath; }
+                }
+            } catch (e) { return checkPath; }
         } else {
             const copyNOfRegex = /^Copy \((\d+)\) of (.*)$/;
             const copyOfRegex = /^Copy of (.*)$/;
