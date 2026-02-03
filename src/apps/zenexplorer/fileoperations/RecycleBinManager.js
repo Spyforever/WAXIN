@@ -298,7 +298,7 @@ export class RecycleBinManager {
     }
 
     static async isEmpty(recyclePath) {
-        if (recyclePath === "/Recycle Bin") {
+        if (recyclePath === "/Recycle Bin" || recyclePath === "/Desktop/Recycle Bin") {
             return !(await this.isAnyBinFull());
         }
         const metadata = await this.getMetadata(recyclePath);

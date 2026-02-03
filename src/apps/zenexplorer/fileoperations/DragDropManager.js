@@ -1,5 +1,5 @@
 import { openApps } from "../../Application.js";
-import { getParentPath } from "../navigation/PathUtils.js";
+import { getParentPath, getPathName } from "../navigation/PathUtils.js";
 import { RecycleBinManager } from "./RecycleBinManager.js";
 
 export class DragDropManager {
@@ -139,11 +139,33 @@ export class DragDropManager {
             return;
         }
         if (RecycleBinManager.isRecycleBinPath(destinationPath)) {
-            const { ProgressBarDialogWindow } = await import("../interface/ProgressBarDialogWindow.js");
-            const totalSize = await sourceApp.fileOps.getTotalSize(sourcePaths);
-            const dialog = new ProgressBarDialogWindow("recycle", sourcePaths.length, totalSize);
-            try { await RecycleBinManager.moveItemsToRecycleBin(sourcePaths, dialog); }
-            finally { dialog.close(); }
+            const message = sourcePaths.length === 1
+                ? `Are you sure you want to send '${getPathName(sourcePaths[0])}' to the Recycle Bin?`
+                : `Are you sure you want to send these ${sourcePaths.length} items to the Recycle Bin?`;
+
+            const { ShowDialogWindow } = await import("../../../components/DialogWindow.js");
+            ShowDialogWindow({
+                title: "Confirm File Delete",
+                text: message,
+                modal: true,
+                buttons: [
+                    {
+                        label: "Yes",
+                        isDefault: true,
+                        action: async () => {
+                            const { ProgressBarDialogWindow } = await import("../interface/ProgressBarDialogWindow.js");
+                            const totalSize = await sourceApp.fileOps.getTotalSize(sourcePaths);
+                            const dialog = new ProgressBarDialogWindow("recycle", sourcePaths.length, totalSize);
+                            try {
+                                await RecycleBinManager.moveItemsToRecycleBin(sourcePaths, dialog);
+                            } finally {
+                                dialog.close();
+                            }
+                        }
+                    },
+                    { label: "No" }
+                ]
+            });
             return;
         }
         const { ProgressBarDialogWindow } = await import("../interface/ProgressBarDialogWindow.js");
