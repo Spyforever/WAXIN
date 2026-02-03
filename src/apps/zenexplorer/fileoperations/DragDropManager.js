@@ -93,7 +93,7 @@ export class DragDropManager {
                     }
                 }
             }
-            if (el.classList.contains('explorer-icon-view')) {
+            if (el.classList.contains('explorer-icon-view') || el.classList.contains('desktop')) {
                 const targetPath = el.getAttribute('data-current-path');
                 if (targetPath) { newTarget = el; break; }
             }
@@ -125,7 +125,7 @@ export class DragDropManager {
         let targetWindow = dropTarget.closest('.window');
         let targetApp = targetWindow ? openApps.get(targetWindow.id) : null;
         if (dropTarget.classList.contains('explorer-icon')) destinationPath = dropTarget.getAttribute('data-path');
-        else if (dropTarget.classList.contains('explorer-icon-view')) destinationPath = dropTarget.getAttribute('data-current-path');
+        else if (dropTarget.classList.contains('explorer-icon-view') || dropTarget.classList.contains('desktop')) destinationPath = dropTarget.getAttribute('data-current-path');
         if (!destinationPath) return;
         const sourcePaths = draggedItems.map(item => item.path);
         const offsets = draggedItems.map(item => ({ x: offsetX - item.offsetX, y: offsetY - item.offsetY }));

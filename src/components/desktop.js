@@ -48,7 +48,11 @@ class DesktopController {
   }
 
   async navigateTo(path, isHistoryNav = false, skipMRU = false) {
-    await refreshIcons();
+    if (path === this.currentPath) {
+      await refreshIcons();
+    } else {
+      launchApp("zenexplorer", path);
+    }
   }
 
   async sortIcons(method) {
@@ -300,6 +304,11 @@ class DesktopController {
       }
     }
   }
+
+  async openFile(icon) {
+    const path = icon.getAttribute("data-path");
+    await this.onOpen(path);
+  }
 }
 
 export async function setupIcons() {
@@ -468,7 +477,6 @@ export async function initDesktop(profile = null) {
   applyMonitorType();
 
   const desktop = document.querySelector(".desktop");
-  desktop.classList.add("explorer-icon-view");
   desktop.setAttribute("data-current-path", "/Desktop");
   desktopController = new DesktopController(desktop);
 
