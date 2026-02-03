@@ -1,6 +1,6 @@
 import { ICONS, SHORTCUT_OVERLAY } from "../../../config/icons.js";
 import { getAssociation } from "../../../utils/directory.js";
-import { getDisplayName } from "../navigation/PathUtils.js";
+import { getDisplayName, getPathName } from "../navigation/PathUtils.js";
 import { RecycleBinManager } from "../fileoperations/RecycleBinManager.js";
 import { ShellManager } from "../extensions/ShellManager.js";
 import { fs } from "@zenfs/core";
@@ -88,12 +88,24 @@ export async function renderFileIcon(fileName, fullPath, isDir, options = {}) {
   if (!isDir && fileName.endsWith(".lnk")) {
     isShortcut = true;
     try {
-      const content = await fs.promises.readFile(fullPath, "utf8");
+      const content = await fs.promises.readFile(ShellManager.getRealPath(fullPath), "utf8");
       const data = JSON.parse(content);
-      if (data.type === "shortcut" && data.appId) {
-        const app = apps.find((a) => a.id === data.appId);
-        if (app) {
-          iconObj = app.icon;
+      if (data.type === "shortcut") {
+        if (data.appId) {
+          const app = apps.find((a) => a.id === data.appId);
+          if (app) {
+            iconObj = app.icon;
+          }
+        } else if (data.targetPath) {
+          iconObj = ShellManager.getIconObj(data.targetPath);
+          if (!iconObj) {
+            try {
+              const targetStats = await ShellManager.stat(data.targetPath);
+              iconObj = getIconObjForFile(getPathName(data.targetPath), targetStats.isDirectory());
+            } catch (e) {
+              iconObj = ICONS.file;
+            }
+          }
         }
       }
     } catch (e) {

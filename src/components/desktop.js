@@ -287,6 +287,37 @@ class DesktopController {
     });
     if (handled) return;
 
+    const name = path.split("/").pop();
+    if (name.endsWith(".lnk")) {
+      try {
+        const content = await fs.promises.readFile(ShellManager.getRealPath(path), "utf8");
+        const data = JSON.parse(content);
+        if (data.type === "shortcut") {
+          if (data.appId) {
+            launchApp(data.appId, data.args);
+            return;
+          } else if (data.targetPath) {
+            const stats = await ShellManager.stat(data.targetPath);
+            if (stats.isDirectory()) {
+              launchApp("zenexplorer", data.targetPath);
+            } else {
+              const targetName = data.targetPath.split("/").pop();
+              const { getAssociation } = await import("../utils/directory.js");
+              const association = getAssociation(targetName);
+              if (association.appId) {
+                launchApp(association.appId, data.targetPath);
+              } else {
+                alert(`Cannot open file: ${targetName} (No association)`);
+              }
+            }
+            return;
+          }
+        }
+      } catch (e) {
+        console.error("Failed to open shortcut", e);
+      }
+    }
+
     const stat = await ShellManager.stat(path);
     if (stat.isDirectory()) {
       launchApp("zenexplorer", path);

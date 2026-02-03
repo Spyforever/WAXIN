@@ -327,6 +327,36 @@ export class ZenExplorerApp extends Application {
     const handled = await ShellManager.onOpen(fullPath, this);
     if (handled) return;
 
+    // Handle .lnk files
+    if (name.endsWith(".lnk")) {
+      try {
+        const content = await fs.promises.readFile(ShellManager.getRealPath(fullPath), "utf8");
+        const data = JSON.parse(content);
+        if (data.type === "shortcut") {
+          if (data.appId) {
+            launchApp(data.appId, data.args);
+            return;
+          } else if (data.targetPath) {
+            const stats = await ShellManager.stat(data.targetPath);
+            if (stats.isDirectory()) {
+              this.navigateTo(data.targetPath);
+            } else {
+              const targetName = data.targetPath.split("/").pop();
+              const association = getAssociation(targetName);
+              if (association.appId) {
+                launchApp(association.appId, data.targetPath);
+              } else {
+                alert(`Cannot open file: ${targetName} (No association)`);
+              }
+            }
+            return;
+          }
+        }
+      } catch (e) {
+        console.error("Failed to open shortcut", e);
+      }
+    }
+
     const association = getAssociation(name);
     if (association.appId) {
       launchApp(association.appId, fullPath);
