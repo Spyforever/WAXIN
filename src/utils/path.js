@@ -1,4 +1,3 @@
-import directory from "../config/directory.js";
 import { SPECIAL_FOLDER_PATHS } from "../config/special-folders.js";
 import { apps } from "../config/apps.js";
 
@@ -9,57 +8,32 @@ for (const key in SPECIAL_FOLDER_PATHS) {
 }
 
 export function convertInternalPathToWindows(internalPath) {
-  // Handle root and other special names directly
   if (internalPath === "/") {
     return "My Computer";
   }
-  // This will handle "My Documents", "Desktop" etc.
+
+  // Handle special folders via reverse lookup
   const specialFolderKey = reverseSpecialFolderPaths[internalPath];
   if (specialFolderKey) {
     const app = apps.find((app) => app.id === specialFolderKey);
-    return app ? app.title : "My Computer";
+    if (app) return app.title;
   }
 
-  const parts = internalPath.split("/").filter(Boolean);
-  if (parts.length === 0) {
-    return "My Computer";
+  // Handle virtual shell paths (legacy)
+  if (internalPath.startsWith("//")) {
+    const appId = internalPath.substring(2);
+    const app = apps.find((a) => a.id === appId);
+    if (app) return app.title;
   }
 
-  const pathNodes = [];
-  let currentLevel = directory;
-
-  for (const part of parts) {
-    const found = currentLevel.find((item) => item.id === part);
-    if (found) {
-      pathNodes.push(found);
-      currentLevel = found.children || [];
-    } else {
-      const app = apps.find((app) => app.id === part);
-      console.log(app);
-      return app ? app.title : "My Computer";
-    }
-  }
-
-  if (pathNodes.length === 0) {
-    return "My Computer";
-  }
-
-  // This handles items at the root that aren't drives, e.g., "My Briefcase"
-  if (pathNodes[0].type !== "drive") {
-    return pathNodes.map((node) => node.name).join("\\");
-  }
-
-  // Handle drive paths
-  const driveName = pathNodes[0].name; // This is 'C:', 'D:', etc.
-  const restOfPath = pathNodes
-    .slice(1)
-    .map((node) => node.name)
-    .join("\\");
-
-  return restOfPath ? `${driveName}\\${restOfPath}` : driveName;
+  // Handle ZenFS paths
+  let p = internalPath;
+  if (p.startsWith("/")) p = p.substring(1);
+  return p.replace(/\//g, "\\");
 }
 
 export function convertWindowsPathToInternal(windowsPath) {
+  if (!windowsPath) return "/";
   if (windowsPath.toLowerCase() === "my computer") {
     return "/";
   }
@@ -72,50 +46,14 @@ export function convertWindowsPathToInternal(windowsPath) {
     }
   }
 
-  // Check for root items like "My Briefcase"
-  const rootItem = directory.find(
-    (item) => item.name.toLowerCase() === windowsPath.toLowerCase(),
-  );
-  if (rootItem) {
-    return `/${rootItem.id}`;
-  }
+  // Handle Windows paths -> ZenFS paths
+  let p = windowsPath.replace(/\\/g, "/");
+  if (!p.startsWith("/")) p = "/" + p;
 
-  const parts = windowsPath.split("\\").filter(Boolean);
-  if (parts.length === 0) {
-    return "/";
-  }
+  // Cleanup common virtual names to their ZenFS equivalents
+  if (p.toLowerCase() === "/recycle bin") return "/Recycle Bin";
+  if (p.toLowerCase() === "/network neighborhood") return "/Network Neighborhood";
+  if (p.toLowerCase() === "/control panel") return "/Control Panel";
 
-  const driveLetter = parts[0];
-  const driveNode = directory.find(
-    (drive) => drive.name.toLowerCase() === driveLetter.toLowerCase(),
-  );
-
-  if (!driveNode) {
-    // Check if it's special explorer app (Recycle Bin, Network Neighborhood, etc.)
-    const app = apps.find(
-      (a) => a.title.toLowerCase() === driveLetter.toLowerCase(),
-    );
-    if (app) {
-      return `//${app.id}`;
-    }
-    return null; // Invalid drive
-  }
-
-  let internalPath = `/${driveNode.id}`;
-  let currentLevel = driveNode.children || [];
-
-  for (let i = 1; i < parts.length; i++) {
-    const part = parts[i];
-    const found = currentLevel.find(
-      (item) => item.name.toLowerCase() === part.toLowerCase(),
-    );
-    if (found) {
-      internalPath += `/${found.id}`;
-      currentLevel = found.children || [];
-    } else {
-      return null; // Path not found
-    }
-  }
-
-  return internalPath;
+  return p;
 }

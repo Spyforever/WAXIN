@@ -35,14 +35,6 @@ export async function migrateToZenFS(config, targetPath) {
         args: item.args || null,
       };
       await fs.promises.writeFile(lnkPath, JSON.stringify(lnkData, null, 2));
-    } else if (item.label === "Windows Explorer") {
-        // Special case for Windows Explorer which has an action but no appId in config
-        const lnkPath = `${targetPath}/${item.label}.lnk`;
-        const lnkData = {
-          type: "shortcut",
-          appId: "my-computer",
-        };
-        await fs.promises.writeFile(lnkPath, JSON.stringify(lnkData, null, 2));
     }
   }
 }
@@ -76,7 +68,7 @@ export async function loadLnk(path, iconSize = 16) {
         const stats = await fs.promises.stat(data.targetPath);
         if (stats.isDirectory()) {
           icon = ICONS.folderClosed[iconSize];
-          action = () => launchApp("zenexplorer", data.targetPath);
+          action = () => launchApp("explorer", data.targetPath);
         } else {
           const association = getAssociation(targetName);
           if (association) {

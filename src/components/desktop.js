@@ -51,7 +51,7 @@ class DesktopController {
     if (path === this.currentPath) {
       await refreshIcons();
     } else {
-      launchApp("zenexplorer", path);
+      launchApp("explorer", path);
     }
   }
 
@@ -289,7 +289,7 @@ class DesktopController {
 
   async onOpen(path) {
     const handled = await ShellManager.onOpen(path, {
-      navigateTo: (p) => launchApp("zenexplorer", p),
+      navigateTo: (p) => launchApp("explorer", p),
     });
     if (handled) return;
 
@@ -305,7 +305,7 @@ class DesktopController {
           } else if (data.targetPath) {
             const stats = await ShellManager.stat(data.targetPath);
             if (stats.isDirectory()) {
-              launchApp("zenexplorer", data.targetPath);
+              launchApp("explorer", data.targetPath);
             } else {
               const targetName = data.targetPath.split("/").pop();
               const { getAssociation } = await import("../utils/directory.js");
@@ -326,7 +326,7 @@ class DesktopController {
 
     const stat = await ShellManager.stat(path);
     if (stat.isDirectory()) {
-      launchApp("zenexplorer", path);
+      launchApp("explorer", path);
     } else {
       const { getAssociation } = await import("../utils/directory.js");
       const association = getAssociation(path.split("/").pop());

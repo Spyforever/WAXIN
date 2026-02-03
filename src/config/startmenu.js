@@ -5,7 +5,7 @@ import { ICONS } from "./icons.js";
 import { START_MENU_PATH, FAVORITES_PATH } from "../utils/startMenuUtils.js";
 
 const startMenuAppIds = [
-  "zenexplorer",
+  "explorer",
   "webamp",
   "tipOfTheDay",
   "internet-explorer",
@@ -78,11 +78,6 @@ const startMenuConfig = [
         ],
       },
       ...getAppList(startMenuAppIds),
-      {
-        label: "Windows Explorer",
-        icon: ICONS.windowsExplorer[16],
-        action: () => launchApp("my-computer"),
-      },
     ],
   },
   {
@@ -217,7 +212,7 @@ const startMenuConfig = [
         label: "My Documents",
         icon: ICONS.folder[16],
         action: () =>
-          launchApp("explorer", "/drive-c/folder-user/folder-documents"),
+          launchApp("explorer", "/C:/My Documents"),
       },
     ],
   },

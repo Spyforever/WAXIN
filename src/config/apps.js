@@ -97,7 +97,7 @@ const systemApps = [
     action: {
       type: "function",
       handler: () => {
-        window.System.launchApp("zenexplorer", {
+        window.System.launchApp("explorer", {
           filePath: "/Recycle Bin",
           windowId: "recycle-bin",
         });
@@ -157,7 +157,7 @@ const systemApps = [
       type: "function",
       handler: () => {
         window.System.launchApp("explorer", {
-          filePath: "//network-neighborhood",
+          filePath: "/Network Neighborhood",
           windowId: "network-neighborhood",
         });
       },
@@ -191,7 +191,7 @@ const systemApps = [
       type: "function",
       handler: () => {
         window.System.launchApp("explorer", {
-          filePath: "/folder-control-panel",
+          filePath: "/Control Panel",
           windowId: "control-panel",
         });
       },

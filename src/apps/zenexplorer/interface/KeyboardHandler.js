@@ -52,7 +52,7 @@ export class KeyboardHandler {
             if (selectedIcons.length === 1) {
               this.app.navController.navigateTo(path);
             } else {
-              launchApp("zenexplorer", { filePath: path });
+              launchApp("explorer", { filePath: path });
             }
           } else {
             this.app.openFile(icon);
