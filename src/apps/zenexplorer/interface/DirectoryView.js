@@ -55,6 +55,7 @@ export class DirectoryView {
     this.app.addressBar.setValue(formatPathForDisplay(path));
     this.app.win.title(name);
     this.app.sidebar.update(name, icon[32]);
+    this.app.titleElement.textContent = name;
     this.app.win.setIcons(icon);
   }
 
