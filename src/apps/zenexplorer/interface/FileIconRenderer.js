@@ -1,6 +1,6 @@
 import { ICONS, SHORTCUT_OVERLAY } from "../../../config/icons.js";
 import { getAssociation } from "../../../utils/directory.js";
-import { getDisplayName } from "../navigation/PathUtils.js";
+import { getDisplayName, getPathName } from "../navigation/PathUtils.js";
 import { RecycleBinManager } from "../fileoperations/RecycleBinManager.js";
 import { ShellManager } from "../extensions/ShellManager.js";
 import { fs } from "@zenfs/core";
@@ -97,11 +97,14 @@ export async function renderFileIcon(fileName, fullPath, isDir, options = {}) {
             iconObj = app.icon;
           }
         } else if (data.targetPath) {
-          try {
-            const targetStats = await ShellManager.stat(data.targetPath);
-            iconObj = getIconObjForFile(getPathName(data.targetPath), targetStats.isDirectory());
-          } catch (e) {
-            iconObj = ICONS.file;
+          iconObj = ShellManager.getIconObj(data.targetPath);
+          if (!iconObj) {
+            try {
+              const targetStats = await ShellManager.stat(data.targetPath);
+              iconObj = getIconObjForFile(getPathName(data.targetPath), targetStats.isDirectory());
+            } catch (e) {
+              iconObj = ICONS.file;
+            }
           }
         }
       }
