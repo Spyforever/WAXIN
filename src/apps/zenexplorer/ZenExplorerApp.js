@@ -174,14 +174,20 @@ export class ZenExplorerApp extends Application {
     this.sidebar = new Sidebar();
     content.appendChild(this.sidebar.element);
 
-    // 4b. Icon View
+    // 4b. Title (for small width)
+    this.titleElement = document.createElement("h1");
+    this.titleElement.className = "explorer-title";
+    this.titleElement.style.fontFamily = "Verdana, sans-serif";
+    content.appendChild(this.titleElement);
+
+    // 4c. Icon View
     this.iconContainer = document.createElement("div");
     this.iconContainer.className = `explorer-icon-view ${this.viewMode}-icons`;
     content.appendChild(this.iconContainer);
 
     win.$content.append(content);
 
-    // 4c. Resize Observer for responsive layout
+    // 4d. Resize Observer for responsive layout
     this._setupResizeObserver();
 
     // 5. Status Bar
