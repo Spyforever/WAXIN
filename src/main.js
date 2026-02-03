@@ -1,4 +1,5 @@
 import "./styles/cursors.css";
+import "./styles/file-picker.css";
 import "./style.css";
 import "./styles/splash.css";
 import "./styles/shutdown-screen.css";
