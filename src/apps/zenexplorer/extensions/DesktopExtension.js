@@ -33,6 +33,12 @@ export class DesktopExtension {
         target: "/Recycle Bin",
         isDirectory: true,
       },
+      {
+        name: "Network Neighborhood",
+        icon: ICONS.networkNeighborhood,
+        target: "/Network Neighborhood",
+        isDirectory: true,
+      },
     ];
   }
 
@@ -118,8 +124,8 @@ export class DesktopExtension {
     const name = getPathName(path);
     const item = this.virtualItems.find((i) => i.name === name);
     if (item) {
-      // Return null for Recycle Bin to allow FileIconRenderer's dynamic icon logic to take over
-      if (name === "Recycle Bin") return null;
+      // Return null for themed items to allow FileIconRenderer's dynamic icon logic to take over
+      if (["Recycle Bin", "My Computer", "Network Neighborhood"].includes(name)) return null;
       return item.icon;
     }
 

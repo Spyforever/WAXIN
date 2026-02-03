@@ -35,6 +35,7 @@ import { initScreenManager } from "./utils/screenManager.js";
 import { fs, mounts } from "@zenfs/core";
 import { initFileSystem } from "./utils/zenfs-init.js";
 import { RecycleBinManager } from "./apps/zenexplorer/fileoperations/RecycleBinManager.js";
+import { appManager } from "./utils/appManager.js";
 
 // Window Management System
 class WindowManagerSystem {
@@ -385,6 +386,7 @@ async function initializeOS() {
     window.mounts = mounts;
     window.RecycleBinManager = RecycleBinManager;
     window.System.launchApp = launchApp;
+    window.System.appManager = appManager;
     console.log("azOS initialized");
 
     let inactivityTimer;

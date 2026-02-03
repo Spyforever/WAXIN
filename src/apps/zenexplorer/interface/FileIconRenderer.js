@@ -5,10 +5,37 @@ import { RecycleBinManager } from "../fileoperations/RecycleBinManager.js";
 import { ShellManager } from "../extensions/ShellManager.js";
 import { fs } from "@zenfs/core";
 import { apps } from "../../../config/apps.js";
+import { getIconSchemeName } from "../../../utils/themeManager.js";
+import { iconSchemes } from "../../../config/icon-schemes.js";
 
 /**
  * FileIconRenderer - Handles rendering of file/folder icons in ZenExplorer
  */
+
+/**
+ * Get themed icon object for special system folders
+ * @param {string} specialType - 'computer', 'recycle', or 'network'
+ * @param {boolean} isEmpty - For recycle bin, whether it is empty
+ * @returns {Object} Icon object with 16 and 32 sizes
+ */
+export function getThemedIconObj(specialType, isEmpty = true) {
+  const schemeName = getIconSchemeName();
+  const scheme = iconSchemes[schemeName] || iconSchemes.default;
+  const defaultScheme = iconSchemes.default;
+
+  switch (specialType) {
+    case "computer":
+      return scheme.myComputer || defaultScheme.myComputer || ICONS.computer;
+    case "recycle":
+      return isEmpty
+        ? scheme.recycleBinEmpty || defaultScheme.recycleBinEmpty || ICONS.recycleBinEmpty
+        : scheme.recycleBinFull || defaultScheme.recycleBinFull || ICONS.recycleBinFull;
+    case "network":
+      return scheme.networkNeighborhood || defaultScheme.networkNeighborhood || ICONS.networkNeighborhood;
+    default:
+      return null;
+  }
+}
 
 /**
  * Get appropriate icon object for a file based on name and type
@@ -113,13 +140,28 @@ export async function renderFileIcon(fileName, fullPath, isDir, options = {}) {
     }
   }
 
+  // Special handling for My Computer (root or desktop icon)
+  if (fullPath === "/" || fullPath === "/Desktop/My Computer") {
+    iconObj = getThemedIconObj("computer");
+  }
+  // Special handling for Network Neighborhood
+  else if (
+    fullPath === "/Network Neighborhood" ||
+    fullPath === "/Desktop/Network Neighborhood"
+  ) {
+    iconObj = getThemedIconObj("network");
+  }
+  // Special handling for My Documents
+  else if (fullPath === "/Desktop/My Documents") {
+    iconObj = ICONS.folder;
+  }
   // Special handling for Recycle Bin folder
-  if (RecycleBinManager.isRecycleBinPath(fullPath)) {
+  else if (RecycleBinManager.isRecycleBinPath(fullPath)) {
     const isEmpty =
       options.recycleBinEmpty !== undefined
         ? options.recycleBinEmpty
         : await RecycleBinManager.isEmpty(fullPath);
-    iconObj = isEmpty ? ICONS.recycleBinEmpty : ICONS.recycleBinFull;
+    iconObj = getThemedIconObj("recycle", isEmpty);
   }
   // Special handling for items INSIDE Recycle Bin
   else if (RecycleBinManager.isRecycledItemPath(fullPath)) {

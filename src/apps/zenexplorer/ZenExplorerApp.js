@@ -31,11 +31,13 @@ import { sortFileInfos } from "./fileoperations/SortUtils.js";
 import { ControlPanelExtension } from "./extensions/ControlPanelExtension.js";
 import { DesktopExtension } from "./extensions/DesktopExtension.js";
 import { RecycleBinExtension } from "./extensions/RecycleBinExtension.js";
+import { NetworkNeighborhoodExtension } from "./extensions/NetworkNeighborhoodExtension.js";
 
 // Initialize Shell Extensions
 ShellManager.registerExtension(new ControlPanelExtension());
 ShellManager.registerExtension(new DesktopExtension());
 ShellManager.registerExtension(new RecycleBinExtension());
+ShellManager.registerExtension(new NetworkNeighborhoodExtension());
 
 export class ZenExplorerApp extends Application {
   static config = {
@@ -223,6 +225,9 @@ export class ZenExplorerApp extends Application {
 
     // 7g. Layout change listener
     this._setupLayoutListener();
+
+    // 7h. Theme change listener
+    this._setupThemeListener();
 
     // 8. Initial Navigation
     this.navigateTo(this.currentPath);
@@ -436,6 +441,17 @@ export class ZenExplorerApp extends Application {
       }
     };
     document.addEventListener("layout-change", this._layoutHandler);
+  }
+
+  /**
+   * Setup Theme change listener
+   * @private
+   */
+  _setupThemeListener() {
+    this._themeHandler = () => {
+      this.navigateTo(this.currentPath, true, true);
+    };
+    document.addEventListener("theme-changed", this._themeHandler);
   }
 
   async navigateTo(path, isHistoryNav = false, skipMRU = false) {
@@ -778,6 +794,9 @@ export class ZenExplorerApp extends Application {
     }
     if (this._layoutHandler) {
       document.removeEventListener("layout-change", this._layoutHandler);
+    }
+    if (this._themeHandler) {
+      document.removeEventListener("theme-changed", this._themeHandler);
     }
   }
 }
