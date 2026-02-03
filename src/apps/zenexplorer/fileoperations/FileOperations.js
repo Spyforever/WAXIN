@@ -260,10 +260,13 @@ export class FileOperations {
         const message = isPermanent
             ? (paths.length === 1 ? `Are you sure you want to permanently delete '${getPathName(paths[0])}'?` : `Are you sure you want to permanently delete these ${paths.length} items?`)
             : (paths.length === 1 ? `Are you sure you want to send '${getPathName(paths[0])}' to the Recycle Bin?` : `Are you sure you want to send these ${paths.length} items to the Recycle Bin?`);
+
+        const parentWindow = (this.app.win && this.app.win.id !== 'desktop') ? this.app.win : null;
+
         ShowDialogWindow({
             title: "Confirm File Delete",
             text: message,
-            parentWindow: this.app.win,
+            parentWindow: parentWindow,
             modal: true,
             buttons: [
                 {
@@ -420,10 +423,13 @@ export class FileOperations {
 
         const isEmpty = await RecycleBinManager.isEmpty(recyclePath);
         if (isEmpty) return;
+
+        const parentWindow = (this.app.win && this.app.win.id !== 'desktop') ? this.app.win : null;
+
         ShowDialogWindow({
             title: "Confirm Empty Recycle Bin",
             text: "Are you sure you want to permanently delete all items in the Recycle Bin?",
-            parentWindow: this.app.win,
+            parentWindow: parentWindow,
             modal: true,
             buttons: [
                 {
@@ -473,10 +479,11 @@ export class FileOperations {
             await this.app.navigateTo(this.app.currentPath, true, true);
             document.dispatchEvent(new CustomEvent("fs-change", { detail: { sourceAppId: this.app.win.element.id } }));
         } catch (e) {
+            const parentWindow = (this.app.win && this.app.win.id !== 'desktop') ? this.app.win : null;
             ShowDialogWindow({
                 title: "Undo",
                 text: `Could not undo operation: ${e.message}`,
-                parentWindow: this.app.win,
+                parentWindow: parentWindow,
                 modal: true,
                 buttons: [{ label: "OK" }]
             });

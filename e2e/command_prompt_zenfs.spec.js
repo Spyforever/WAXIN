@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('Command Prompt ZenFS integration', async ({ page }) => {
+test('Command Prompt ZenFS integration', async ({ page }, testInfo) => {
     test.setTimeout(120000);
     await page.goto('http://localhost:5173/win98-web/');
 
@@ -76,5 +76,5 @@ test('Command Prompt ZenFS integration', async ({ page }) => {
     await page.waitForTimeout(1000);
     await expect(cmdWin).toContainText('C:\\>');
 
-    await page.screenshot({ path: 'command_prompt_test.png' });
+    await page.screenshot({ path: testInfo.outputPath('command_prompt_test.png') });
 });
