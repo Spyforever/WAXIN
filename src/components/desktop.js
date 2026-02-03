@@ -25,6 +25,8 @@ import screensaver from "../utils/screensaverUtils.js";
 import { getStartupApps } from "../utils/startupManager.js";
 
 let desktopController;
+let isRefreshing = false;
+let pendingRefresh = false;
 
 class DesktopController {
   constructor(desktopElement) {
@@ -46,7 +48,11 @@ class DesktopController {
   }
 
   async navigateTo(path, isHistoryNav = false, skipMRU = false) {
-    await refreshIcons();
+    if (path === this.currentPath) {
+      await refreshIcons();
+    } else {
+      launchApp("zenexplorer", path);
+    }
   }
 
   async sortIcons(method) {
@@ -329,6 +335,11 @@ class DesktopController {
       }
     }
   }
+
+  async openFile(icon) {
+    const path = icon.getAttribute("data-path");
+    await this.onOpen(path);
+  }
 }
 
 export async function setupIcons() {
@@ -336,6 +347,12 @@ export async function setupIcons() {
 }
 
 async function refreshIcons() {
+  if (isRefreshing) {
+    pendingRefresh = true;
+    return;
+  }
+  isRefreshing = true;
+
   const desktop = document.querySelector(".desktop");
   const path = "/Desktop";
   const layout = await LayoutManager.getLayout(path);
@@ -421,6 +438,12 @@ async function refreshIcons() {
       console.error(e);
     }
   }
+
+  isRefreshing = false;
+  if (pendingRefresh) {
+    pendingRefresh = false;
+    refreshIcons();
+  }
 }
 
 function updateCutIcons() {
@@ -485,6 +508,7 @@ export async function initDesktop(profile = null) {
   applyMonitorType();
 
   const desktop = document.querySelector(".desktop");
+  desktop.setAttribute("data-current-path", "/Desktop");
   desktopController = new DesktopController(desktop);
 
   desktopController.iconManager = new IconManager(desktop, {

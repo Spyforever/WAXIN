@@ -17,9 +17,21 @@ export class DesktopExtension {
         target: "/",
       },
       {
+        name: "My Documents",
+        icon: ICONS.documents,
+        target: "/C:/My Documents",
+        isDirectory: true,
+      },
+      {
+        name: "Internet Explorer",
+        icon: ICONS["internet-explorer"],
+        target: "launch:internet-explorer",
+      },
+      {
         name: "Recycle Bin",
         icon: ICONS.recycleBinEmpty,
         target: "/Recycle Bin",
+        isDirectory: true,
       },
     ];
   }
@@ -46,15 +58,20 @@ export class DesktopExtension {
 
     // Handle virtual path children
     if (path.startsWith(this.virtualPath + "/")) {
-      const name = getPathName(path);
-      const item = this.virtualItems.find((i) => i.name === name);
-      if (item) {
-        return new VirtualStats({ isDirectory: false, isVirtual: true });
+      const parts = path.split("/").filter((p) => p);
+      if (parts.length === 2) {
+        const name = parts[1];
+        const item = this.virtualItems.find((i) => i.name === name);
+        if (item) {
+          return new VirtualStats({
+            isDirectory: item.isDirectory || false,
+            isVirtual: true,
+          });
+        }
       }
 
       // Fallback to real filesystem for other items in virtual folder
-      const relativePath = path.substring(this.virtualPath.length);
-      return fs.promises.stat(joinPath(this.realPath, relativePath));
+      return fs.promises.stat(this.getRealPath(path));
     }
 
     // Fallback to real filesystem for real path items (ensures no virtual items)
@@ -81,9 +98,7 @@ export class DesktopExtension {
 
     // Subfolders of the virtual desktop stay virtual
     if (path.startsWith(this.virtualPath + "/")) {
-      const relativePath = path.substring(this.virtualPath.length);
-      const realFullPath = joinPath(this.realPath, relativePath);
-      return fs.promises.readdir(realFullPath);
+      return fs.promises.readdir(this.getRealPath(path));
     }
 
     // Returning null for the real path ensures virtual items are NOT shown there
@@ -121,6 +136,16 @@ export class DesktopExtension {
       return this.realPath;
     }
     if (path.startsWith(this.virtualPath + "/")) {
+      const parts = path.split("/").filter((p) => p);
+      // parts = ["Desktop", "Item Name", ...]
+      if (parts.length >= 2) {
+        const itemName = parts[1];
+        const item = this.virtualItems.find((i) => i.name === itemName);
+        if (item && item.target && !item.target.startsWith("launch:")) {
+          const subPath = parts.slice(2).join("/");
+          return subPath ? joinPath(item.target, subPath) : item.target;
+        }
+      }
       const relativePath = path.substring(this.virtualPath.length);
       return joinPath(this.realPath, relativePath);
     }
@@ -153,6 +178,12 @@ export class DesktopExtension {
     const name = getPathName(path);
     const item = this.virtualItems.find((i) => i.name === name);
     if (item) {
+      if (item.target.startsWith("launch:")) {
+        const appId = item.target.split(":")[1];
+        const { launchApp } = await import("../../../utils/appManager.js");
+        launchApp(appId);
+        return true;
+      }
       app.navigateTo(item.target);
       return true;
     }

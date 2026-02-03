@@ -1,5 +1,5 @@
 import { openApps } from "../../Application.js";
-import { getParentPath } from "../navigation/PathUtils.js";
+import { getParentPath, getPathName } from "../navigation/PathUtils.js";
 import { RecycleBinManager } from "./RecycleBinManager.js";
 
 export class DragDropManager {
@@ -93,7 +93,7 @@ export class DragDropManager {
                     }
                 }
             }
-            if (el.classList.contains('explorer-icon-view')) {
+            if (el.classList.contains('explorer-icon-view') || el.classList.contains('desktop')) {
                 const targetPath = el.getAttribute('data-current-path');
                 if (targetPath) { newTarget = el; break; }
             }
@@ -107,26 +107,33 @@ export class DragDropManager {
 
     _handleMouseUp(e) {
         if (!this.isDragging) return;
-        this._performDrop(e, e.ctrlKey);
+        const dragData = {
+            sourceApp: this.sourceApp,
+            draggedItems: [...this.draggedItems],
+            dropTarget: this.dropTarget,
+            offsetX: this.offsetX,
+            offsetY: this.offsetY
+        };
+        this._performDrop(e, e.ctrlKey, dragData);
         this._cleanup();
     }
 
-    async _performDrop(e, isCopy) {
-        const sourceApp = this.sourceApp;
-        if (!this.dropTarget || !sourceApp) return;
+    async _performDrop(e, isCopy, dragData) {
+        const { sourceApp, draggedItems, dropTarget, offsetX, offsetY } = dragData;
+        if (!dropTarget || !sourceApp) return;
         let destinationPath = null;
-        let targetWindow = this.dropTarget.closest('.window');
+        let targetWindow = dropTarget.closest('.window');
         let targetApp = targetWindow ? openApps.get(targetWindow.id) : null;
-        if (this.dropTarget.classList.contains('explorer-icon')) destinationPath = this.dropTarget.getAttribute('data-path');
-        else if (this.dropTarget.classList.contains('explorer-icon-view')) destinationPath = this.dropTarget.getAttribute('data-current-path');
+        if (dropTarget.classList.contains('explorer-icon')) destinationPath = dropTarget.getAttribute('data-path');
+        else if (dropTarget.classList.contains('explorer-icon-view') || dropTarget.classList.contains('desktop')) destinationPath = dropTarget.getAttribute('data-current-path');
         if (!destinationPath) return;
-        const sourcePaths = this.draggedItems.map(item => item.path);
-        const offsets = this.draggedItems.map(item => ({ x: this.offsetX - item.offsetX, y: this.offsetY - item.offsetY }));
+        const sourcePaths = draggedItems.map(item => item.path);
+        const offsets = draggedItems.map(item => ({ x: offsetX - item.offsetX, y: offsetY - item.offsetY }));
         let dropX = null, dropY = null;
         if (targetApp && targetApp.iconContainer) {
             const rect = targetApp.iconContainer.getBoundingClientRect();
-            dropX = e.clientX - rect.left + targetApp.iconContainer.scrollLeft - this.offsetX;
-            dropY = e.clientY - rect.top + targetApp.iconContainer.scrollTop - this.offsetY;
+            dropX = e.clientX - rect.left + targetApp.iconContainer.scrollLeft - offsetX;
+            dropY = e.clientY - rect.top + targetApp.iconContainer.scrollTop - offsetY;
         }
         const sourceDir = sourcePaths[0].substring(0, sourcePaths[0].lastIndexOf('/')) || '/';
         if (!isCopy && destinationPath === sourceDir) {
@@ -135,15 +142,37 @@ export class DragDropManager {
         }
         if (sourceDir === "/") return;
         if (sourcePaths.some(p => RecycleBinManager.isRecycledItemPath(p))) {
-            await sourceApp.fileOps.restoreItems(sourcePaths);
+            await sourceApp.fileOps.moveItemsFromRecycleBin(sourcePaths, destinationPath);
             return;
         }
         if (RecycleBinManager.isRecycleBinPath(destinationPath)) {
-            const { ProgressBarDialogWindow } = await import("../interface/ProgressBarDialogWindow.js");
-            const totalSize = await sourceApp.fileOps.getTotalSize(sourcePaths);
-            const dialog = new ProgressBarDialogWindow("recycle", sourcePaths.length, totalSize);
-            try { await RecycleBinManager.moveItemsToRecycleBin(sourcePaths, dialog); }
-            finally { dialog.close(); }
+            const message = sourcePaths.length === 1
+                ? `Are you sure you want to send '${getPathName(sourcePaths[0])}' to the Recycle Bin?`
+                : `Are you sure you want to send these ${sourcePaths.length} items to the Recycle Bin?`;
+
+            const { ShowDialogWindow } = await import("../../../components/DialogWindow.js");
+            ShowDialogWindow({
+                title: "Confirm File Delete",
+                text: message,
+                modal: true,
+                buttons: [
+                    {
+                        label: "Yes",
+                        isDefault: true,
+                        action: async () => {
+                            const { ProgressBarDialogWindow } = await import("../interface/ProgressBarDialogWindow.js");
+                            const totalSize = await sourceApp.fileOps.getTotalSize(sourcePaths);
+                            const dialog = new ProgressBarDialogWindow("recycle", sourcePaths.length, totalSize);
+                            try {
+                                await RecycleBinManager.moveItemsToRecycleBin(sourcePaths, dialog);
+                            } finally {
+                                dialog.close();
+                            }
+                        }
+                    },
+                    { label: "No" }
+                ]
+            });
             return;
         }
         const { ProgressBarDialogWindow } = await import("../interface/ProgressBarDialogWindow.js");

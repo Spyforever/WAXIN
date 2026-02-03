@@ -61,6 +61,11 @@ export async function initFileSystem(onProgress) {
             await fs.promises.mkdir('/C:/WINDOWS/Desktop');
         }
 
+        // Ensure My Documents directory exists
+        if (!(await existsAsync('/C:/My Documents'))) {
+            await fs.promises.mkdir('/C:/My Documents');
+        }
+
         if (onProgress) onProgress("Initializing Start Menu...");
         // Ensure PINNED_PATH exists (C:/WINDOWS/Start Menu)
         if (!(await existsAsync(PINNED_PATH))) {
