@@ -172,6 +172,23 @@ export class FileOperations {
     }
 
     async getUniquePastePath(destPath, originalName, operation) {
+        if (operation === "shortcut") {
+            let candidateName = `Shortcut to ${originalName}.lnk`;
+            let checkPath = normalizePath(joinPath(destPath, candidateName));
+            try {
+                await fs.promises.stat(ShellManager.getRealPath(checkPath));
+                let counter = 2;
+                while (true) {
+                    candidateName = `Shortcut (${counter}) to ${originalName}.lnk`;
+                    checkPath = normalizePath(joinPath(destPath, candidateName));
+                    try {
+                        await fs.promises.stat(ShellManager.getRealPath(checkPath));
+                        counter++;
+                    } catch (e) { return checkPath; }
+                }
+            } catch (e) { return checkPath; }
+        }
+
         let checkPath = normalizePath(joinPath(destPath, originalName));
         try {
             await fs.promises.stat(ShellManager.getRealPath(checkPath));
@@ -193,21 +210,6 @@ export class FileOperations {
                     counter++;
                 } catch (e) { return checkPath; }
             }
-        } else if (operation === "shortcut") {
-            let candidateName = `Shortcut to ${originalName}.lnk`;
-            checkPath = normalizePath(joinPath(destPath, candidateName));
-            try {
-                await fs.promises.stat(ShellManager.getRealPath(checkPath));
-                let counter = 2;
-                while (true) {
-                    candidateName = `Shortcut (${counter}) to ${originalName}.lnk`;
-                    checkPath = normalizePath(joinPath(destPath, candidateName));
-                    try {
-                        await fs.promises.stat(ShellManager.getRealPath(checkPath));
-                        counter++;
-                    } catch (e) { return checkPath; }
-                }
-            } catch (e) { return checkPath; }
         } else {
             const copyNOfRegex = /^Copy \((\d+)\) of (.*)$/;
             const copyOfRegex = /^Copy of (.*)$/;

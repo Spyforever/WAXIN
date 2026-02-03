@@ -164,6 +164,8 @@ export class DesktopExtension {
 
       const stats = await fs.promises.stat(realFullPath);
       if (!stats.isDirectory()) {
+        if (name.endsWith(".lnk")) return false; // Let the app handle shortcuts
+
         const { getAssociation } = await import("../../../utils/directory.js");
         const { launchApp } = await import("../../../utils/appManager.js");
         const association = getAssociation(name);

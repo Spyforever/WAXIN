@@ -88,7 +88,7 @@ export async function renderFileIcon(fileName, fullPath, isDir, options = {}) {
   if (!isDir && fileName.endsWith(".lnk")) {
     isShortcut = true;
     try {
-      const content = await fs.promises.readFile(fullPath, "utf8");
+      const content = await fs.promises.readFile(ShellManager.getRealPath(fullPath), "utf8");
       const data = JSON.parse(content);
       if (data.type === "shortcut") {
         if (data.appId) {
