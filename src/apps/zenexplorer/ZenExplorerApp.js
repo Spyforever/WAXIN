@@ -30,10 +30,12 @@ import { getToolbarItems } from "./interface/ToolbarBuilder.js";
 import { sortFileInfos } from "./fileoperations/SortUtils.js";
 import { ControlPanelExtension } from "./extensions/ControlPanelExtension.js";
 import { DesktopExtension } from "./extensions/DesktopExtension.js";
+import { RecycleBinExtension } from "./extensions/RecycleBinExtension.js";
 
 // Initialize Shell Extensions
 ShellManager.registerExtension(new ControlPanelExtension());
 ShellManager.registerExtension(new DesktopExtension());
+ShellManager.registerExtension(new RecycleBinExtension());
 
 export class ZenExplorerApp extends Application {
   static config = {
@@ -141,9 +143,6 @@ export class ZenExplorerApp extends Application {
     });
     this.win = win;
 
-    // 2a. Setup MenuBar
-    this._updateMenuBar();
-
     // 3. Toolbar
     const toolbarItems = getToolbarItems(this);
     this.toolbar = new window.Toolbar(toolbarItems, {
@@ -221,6 +220,9 @@ export class ZenExplorerApp extends Application {
 
     // 8. Initial Navigation
     this.navigateTo(this.currentPath);
+
+    // 9. Setup MenuBar (last, as it depends on status bar, icon manager, etc.)
+    this._updateMenuBar();
 
     return win;
   }

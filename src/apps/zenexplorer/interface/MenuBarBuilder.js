@@ -9,6 +9,7 @@ import ClipboardManager from "../fileoperations/ClipboardManager.js";
 import { PropertiesManager } from "../fileoperations/PropertiesManager.js";
 import UndoManager from "../fileoperations/UndoManager.js";
 import { RemovableDiskManager } from "../drives/RemovableDiskManager.js";
+import { RecycleBinManager } from "../fileoperations/RecycleBinManager.js";
 
 export class MenuBarBuilder {
   constructor(app) {
@@ -16,13 +17,20 @@ export class MenuBarBuilder {
   }
 
   build() {
-    return new window.MenuBar({
-      "&File": this._getFileMenuItems(),
-      "&Edit": this._getEditMenuItems(),
-      "&View": this._getViewMenuItems(),
-      "&Go": this._getGoMenuItems(),
-      "&Help": this._getHelpMenuItems(),
-    });
+    try {
+        return new window.MenuBar({
+          "&File": this._getFileMenuItems(),
+          "&Edit": this._getEditMenuItems(),
+          "&View": this._getViewMenuItems(),
+          "&Go": this._getGoMenuItems(),
+          "&Help": this._getHelpMenuItems(),
+        });
+    } catch (e) {
+        console.error("Failed to build MenuBar:", e);
+        return new window.MenuBar({
+            "&Go": this._getGoMenuItems()
+        });
+    }
   }
 
   _getEditMenuItems() {
@@ -34,6 +42,7 @@ export class MenuBarBuilder {
       (p) => getParentPath(p) === "/",
     );
     const isRoot = this.app.currentPath === "/";
+    const isRecycleBin = RecycleBinManager.isRecycleBinPath(this.app.currentPath);
 
     return [
       {
@@ -57,13 +66,13 @@ export class MenuBarBuilder {
         action: () => {
           this.app.fileOps.copyItems(selectedPaths);
         },
-        enabled: () => selectedPaths.length > 0,
+        enabled: () => selectedPaths.length > 0 && !isRecycleBin,
       },
       {
         label: "&Paste",
         shortcutLabel: "Ctrl+V",
         action: () => this.app.fileOps.pasteItems(this.app.currentPath),
-        enabled: () => !ClipboardManager.isEmpty() && !isRoot,
+        enabled: () => !ClipboardManager.isEmpty() && !isRoot && !isRecycleBin,
       },
     ];
   }
@@ -77,23 +86,48 @@ export class MenuBarBuilder {
       (p) => getParentPath(p) === "/",
     );
     const isRoot = this.app.currentPath === "/";
+    const isRecycleBin = RecycleBinManager.isRecycleBinPath(this.app.currentPath);
+    const anyRecycledItem = selectedPaths.some(p => RecycleBinManager.isRecycledItemPath(p));
+
+    const items = [];
+
+    if (anyRecycledItem) {
+      items.push({
+        label: "&Restore",
+        action: () => this.app.fileOps.restoreItems(selectedPaths),
+      });
+    }
+
+    if (isRecycleBin) {
+      items.push({
+        label: "Empty Recycle &Bin",
+        action: () => this.app.fileOps.emptyRecycleBin(),
+        enabled: () => RecycleBinManager.isFullSync(this.app.currentPath),
+      });
+    }
+
+    if (items.length > 0) {
+      items.push("MENU_DIVIDER");
+    }
+
+    const mruEntries = this.app.navHistory ? this.app.navHistory.getMRUFolders() : [];
 
     return [
+      ...items,
       {
         label: "&Open",
         action: () => {
-                    const selectedPaths = [...this.app.iconManager.selectedIcons]
-                        .map(icon => icon.getAttribute("data-path"));
-                    const firstSelected = [...this.app.iconManager.selectedIcons][0];
-                    if (firstSelected) {
-                        const type = firstSelected.getAttribute("data-type");
-                        if (type === "directory") {
-                            this.app.navigateTo(selectedPaths[0]);
-                        } else {
-                            this.app.openFile(firstSelected);
-                        }
-                    }
-                },
+          const firstSelected = [...this.app.iconManager.selectedIcons][0];
+          if (firstSelected) {
+            const path = firstSelected.getAttribute("data-path");
+            const type = firstSelected.getAttribute("data-type");
+            if (type === "directory") {
+              this.app.navigateTo(path);
+            } else {
+              this.app.openFile(firstSelected);
+            }
+          }
+        },
         enabled: () => selectedPaths.length > 0,
         default: true,
       },
@@ -126,19 +160,18 @@ export class MenuBarBuilder {
       "MENU_DIVIDER",
       {
         label: "&New",
-        enabled: () => !isRoot,
+        enabled: () => !isRoot && !isRecycleBin,
         submenu: [
           {
             label: "&Folder",
             action: () => this.app.fileOps.createNewFolder(),
-            enabled: () => !isRoot,
+            enabled: () => !isRoot && !isRecycleBin,
           },
           {
-                        label: "&Text Document",
-                        action: () => this.app.fileOps.createNewTextFile(),
-            
-            enabled: () => !isRoot,
-                    },
+            label: "&Text Document",
+            action: () => this.app.fileOps.createNewTextFile(),
+            enabled: () => !isRoot && !isRecycleBin,
+          },
         ],
       },
       "MENU_DIVIDER",
@@ -159,21 +192,20 @@ export class MenuBarBuilder {
             );
           }
         },
-        enabled: () => selectedPaths.length === 1 && !containsRootItem,
+        enabled: () =>
+          selectedPaths.length === 1 && !containsRootItem && !isRecycleBin,
       },
       "MENU_DIVIDER",
       {
-        radioItems: this.app.navHistory.getMRUFolders().map((entry) => ({
+        radioItems: mruEntries.map((entry) => ({
           label: getDisplayName(entry.path),
           value: entry.id,
         })),
         getValue: () => {
-          return this.app.navHistory.getSelectedMRUId();
+          return this.app.navHistory ? this.app.navHistory.getSelectedMRUId() : null;
         },
         setValue: (id) => {
-          const entry = this.app.navHistory
-            .getMRUFolders()
-            .find((e) => e.id === id);
+          const entry = this.app.navHistory.getMRUFolders().find((e) => e.id === id);
           if (entry) {
             this.app.navHistory.markAsManuallySelectedById(id);
             this.app.navigateTo(entry.path, false, true);
@@ -184,7 +216,8 @@ export class MenuBarBuilder {
       {
         label: "&Properties",
         action: async () => {
-          const selectedIcons = this.app.iconManager?.selectedIcons || new Set();
+          const selectedIcons =
+            this.app.iconManager?.selectedIcons || new Set();
           const selectedPaths = [...selectedIcons].map((icon) =>
             icon.getAttribute("data-path"),
           );
@@ -255,12 +288,12 @@ export class MenuBarBuilder {
       {
         label: "&Back",
         action: () => this.app.goBack(),
-        enabled: () => this.app.navHistory.canGoBack(),
+        enabled: () => this.app.navHistory?.canGoBack(),
       },
       {
         label: "&Forward",
         action: () => this.app.goForward(),
-        enabled: () => this.app.navHistory.canGoForward(),
+        enabled: () => this.app.navHistory?.canGoForward(),
       },
       {
         label: "&Up One Level",

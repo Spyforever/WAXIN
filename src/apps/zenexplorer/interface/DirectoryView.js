@@ -107,8 +107,10 @@ export class DirectoryView {
     this.app.iconContainer.innerHTML = "";
     this.app.iconManager.clearSelection();
 
+    const isGlobalRecycleBin = path === "/Recycle Bin" || path === "/Desktop/Recycle Bin";
     const isRecycleBin = RecycleBinManager.isRecycleBinPath(path);
-    const metadata = isRecycleBin ? await RecycleBinManager.getMetadata(path) : null;
+    const isDriveRecycleBin = isRecycleBin && !isGlobalRecycleBin;
+    const metadata = isDriveRecycleBin ? await RecycleBinManager.getMetadata(path) : null;
     const recycleBinEmpty = isRecycleBin ? await RecycleBinManager.isEmpty(path) : true;
 
     if (this.app.viewMode === "details") {
@@ -253,8 +255,9 @@ export class DirectoryView {
     const path = icon.getAttribute("data-path");
     const isRootItem = getParentPath(path) === "/";
     const isRecycleBin = RecycleBinManager.isRecycleBinPath(path);
+    const isRecycledItem = RecycleBinManager.isRecycledItemPath(path);
     const isVirtual = icon.getAttribute("data-is-virtual") === "true";
-    if (isRootItem || isRecycleBin || isVirtual) return;
+    if (isRootItem || isRecycleBin || isRecycledItem || isVirtual) return;
     this._isRenaming = true;
     const label = icon.querySelector(".icon-label");
     const fullPath = icon.getAttribute("data-path");

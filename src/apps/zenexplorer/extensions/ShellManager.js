@@ -6,7 +6,10 @@ import { getParentPath } from "../navigation/PathUtils.js";
  */
 export class VirtualStats {
   constructor(options = {}) {
+    Object.assign(this, options);
     this._isDirectory = !!options.isDirectory;
+    delete this.isDirectory;
+    delete this.isFile;
     this.isVirtual = !!options.isVirtual;
     this.size = options.size || 0;
     this.atime = options.atime || new Date();

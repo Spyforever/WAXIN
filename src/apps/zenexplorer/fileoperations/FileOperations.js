@@ -416,8 +416,9 @@ export class FileOperations {
         }
     }
 
-    async emptyRecycleBin() {
-        const recyclePath = RecycleBinManager.getRecyclePath(this.app.currentPath) || this.app.currentPath;
+    async emptyRecycleBin(path = null) {
+        const targetPath = path || this.app.currentPath;
+        const recyclePath = RecycleBinManager.getRecyclePath(targetPath) || targetPath;
         if (!RecycleBinManager.isRecycleBinPath(recyclePath)) return;
 
         const isEmpty = await RecycleBinManager.isEmpty(recyclePath);

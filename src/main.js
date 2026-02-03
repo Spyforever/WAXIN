@@ -32,7 +32,7 @@ import { createMainUI } from "./components/ui.js";
 import { initColorModeManager } from "./utils/colorModeManager.js";
 import screensaver from "./utils/screensaverUtils.js";
 import { initScreenManager } from "./utils/screenManager.js";
-import { fs } from "@zenfs/core";
+import { fs, mounts } from "@zenfs/core";
 import { initFileSystem } from "./utils/zenfs-init.js";
 import { RecycleBinManager } from "./apps/zenexplorer/fileoperations/RecycleBinManager.js";
 
@@ -382,6 +382,8 @@ async function initializeOS() {
     window.playSound = playSound;
     window.setTheme = setTheme;
     window.fs = fs;
+    window.mounts = mounts;
+    window.RecycleBinManager = RecycleBinManager;
     window.System.launchApp = launchApp;
     console.log("azOS initialized");
 

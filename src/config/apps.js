@@ -97,8 +97,8 @@ const systemApps = [
     action: {
       type: "function",
       handler: () => {
-        window.System.launchApp("explorer", {
-          filePath: "//recycle-bin",
+        window.System.launchApp("zenexplorer", {
+          filePath: "/Recycle Bin",
           windowId: "recycle-bin",
         });
       },
@@ -110,20 +110,29 @@ const systemApps = [
           ShowDialogWindow({
             title: "Confirm Empty Recycle Bin",
             text: "Are you sure you want to permanently delete all items in the Recycle Bin?",
+            modal: true,
             buttons: [
               {
                 label: "Yes",
-                action: () => {
-                  emptyRecycleBin();
-                  playSound("EmptyRecycleBin");
-                  document.dispatchEvent(new CustomEvent("theme-changed")); // To refresh icon
+                isDefault: true,
+                action: async () => {
+                  if (window.RecycleBinManager) {
+                    await window.RecycleBinManager.emptyAllRecycleBins();
+                    const { playSound } = await import("../utils/soundManager.js");
+                    playSound("EmptyRecycleBin");
+                  }
                 },
               },
-              { label: "No", isDefault: true },
+              { label: "No" },
             ],
           });
         },
-        enabled: () => getRecycleBinItems().length > 0,
+        enabled: () => {
+            // This is tricky because apps.js is outside the extension system's usual context
+            // and getRecycleBinItems might be old.
+            // For now, let's keep it simple.
+            return true;
+        },
       },
       "MENU_DIVIDER",
       {

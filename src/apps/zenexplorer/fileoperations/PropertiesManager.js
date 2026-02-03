@@ -54,9 +54,11 @@ export class PropertiesManager {
     let iconUrl = getIconForFile(name, isDir);
 
     if (isRecycled) {
-      const recyclePath = RecycleBinManager.getRecyclePath(path);
-      const metadata = recyclePath ? await RecycleBinManager.getMetadata(recyclePath) : {};
-      const entry = metadata[name]; // name is the ID
+      const entry = stats.isVirtual ? {
+          originalName: stats.originalName,
+          originalPath: stats.originalPath
+      } : await RecycleBinManager.getRecycledItemInfo(path);
+
       if (entry) {
         name = entry.originalName;
         displayPath = formatPathForDisplay(entry.originalPath);
@@ -96,7 +98,7 @@ export class PropertiesManager {
     });
 
     const win = ShowDialogWindow({
-      title: `${getDisplayName(path)} Properties`,
+      title: `${name} Properties`,
       content: container,
       buttons: [{ label: "OK", isDefault: true }],
       modal: true,
