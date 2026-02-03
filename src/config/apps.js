@@ -107,9 +107,25 @@ const systemApps = [
       {
         label: "Empty Recycle Bin",
         action: () => {
-          if (window.RecycleBinManager) {
-            window.RecycleBinManager.emptyAllRecycleBins();
-          }
+          ShowDialogWindow({
+            title: "Confirm Empty Recycle Bin",
+            text: "Are you sure you want to permanently delete all items in the Recycle Bin?",
+            modal: true,
+            buttons: [
+              {
+                label: "Yes",
+                isDefault: true,
+                action: async () => {
+                  if (window.RecycleBinManager) {
+                    await window.RecycleBinManager.emptyAllRecycleBins();
+                    const { playSound } = await import("../utils/soundManager.js");
+                    playSound("EmptyRecycleBin");
+                  }
+                },
+              },
+              { label: "No" },
+            ],
+          });
         },
         enabled: () => {
             // This is tricky because apps.js is outside the extension system's usual context

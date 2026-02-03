@@ -49,6 +49,10 @@ export class ContextMenuBuilder {
         },
         "MENU_DIVIDER",
         {
+          label: "Cut",
+          action: () => this.app.fileOps.cutItems(selectedPaths),
+        },
+        {
           label: "Delete",
           action: () => this.app.fileOps.deleteItems(selectedPaths, true),
         },
@@ -122,7 +126,7 @@ export class ContextMenuBuilder {
       if (isRecycleBin) {
           menuItems.push({
               label: "Empty Recycle Bin",
-              action: () => RecycleBinManager.emptyAllRecycleBins(),
+              action: () => this.app.fileOps.emptyRecycleBin(path),
               enabled: () => !RecycleBinManager.isEmpty(path)
           });
           menuItems.push("MENU_DIVIDER");
@@ -185,7 +189,7 @@ export class ContextMenuBuilder {
     if (isGlobalRecycleBin) {
         menuItems.push({
             label: "Empty Recycle Bin",
-            action: () => RecycleBinManager.emptyAllRecycleBins(),
+            action: () => this.app.fileOps.emptyRecycleBin("/Recycle Bin"),
             enabled: () => !RecycleBinManager.isEmpty("/Recycle Bin")
         });
         menuItems.push("MENU_DIVIDER");

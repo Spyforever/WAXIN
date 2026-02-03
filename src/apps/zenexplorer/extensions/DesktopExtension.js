@@ -103,6 +103,8 @@ export class DesktopExtension {
     const name = getPathName(path);
     const item = this.virtualItems.find((i) => i.name === name);
     if (item) {
+      // Return null for Recycle Bin to allow FileIconRenderer's dynamic icon logic to take over
+      if (name === "Recycle Bin") return null;
       return item.icon;
     }
 

@@ -17,13 +17,20 @@ export class MenuBarBuilder {
   }
 
   build() {
-    return new window.MenuBar({
-      "&File": this._getFileMenuItems(),
-      "&Edit": this._getEditMenuItems(),
-      "&View": this._getViewMenuItems(),
-      "&Go": this._getGoMenuItems(),
-      "&Help": this._getHelpMenuItems(),
-    });
+    try {
+        return new window.MenuBar({
+          "&File": this._getFileMenuItems(),
+          "&Edit": this._getEditMenuItems(),
+          "&View": this._getViewMenuItems(),
+          "&Go": this._getGoMenuItems(),
+          "&Help": this._getHelpMenuItems(),
+        });
+    } catch (e) {
+        console.error("Failed to build MenuBar:", e);
+        return new window.MenuBar({
+            "&Go": this._getGoMenuItems()
+        });
+    }
   }
 
   _getEditMenuItems() {
@@ -51,7 +58,7 @@ export class MenuBarBuilder {
         action: () => {
           this.app.fileOps.cutItems(selectedPaths);
         },
-        enabled: () => selectedPaths.length > 0 && !containsRootItem && !isRecycleBin,
+        enabled: () => selectedPaths.length > 0 && !containsRootItem,
       },
       {
         label: "&Copy",
@@ -85,40 +92,41 @@ export class MenuBarBuilder {
     const items = [];
 
     if (anyRecycledItem) {
-        items.push({
-            label: "&Restore",
-            action: () => this.app.fileOps.restoreItems(selectedPaths),
-        });
+      items.push({
+        label: "&Restore",
+        action: () => this.app.fileOps.restoreItems(selectedPaths),
+      });
     }
 
     if (isRecycleBin) {
-        items.push({
-            label: "Empty Recycle &Bin",
-            action: () => this.app.fileOps.emptyRecycleBin(),
-            enabled: () => !RecycleBinManager.isEmpty(this.app.currentPath),
-        });
+      items.push({
+        label: "Empty Recycle &Bin",
+        action: () => this.app.fileOps.emptyRecycleBin(),
+      });
     }
 
     if (items.length > 0) {
-        items.push("MENU_DIVIDER");
+      items.push("MENU_DIVIDER");
     }
 
-    items.push(
+    const mruEntries = this.app.navHistory ? this.app.navHistory.getMRUFolders() : [];
+
+    return [
+      ...items,
       {
         label: "&Open",
         action: () => {
-                    const selectedPaths = [...this.app.iconManager.selectedIcons]
-                        .map(icon => icon.getAttribute("data-path"));
-                    const firstSelected = [...this.app.iconManager.selectedIcons][0];
-                    if (firstSelected) {
-                        const type = firstSelected.getAttribute("data-type");
-                        if (type === "directory") {
-                            this.app.navigateTo(selectedPaths[0]);
-                        } else {
-                            this.app.openFile(firstSelected);
-                        }
-                    }
-                },
+          const firstSelected = [...this.app.iconManager.selectedIcons][0];
+          if (firstSelected) {
+            const path = firstSelected.getAttribute("data-path");
+            const type = firstSelected.getAttribute("data-type");
+            if (type === "directory") {
+              this.app.navigateTo(path);
+            } else {
+              this.app.openFile(firstSelected);
+            }
+          }
+        },
         enabled: () => selectedPaths.length > 0,
         default: true,
       },
@@ -171,7 +179,7 @@ export class MenuBarBuilder {
         action: () => {
           this.app.fileOps.deleteItems(selectedPaths);
         },
-        enabled: () => selectedPaths.length > 0 && !containsRootItem && !isRecycleBin,
+        enabled: () => selectedPaths.length > 0 && !containsRootItem,
       },
       {
         label: "&Rename",
@@ -183,21 +191,20 @@ export class MenuBarBuilder {
             );
           }
         },
-        enabled: () => selectedPaths.length === 1 && !containsRootItem && !isRecycleBin,
+        enabled: () =>
+          selectedPaths.length === 1 && !containsRootItem && !isRecycleBin,
       },
       "MENU_DIVIDER",
       {
-        radioItems: this.app.navHistory.getMRUFolders().map((entry) => ({
+        radioItems: mruEntries.map((entry) => ({
           label: getDisplayName(entry.path),
           value: entry.id,
         })),
         getValue: () => {
-          return this.app.navHistory.getSelectedMRUId();
+          return this.app.navHistory ? this.app.navHistory.getSelectedMRUId() : null;
         },
         setValue: (id) => {
-          const entry = this.app.navHistory
-            .getMRUFolders()
-            .find((e) => e.id === id);
+          const entry = this.app.navHistory.getMRUFolders().find((e) => e.id === id);
           if (entry) {
             this.app.navHistory.markAsManuallySelectedById(id);
             this.app.navigateTo(entry.path, false, true);
@@ -208,7 +215,8 @@ export class MenuBarBuilder {
       {
         label: "&Properties",
         action: async () => {
-          const selectedIcons = this.app.iconManager?.selectedIcons || new Set();
+          const selectedIcons =
+            this.app.iconManager?.selectedIcons || new Set();
           const selectedPaths = [...selectedIcons].map((icon) =>
             icon.getAttribute("data-path"),
           );
@@ -230,8 +238,7 @@ export class MenuBarBuilder {
         label: "&Close",
         action: () => this.app.win.close(),
       },
-    );
-    return items;
+    ];
   }
 
   _getViewMenuItems() {
@@ -280,12 +287,12 @@ export class MenuBarBuilder {
       {
         label: "&Back",
         action: () => this.app.goBack(),
-        enabled: () => this.app.navHistory.canGoBack(),
+        enabled: () => this.app.navHistory?.canGoBack(),
       },
       {
         label: "&Forward",
         action: () => this.app.goForward(),
-        enabled: () => this.app.navHistory.canGoForward(),
+        enabled: () => this.app.navHistory?.canGoForward(),
       },
       {
         label: "&Up One Level",

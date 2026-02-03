@@ -290,6 +290,19 @@ export class RecycleBinManager {
         return match[2] !== ".metadata.json";
     }
 
+    static async getRecycledItemInfo(path) {
+        const realPath = ShellManager.getRealPath(path);
+        const match = realPath.match(/^(\/[A-Z]:\/Recycled)\/([^/]+)$/i);
+        if (!match) return null;
+
+        const recyclePath = match[1];
+        const id = match[2];
+        if (id === ".metadata.json") return null;
+
+        const metadata = await this.getMetadata(recyclePath);
+        return metadata[id] || null;
+    }
+
     static async _getUniqueRestorePath(path) {
         let currentPath = path;
         try {
