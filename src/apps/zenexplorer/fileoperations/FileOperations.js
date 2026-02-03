@@ -46,7 +46,7 @@ export class FileOperations {
         }
 
         if (items.some(p => RecycleBinManager.isRecycledItemPath(p))) {
-            await this.restoreItems(items);
+            await this.moveItemsFromRecycleBin(items, destinationPath);
             if (operation === "cut") ClipboardManager.clear();
             return;
         }
@@ -408,6 +408,25 @@ export class FileOperations {
             await RecycleBinManager.restoreItems(paths, dialog);
         } catch (e) {
             handleFileSystemError("restore", e, "items");
+        } finally {
+            dialog.close();
+            releaseBusyState(busyId, this.app.win.element);
+            await this.app.navigateTo(this.app.currentPath, true, true);
+            document.dispatchEvent(new CustomEvent("fs-change", { detail: { sourceAppId: this.app.win.element.id } }));
+        }
+    }
+
+    async moveItemsFromRecycleBin(paths, destinationPath) {
+        if (paths.length === 0) return;
+        const busyId = `move-from-recycle-${Math.random()}`;
+        requestBusyState(busyId, this.app.win.element);
+        const { ProgressBarDialogWindow } = await import("../interface/ProgressBarDialogWindow.js");
+        const totalSize = await this.getTotalSize(paths);
+        const dialog = new ProgressBarDialogWindow("move", paths.length, totalSize);
+        try {
+            await RecycleBinManager.moveItemsFromRecycleBin(paths, destinationPath, dialog);
+        } catch (e) {
+            handleFileSystemError("move", e, "items");
         } finally {
             dialog.close();
             releaseBusyState(busyId, this.app.win.element);

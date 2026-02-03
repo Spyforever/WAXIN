@@ -216,6 +216,90 @@ export class RecycleBinManager {
         await this.restoreItems([path]);
     }
 
+    static async moveItemsFromRecycleBin(itemPaths, destinationPath, dialog = null) {
+        const groups = {};
+        for (const itemPath of itemPaths) {
+            const realItemPath = ShellManager.getRealPath(itemPath);
+            const match = realItemPath.match(/^(\/[A-Z]:\/Recycled)\/([^/]+)$/i);
+            if (!match) continue;
+            const recyclePath = match[1];
+            const id = match[2];
+            if (id === ".metadata.json") continue;
+            if (!groups[recyclePath]) groups[recyclePath] = [];
+            groups[recyclePath].push(id);
+        }
+
+        let anyChanged = false;
+        for (const recyclePath in groups) {
+            const ids = groups[recyclePath];
+            const metadata = await this.getMetadata(recyclePath);
+            let changed = false;
+
+            for (const id of ids) {
+                if (dialog && dialog.cancelled) break;
+                const entry = metadata[id];
+                if (!entry) continue;
+
+                const srcPath = joinPath(recyclePath, id);
+                let destPath = joinPath(destinationPath, entry.originalName);
+
+                if (dialog) {
+                    dialog.update(entry.originalName, recyclePath, destinationPath, 0);
+                }
+
+                try {
+                    await fs.promises.stat(destinationPath);
+                } catch (e) {
+                    await fs.promises.mkdir(destinationPath, { recursive: true });
+                }
+
+                // Ensure unique name in destination
+                let finalDestPath = destPath;
+                try {
+                    await fs.promises.stat(finalDestPath);
+                    const extIndex = entry.originalName.lastIndexOf('.');
+                    const base = extIndex > 0 ? entry.originalName.substring(0, extIndex) : entry.originalName;
+                    const ext = extIndex > 0 ? entry.originalName.substring(extIndex) : '';
+                    let counter = 1;
+                    while (true) {
+                        finalDestPath = joinPath(destinationPath, `${base} (${counter})${ext}`);
+                        try {
+                            await fs.promises.stat(finalDestPath);
+                            counter++;
+                        } catch (e) {
+                            break;
+                        }
+                    }
+                } catch (e) {}
+
+                try {
+                    await fs.promises.rename(srcPath, ShellManager.getRealPath(finalDestPath));
+                    if (dialog) {
+                        const stats = await fs.promises.stat(ShellManager.getRealPath(finalDestPath));
+                        dialog.finishItem(stats.isDirectory() ? 0 : stats.size);
+                        dialog.update(entry.originalName, recyclePath, destinationPath, 0);
+                    }
+                } catch (e) {
+                    await this.copyRecursive(srcPath, finalDestPath, dialog);
+                    await this.removeRecursive(srcPath, dialog, false);
+                }
+
+                delete metadata[id];
+                changed = true;
+                anyChanged = true;
+            }
+
+            if (changed) {
+                await this.saveMetadata(recyclePath, metadata);
+            }
+        }
+
+        if (anyChanged) {
+            this.refreshFullState();
+            document.dispatchEvent(new CustomEvent("recycle-bin-change"));
+        }
+    }
+
     static async emptyRecycleBin(recyclePath, dialog = null) {
         if (recyclePath === "/Recycle Bin") {
             return this.emptyAllRecycleBins(dialog);

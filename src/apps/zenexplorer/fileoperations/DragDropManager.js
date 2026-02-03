@@ -107,26 +107,33 @@ export class DragDropManager {
 
     _handleMouseUp(e) {
         if (!this.isDragging) return;
-        this._performDrop(e, e.ctrlKey);
+        const dragData = {
+            sourceApp: this.sourceApp,
+            draggedItems: [...this.draggedItems],
+            dropTarget: this.dropTarget,
+            offsetX: this.offsetX,
+            offsetY: this.offsetY
+        };
+        this._performDrop(e, e.ctrlKey, dragData);
         this._cleanup();
     }
 
-    async _performDrop(e, isCopy) {
-        const sourceApp = this.sourceApp;
-        if (!this.dropTarget || !sourceApp) return;
+    async _performDrop(e, isCopy, dragData) {
+        const { sourceApp, draggedItems, dropTarget, offsetX, offsetY } = dragData;
+        if (!dropTarget || !sourceApp) return;
         let destinationPath = null;
-        let targetWindow = this.dropTarget.closest('.window');
+        let targetWindow = dropTarget.closest('.window');
         let targetApp = targetWindow ? openApps.get(targetWindow.id) : null;
-        if (this.dropTarget.classList.contains('explorer-icon')) destinationPath = this.dropTarget.getAttribute('data-path');
-        else if (this.dropTarget.classList.contains('explorer-icon-view')) destinationPath = this.dropTarget.getAttribute('data-current-path');
+        if (dropTarget.classList.contains('explorer-icon')) destinationPath = dropTarget.getAttribute('data-path');
+        else if (dropTarget.classList.contains('explorer-icon-view')) destinationPath = dropTarget.getAttribute('data-current-path');
         if (!destinationPath) return;
-        const sourcePaths = this.draggedItems.map(item => item.path);
-        const offsets = this.draggedItems.map(item => ({ x: this.offsetX - item.offsetX, y: this.offsetY - item.offsetY }));
+        const sourcePaths = draggedItems.map(item => item.path);
+        const offsets = draggedItems.map(item => ({ x: offsetX - item.offsetX, y: offsetY - item.offsetY }));
         let dropX = null, dropY = null;
         if (targetApp && targetApp.iconContainer) {
             const rect = targetApp.iconContainer.getBoundingClientRect();
-            dropX = e.clientX - rect.left + targetApp.iconContainer.scrollLeft - this.offsetX;
-            dropY = e.clientY - rect.top + targetApp.iconContainer.scrollTop - this.offsetY;
+            dropX = e.clientX - rect.left + targetApp.iconContainer.scrollLeft - offsetX;
+            dropY = e.clientY - rect.top + targetApp.iconContainer.scrollTop - offsetY;
         }
         const sourceDir = sourcePaths[0].substring(0, sourcePaths[0].lastIndexOf('/')) || '/';
         if (!isCopy && destinationPath === sourceDir) {
@@ -135,7 +142,7 @@ export class DragDropManager {
         }
         if (sourceDir === "/") return;
         if (sourcePaths.some(p => RecycleBinManager.isRecycledItemPath(p))) {
-            await sourceApp.fileOps.restoreItems(sourcePaths);
+            await sourceApp.fileOps.moveItemsFromRecycleBin(sourcePaths, destinationPath);
             return;
         }
         if (RecycleBinManager.isRecycleBinPath(destinationPath)) {
