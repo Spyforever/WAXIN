@@ -3,7 +3,7 @@ import {
   requestBusyState,
   releaseBusyState,
 } from "../../../utils/busyStateManager.js";
-import { renderFileIcon } from "./FileIconRenderer.js";
+import { renderFileIcon, getThemedIconObj } from "./FileIconRenderer.js";
 import { ICONS } from "../../../config/icons.js";
 import { getAssociation } from "../../../utils/directory.js";
 import { RecycleBinManager } from "../fileoperations/RecycleBinManager.js";
@@ -31,7 +31,7 @@ export class DirectoryView {
     const name = getDisplayName(path);
     let icon =
       path === "/"
-        ? ICONS.computer
+        ? getThemedIconObj("computer")
         : path.match(/^\/[A-Z]:\/?$/i)
           ? ICONS.drive
           : ICONS.folderOpen;
@@ -47,9 +47,14 @@ export class DirectoryView {
     if (path === "/E:") {
       icon = ICONS.disketteDrive;
     }
+
+    if (path === "/Network Neighborhood" || path === "/Desktop/Network Neighborhood") {
+      icon = getThemedIconObj("network");
+    }
+
     if (RecycleBinManager.isRecycleBinPath(path)) {
       const isEmpty = await RecycleBinManager.isEmpty(path);
-      icon = isEmpty ? ICONS.recycleBinEmpty : ICONS.recycleBinFull;
+      icon = getThemedIconObj("recycle", isEmpty);
     }
 
     this.app.addressBar.setValue(formatPathForDisplay(path));

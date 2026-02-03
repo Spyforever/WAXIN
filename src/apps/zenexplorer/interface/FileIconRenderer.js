@@ -18,20 +18,20 @@ import { iconSchemes } from "../../../config/icon-schemes.js";
  * @param {boolean} isEmpty - For recycle bin, whether it is empty
  * @returns {Object} Icon object with 16 and 32 sizes
  */
-function getThemedIconObj(specialType, isEmpty = true) {
+export function getThemedIconObj(specialType, isEmpty = true) {
   const schemeName = getIconSchemeName();
   const scheme = iconSchemes[schemeName] || iconSchemes.default;
   const defaultScheme = iconSchemes.default;
 
   switch (specialType) {
     case "computer":
-      return scheme.myComputer || defaultScheme.myComputer;
+      return scheme.myComputer || defaultScheme.myComputer || ICONS.computer;
     case "recycle":
       return isEmpty
-        ? scheme.recycleBinEmpty || defaultScheme.recycleBinEmpty
-        : scheme.recycleBinFull || defaultScheme.recycleBinFull;
+        ? scheme.recycleBinEmpty || defaultScheme.recycleBinEmpty || ICONS.recycleBinEmpty
+        : scheme.recycleBinFull || defaultScheme.recycleBinFull || ICONS.recycleBinFull;
     case "network":
-      return scheme.networkNeighborhood || defaultScheme.networkNeighborhood;
+      return scheme.networkNeighborhood || defaultScheme.networkNeighborhood || ICONS.networkNeighborhood;
     default:
       return null;
   }
@@ -150,6 +150,10 @@ export async function renderFileIcon(fileName, fullPath, isDir, options = {}) {
     fullPath === "/Desktop/Network Neighborhood"
   ) {
     iconObj = getThemedIconObj("network");
+  }
+  // Special handling for My Documents
+  else if (fullPath === "/Desktop/My Documents") {
+    iconObj = ICONS.folder;
   }
   // Special handling for Recycle Bin folder
   else if (RecycleBinManager.isRecycleBinPath(fullPath)) {
