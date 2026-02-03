@@ -3,22 +3,40 @@ import { joinPath, getPathName, getParentPath } from "../navigation/PathUtils.js
 import { ShellManager } from "../extensions/ShellManager.js";
 
 export class RecycleBinManager {
+    static _isFullCache = new Map();
+
     static async init() {
-        // No longer creates /C:/Recycled by default.
-        // Recycle bins are created on-demand per drive.
+        // Initialize cache for all drives
+        const drives = Array.from(mounts.keys())
+            .filter(m => m.match(/^\/[A-Z]:$/i))
+            .map(m => m.substring(1, 2).toUpperCase());
+
+        for (const drive of drives) {
+            const recyclePath = `/${drive}:/Recycled`;
+            try {
+                const metadata = await this.getMetadata(recyclePath);
+                this._isFullCache.set(recyclePath, Object.keys(metadata).length > 0);
+            } catch (e) {
+                this._isFullCache.set(recyclePath, false);
+            }
+        }
     }
 
     static getDriveRoot(path) {
         const realPath = ShellManager.getRealPath(path);
+        if (!realPath) return "/";
         const match = realPath.match(/^(\/[A-Z]:)/i);
         return match ? match[1] : "/";
     }
 
     static getRecyclePath(path) {
+        if (path === "/Recycle Bin" || path === "/Desktop/Recycle Bin") return "/Recycle Bin";
+
         // If it's already a virtual path in the global recycle bin, it might need translation
         if (path.startsWith("/Recycle Bin/")) {
             const real = ShellManager.getRealPath(path);
             if (real) return getParentPath(real);
+            return "/Recycle Bin";
         }
 
         const driveRoot = this.getDriveRoot(path);
@@ -265,10 +283,18 @@ export class RecycleBinManager {
         return false;
     }
 
-    static refreshFullState() {
+    static async refreshFullState() {
+        await this.init();
         // Trigger a refresh of icons that might depend on empty/full state
         document.dispatchEvent(new CustomEvent("desktop-refresh"));
         document.dispatchEvent(new CustomEvent("theme-changed"));
+    }
+
+    static isFullSync(recyclePath) {
+        if (recyclePath === "/Recycle Bin" || recyclePath === "/Desktop/Recycle Bin") {
+            return Array.from(this._isFullCache.values()).some(v => v === true);
+        }
+        return this._isFullCache.get(recyclePath) || false;
     }
 
     static async isEmpty(recyclePath) {
@@ -276,7 +302,9 @@ export class RecycleBinManager {
             return !(await this.isAnyBinFull());
         }
         const metadata = await this.getMetadata(recyclePath);
-        return Object.keys(metadata).length === 0;
+        const isEmpty = Object.keys(metadata).length === 0;
+        this._isFullCache.set(recyclePath, !isEmpty);
+        return isEmpty;
     }
 
     static isRecycleBinPath(path) {

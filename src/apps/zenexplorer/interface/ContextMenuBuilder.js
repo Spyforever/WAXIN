@@ -127,7 +127,7 @@ export class ContextMenuBuilder {
           menuItems.push({
               label: "Empty Recycle Bin",
               action: () => this.app.fileOps.emptyRecycleBin(path),
-              enabled: () => !RecycleBinManager.isEmpty(path)
+              enabled: () => RecycleBinManager.isFullSync(path)
           });
           menuItems.push("MENU_DIVIDER");
       }
@@ -190,7 +190,7 @@ export class ContextMenuBuilder {
         menuItems.push({
             label: "Empty Recycle Bin",
             action: () => this.app.fileOps.emptyRecycleBin("/Recycle Bin"),
-            enabled: () => !RecycleBinManager.isEmpty("/Recycle Bin")
+            enabled: () => RecycleBinManager.isFullSync("/Recycle Bin")
         });
         menuItems.push("MENU_DIVIDER");
     }

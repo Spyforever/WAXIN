@@ -102,6 +102,7 @@ export class MenuBarBuilder {
       items.push({
         label: "Empty Recycle &Bin",
         action: () => this.app.fileOps.emptyRecycleBin(),
+        enabled: () => RecycleBinManager.isFullSync(this.app.currentPath),
       });
     }
 
