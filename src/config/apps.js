@@ -67,6 +67,20 @@ const systemApps = [
     },
   },
   {
+    id: "internet-explorer",
+    title: "Internet Explorer",
+    description: "Browse the web.",
+    get icon() {
+      return getIcon("internet-explorer");
+    },
+    action: {
+      type: "function",
+      handler: (data) => {
+        window.System.launchApp("explorer", data || "azay.rahmad");
+      },
+    },
+  },
+  {
     id: "my-briefcase",
     title: "My Briefcase",
     description: "Stores your uploaded files.",
@@ -98,7 +112,7 @@ const systemApps = [
       type: "function",
       handler: () => {
         window.System.launchApp("explorer", {
-          filePath: "//recycle-bin",
+          filePath: "/Recycle Bin",
           windowId: "recycle-bin",
         });
       },
@@ -110,20 +124,29 @@ const systemApps = [
           ShowDialogWindow({
             title: "Confirm Empty Recycle Bin",
             text: "Are you sure you want to permanently delete all items in the Recycle Bin?",
+            modal: true,
             buttons: [
               {
                 label: "Yes",
-                action: () => {
-                  emptyRecycleBin();
-                  playSound("EmptyRecycleBin");
-                  document.dispatchEvent(new CustomEvent("theme-changed")); // To refresh icon
+                isDefault: true,
+                action: async () => {
+                  if (window.RecycleBinManager) {
+                    await window.RecycleBinManager.emptyAllRecycleBins();
+                    const { playSound } = await import("../utils/soundManager.js");
+                    playSound("EmptyRecycleBin");
+                  }
                 },
               },
-              { label: "No", isDefault: true },
+              { label: "No" },
             ],
           });
         },
-        enabled: () => getRecycleBinItems().length > 0,
+        enabled: () => {
+            // This is tricky because apps.js is outside the extension system's usual context
+            // and getRecycleBinItems might be old.
+            // For now, let's keep it simple.
+            return true;
+        },
       },
       "MENU_DIVIDER",
       {
@@ -148,7 +171,7 @@ const systemApps = [
       type: "function",
       handler: () => {
         window.System.launchApp("explorer", {
-          filePath: "//network-neighborhood",
+          filePath: "/Network Neighborhood",
           windowId: "network-neighborhood",
         });
       },
@@ -182,7 +205,7 @@ const systemApps = [
       type: "function",
       handler: () => {
         window.System.launchApp("explorer", {
-          filePath: "/folder-control-panel",
+          filePath: "/Control Panel",
           windowId: "control-panel",
         });
       },

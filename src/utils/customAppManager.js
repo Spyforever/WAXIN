@@ -4,7 +4,7 @@ import { renderHTML } from './domUtils.js';
 import { Application } from '../apps/Application.js';
 import { apps, appClasses } from '../config/apps.js';
 import { ICONS } from '../config/icons.js';
-import { addDesktopShortcut, removeDesktopShortcut } from './directory.js';
+import { addDesktopShortcut, removeDesktopShortcut } from './zenfs-utils.js';
 import { launchApp } from './appManager.js';
 import { addToRecycleBin } from './recycleBinManager.js';
 

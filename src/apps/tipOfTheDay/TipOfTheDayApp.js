@@ -43,7 +43,7 @@ export class TipOfTheDayApp extends Application {
         return win;
     }
 
-    _onLaunch() {
+    async _onLaunch() {
         const tips = apps.reduce((acc, app) => {
             if (app.tips) {
                 return acc.concat(app.tips);
@@ -93,14 +93,14 @@ export class TipOfTheDayApp extends Application {
 
         const showTipsCheckbox = contentElement.querySelector('#show-tips');
         if (showTipsCheckbox) {
-            const startupApps = getStartupApps();
+            const startupApps = await getStartupApps();
             showTipsCheckbox.checked = startupApps.includes('tipOfTheDay');
 
-            showTipsCheckbox.addEventListener('change', () => {
+            showTipsCheckbox.addEventListener('change', async () => {
                 if (showTipsCheckbox.checked) {
-                    addStartupApp('tipOfTheDay');
+                    await addStartupApp('tipOfTheDay');
                 } else {
-                    removeStartupApp('tipOfTheDay');
+                    await removeStartupApp('tipOfTheDay');
                 }
             });
         }

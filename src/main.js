@@ -1,4 +1,5 @@
 import "./styles/cursors.css";
+import "./styles/file-picker.css";
 import "./style.css";
 import "./styles/splash.css";
 import "./styles/shutdown-screen.css";
@@ -32,6 +33,10 @@ import { createMainUI } from "./components/ui.js";
 import { initColorModeManager } from "./utils/colorModeManager.js";
 import screensaver from "./utils/screensaverUtils.js";
 import { initScreenManager } from "./utils/screenManager.js";
+import { fs, mounts } from "@zenfs/core";
+import { initFileSystem } from "./utils/zenfs-init.js";
+import { RecycleBinManager } from "./apps/zenexplorer/fileoperations/RecycleBinManager.js";
+import { appManager } from "./utils/appManager.js";
 
 // Window Management System
 class WindowManagerSystem {
@@ -214,6 +219,26 @@ async function initializeOS() {
       finalizeBootProcessStep(logElement, navigator.onLine ? "OK" : "FAILED");
     });
 
+    await executeBootStep(async () => {
+      const baseMsg = "Initializing file system...";
+      let logElement = startBootProcessStep(baseMsg);
+      await initFileSystem((subStep) => {
+        if (logElement && logElement.firstChild) {
+          logElement.firstChild.nodeValue = `${baseMsg} ${subStep}`;
+        }
+      });
+      if (logElement && logElement.firstChild) {
+        logElement.firstChild.nodeValue = baseMsg;
+      }
+      finalizeBootProcessStep(logElement, "OK");
+    });
+
+    await executeBootStep(async () => {
+      let logElement = startBootProcessStep("Initializing Recycle Bin...");
+      await RecycleBinManager.init();
+      finalizeBootProcessStep(logElement, "OK");
+    });
+
     const createAssetLogCallbacks = (logElement, baseMessage) => {
       const onAssetLogStart = (name) => {
         // Update the existing log element's text. 
@@ -296,6 +321,38 @@ async function initializeOS() {
     });
 
     await executeBootStep(async () => {
+      const doomFiles = ["doom1.wad", "default.cfg"];
+      const baseRemotePath = "games/doom/";
+      const baseLocalPath = "/C:/Program Files/Doom/";
+
+      let needed = false;
+      for (const file of doomFiles) {
+        if (!fs.existsSync(baseLocalPath + file)) {
+          needed = true;
+          break;
+        }
+      }
+
+      if (needed) {
+        let logElement = startBootProcessStep("Loading Doom game data...");
+        for (const file of doomFiles) {
+          if (!fs.existsSync(baseLocalPath + file)) {
+            if (logElement && logElement.firstChild) {
+              logElement.firstChild.nodeValue = `Loading Doom game data: ${file}...`;
+            }
+            const response = await fetch(baseRemotePath + file);
+            const buffer = await response.arrayBuffer();
+            await fs.promises.writeFile(baseLocalPath + file, new Uint8Array(buffer));
+          }
+        }
+        if (logElement && logElement.firstChild) {
+          logElement.firstChild.nodeValue = "Loading Doom game data...";
+        }
+        finalizeBootProcessStep(logElement, "OK");
+      }
+    });
+
+    await executeBootStep(async () => {
       let logElement = startBootProcessStep("Initializing taskbar...");
       await new Promise((resolve) => setTimeout(resolve, 50));
       taskbar.init();
@@ -326,7 +383,11 @@ async function initializeOS() {
     window.ShowDialogWindow = ShowDialogWindow;
     window.playSound = playSound;
     window.setTheme = setTheme;
+    window.fs = fs;
+    window.mounts = mounts;
+    window.RecycleBinManager = RecycleBinManager;
     window.System.launchApp = launchApp;
+    window.System.appManager = appManager;
     console.log("azOS initialized");
 
     let inactivityTimer;

@@ -1,5 +1,7 @@
 import { wallpapers } from "../../../config/wallpapers.js";
 import { setItem, LOCAL_STORAGE_KEYS } from "../../../utils/localStorage.js";
+import { ShowFilePicker } from "../../../utils/filePicker.js";
+import { getZenFSFileAsBlob } from "../../../utils/zenfs-utils.js";
 
 function populateWallpaperList(win, app) {
   const $wallpaperList = win.$content.find(".wallpaper-list");
@@ -85,21 +87,34 @@ function updatePreview(win, app) {
   }
 }
 
-function browseForWallpaper(win, app) {
-  const $input = $('<input type="file" accept="image/*" />');
-  $input.on("change", (e) => {
-    const file = e.target.files[0];
-    if (file) {
+async function browseForWallpaper(win, app) {
+  const path = await ShowFilePicker({
+    title: "Browse for Wallpaper",
+    mode: "open",
+    initialPath: "/C:/WINDOWS/Web/Wallpaper",
+    fileTypes: [
+      {
+        label: "Image Files",
+        extensions: ["jpg", "jpeg", "png", "gif", "bmp"],
+      },
+      { label: "All Files", extensions: ["*"] },
+    ],
+  });
+
+  if (path) {
+    try {
+      const blob = await getZenFSFileAsBlob(path);
       const reader = new FileReader();
       reader.onload = (readerEvent) => {
         app.selectedWallpaper = readerEvent.target.result;
         updatePreview(win, app);
         app._enableApplyButton(win);
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(blob);
+    } catch (e) {
+      console.error("Error loading wallpaper from ZenFS:", e);
     }
-  });
-  $input.trigger("click");
+  }
 }
 
 export const backgroundTab = {

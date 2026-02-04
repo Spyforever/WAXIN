@@ -47,6 +47,7 @@ export class Application {
 
     const windowId = windowIdOverride || this._getWindowId(filePath);
     const instanceKey = this.isSingleton ? this.id : windowId;
+    this.instanceKey = instanceKey;
 
     if (openApps.has(instanceKey)) {
       const existingApp = openApps.get(instanceKey);
@@ -78,6 +79,7 @@ export class Application {
 
     await this._onLaunch(filePath);
     openApps.set(instanceKey, this);
+    appManager.runningApps[instanceKey] = this;
   }
 
   _getWindowId(filePath) {
@@ -103,6 +105,9 @@ export class Application {
     this.win.element.dataset.appId = this.id;
 
     this.win.onClosed(() => {
+      if (typeof this._onClose === "function") {
+        this._onClose();
+      }
       if (this.hasTaskbarButton) {
         const taskbarButton = document.querySelector(
           `.taskbar-button[for="${windowId}"]`,
@@ -112,22 +117,7 @@ export class Application {
         }
       }
       openWindows.delete(windowId);
-      openApps.delete(instanceKey);
-
-      // Check if this was the last instance of this application type
-      let isLastInstance = true;
-      if (!this.isSingleton) {
-        // For non-singletons, check if any other instances are still in openApps
-        for (const key of openApps.keys()) {
-          if (key.startsWith(this.id)) {
-            isLastInstance = false;
-            break;
-          }
-        }
-      }
-      // For singletons, isLastInstance remains true, as the only instance was just removed.
-      //
-      appManager.closeApp(this.id);
+      appManager.closeApp(instanceKey);
     });
 
     if (this.hasTaskbarButton) {

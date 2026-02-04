@@ -53,6 +53,10 @@ export const ICONS = {
     16: new URL("../assets/icons/SHELL32_7-16.png", import.meta.url).href,
     32: new URL("../assets/icons/SHELL32_7-32.png", import.meta.url).href,
   },
+  cdDrive: {
+    16: new URL("../assets/icons/cd_drive-1.png", import.meta.url).href,
+    32: new URL("../assets/icons/cd_drive-2.png", import.meta.url).href,
+  },
   defrag: {
     16: new URL("../assets/icons/defragment-1.png", import.meta.url).href,
     32: new URL("../assets/icons/defragment-0.png", import.meta.url).href,
@@ -60,6 +64,12 @@ export const ICONS = {
   drive: {
     16: new URL("../assets/icons/SHELL32_9-16.png", import.meta.url).href,
     32: new URL("../assets/icons/SHELL32_9-32.png", import.meta.url).href,
+  },
+  removableDrive: {
+    16: new URL("../assets/icons/removable_disk_drive-1.png", import.meta.url)
+      .href,
+    32: new URL("../assets/icons/removable_disk_drive-0.png", import.meta.url)
+      .href,
   },
   folder: {
     16: new URL(
@@ -120,8 +130,8 @@ export const ICONS = {
     32: new URL("../assets/icons/COMCTL32_20481-32.png", import.meta.url).href,
   },
   desktop_old: {
-    16: new URL("../assets/icons/desktop_old-4.png", import.meta.url).href,
-    32: new URL("../assets/icons/desktop_old-4.png", import.meta.url).href,
+    16: new URL("../assets/icons/desktop-4.png", import.meta.url).href,
+    32: new URL("../assets/icons/desktop-1.png", import.meta.url).href,
   },
   themetocss: {
     16: new URL("../assets/icons/word_001-16.png", import.meta.url).href,
@@ -163,7 +173,7 @@ export const ICONS = {
     16: new URL("../assets/icons/SHELL32_47-16.png", import.meta.url).href,
     32: new URL("../assets/icons/SHELL32_47-32.png", import.meta.url).href,
   },
-  taskmanager: {
+  startMenuFolder: {
     16: new URL("../assets/icons/SHELL32_37-16.png", import.meta.url).href,
     32: new URL("../assets/icons/SHELL32_37-32.png", import.meta.url).href,
   },
@@ -251,6 +261,10 @@ export const ICONS = {
     16: new URL("../assets/icons/file_lines-1.png", import.meta.url).href,
     32: new URL("../assets/icons/file_lines-0.png", import.meta.url).href,
   },
+  fileSet: {
+    16: new URL("../assets/icons/file_set-1.png", import.meta.url).href,
+    32: new URL("../assets/icons/file_set-0.png", import.meta.url).href,
+  },
   "cursor-explorer": {
     16: new URL("../assets/icons/COMCTL32_20481-16.png", import.meta.url).href,
     32: new URL("../assets/icons/COMCTL32_20481-32.png", import.meta.url).href,
@@ -312,6 +326,12 @@ export const ICONS = {
       "../assets/icons/directory_control_panel-2.png",
       import.meta.url,
     ).href,
+  },
+  favoritesFolder: {
+    16: new URL("../assets/icons/directory_favorites-5.png", import.meta.url)
+      .href,
+    32: new URL("../assets/icons/directory_favorites-4.png", import.meta.url)
+      .href,
   },
   mouse: {
     16: new URL("../assets/icons/mouse-3.png", import.meta.url).href,

@@ -88,11 +88,13 @@ export class IconManager {
     const iconLabel = icon.querySelector(".icon-label");
 
     if (shouldHighlight) {
+      icon.classList.add("selected");
       if (iconImg) iconImg.classList.add("highlighted-icon");
       if (iconLabel) {
         iconLabel.classList.add("highlighted-label", "selected");
       }
     } else {
+      icon.classList.remove("selected");
       if (iconImg) iconImg.classList.remove("highlighted-icon");
       if (iconLabel) {
         iconLabel.classList.remove("highlighted-label", "selected");
@@ -225,6 +227,31 @@ export class IconManager {
     if (!e.ctrlKey && !this.selectedIcons.has(icon)) {
       this.setSelection(new Set([icon]));
     }
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+
+    const onMouseMove = (moveEvent) => {
+      const dist = Math.sqrt(
+        Math.pow(moveEvent.clientX - startX, 2) +
+          Math.pow(moveEvent.clientY - startY, 2),
+      );
+      if (dist > 5) {
+        document.removeEventListener("mousemove", onMouseMove);
+        this.wasDragged = true;
+        if (this.options.onDragStart) {
+          this.options.onDragStart(e, icon, [...this.selectedIcons]);
+        }
+      }
+    };
+
+    const onMouseUp = () => {
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+    };
+
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
   }
 
   handleIconClick(e, icon) {

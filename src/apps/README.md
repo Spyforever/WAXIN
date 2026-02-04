@@ -38,7 +38,6 @@ This guide provides instructions on how to add new applications to azOS Second E
 | [Clippy](./clippy/README.md) | An interactive AI assistant. | |
 | [Image Resizer](./image-resizer/README.md) | A utility to enlarge images using nearest-neighbor scaling. | |
 | [Image Viewer](./imageviewer/README.md) | A simple application for viewing and editing image files. | |
-| [Internet Explorer](./internet-explorer/README.md) | A web browser with a "Retro Mode" for viewing websites from 1998. | |
 | [Notepad](./notepad/README.md) | A powerful text editor with syntax highlighting, code formatting, and Markdown preview. | |
 | [Paint](./paint/README.md) | A classic drawing and image editing application. | |
 | [PDF Viewer](./pdfviewer/README.md) | A simple application for viewing PDF documents. | |

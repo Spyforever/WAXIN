@@ -2,8 +2,10 @@ import { apps } from "./apps.js";
 import { launchApp } from "../utils/appManager.js";
 import { ShowRunDialog } from "../components/RunDialog.js";
 import { ICONS } from "./icons.js";
+import { START_MENU_PATH, FAVORITES_PATH } from "../utils/startMenuUtils.js";
 
 const startMenuAppIds = [
+  "explorer",
   "webamp",
   "tipOfTheDay",
   "internet-explorer",
@@ -35,6 +37,7 @@ function getAppList(appListIds) {
     .map((app) => ({
       label: app.title,
       icon: app.icon[16],
+      appId: app.id,
       action: () => launchApp(app.id),
     }));
 }
@@ -43,6 +46,8 @@ const startMenuConfig = [
   {
     label: "Programs",
     icon: ICONS.programs[32],
+    isDynamic: true,
+    path: START_MENU_PATH,
     submenu: [
       {
         id: "startup-folder",
@@ -73,16 +78,13 @@ const startMenuConfig = [
         ],
       },
       ...getAppList(startMenuAppIds),
-      {
-        label: "Windows Explorer",
-        icon: ICONS.windowsExplorer[16],
-        action: () => launchApp("my-computer"),
-      },
     ],
   },
   {
     label: "Favorites",
     icon: ICONS.favorites[32],
+    isDynamic: true,
+    path: FAVORITES_PATH,
     submenu: [
       {
         label: "Channels",
@@ -91,21 +93,29 @@ const startMenuConfig = [
           {
             label: "AOL",
             icon: ICONS.htmlFile[16],
+            appId: "internet-explorer",
+            args: "aol.com",
             action: () => launchApp("internet-explorer", "aol.com"),
           },
           {
             label: "BBC",
             icon: ICONS.htmlFile[16],
+            appId: "internet-explorer",
+            args: "bbc.com",
             action: () => launchApp("internet-explorer", "bbc.com"),
           },
           {
             label: "CNN",
             icon: ICONS.htmlFile[16],
+            appId: "internet-explorer",
+            args: "cnn.com",
             action: () => launchApp("internet-explorer", "cnn.com"),
           },
           {
             label: "Detik",
             icon: ICONS.htmlFile[16],
+            appId: "internet-explorer",
+            args: "detik.com",
             action: () => launchApp("internet-explorer", "detik.com"),
           },
         ],
@@ -117,31 +127,43 @@ const startMenuConfig = [
           {
             label: "Excite",
             icon: ICONS.htmlFile[16],
+            appId: "internet-explorer",
+            args: "excite.com",
             action: () => launchApp("internet-explorer", "excite.com"),
           },
           {
             label: "Google",
             icon: ICONS.htmlFile[16],
+            appId: "internet-explorer",
+            args: "google.com",
             action: () => launchApp("internet-explorer", "google.com"),
           },
           {
             label: "Infospace",
             icon: ICONS.htmlFile[16],
+            appId: "internet-explorer",
+            args: "infospace.com",
             action: () => launchApp("internet-explorer", "infospace.com"),
           },
           {
             label: "Lycos",
             icon: ICONS.htmlFile[16],
+            appId: "internet-explorer",
+            args: "lycos.com",
             action: () => launchApp("internet-explorer", "lycos.com"),
           },
           {
             label: "Netscape",
             icon: ICONS.htmlFile[16],
+            appId: "internet-explorer",
+            args: "netscape.com",
             action: () => launchApp("internet-explorer", "netscape.com"),
           },
           {
             label: "Yahoo",
             icon: ICONS.htmlFile[16],
+            appId: "internet-explorer",
+            args: "yahoo.com",
             action: () => launchApp("internet-explorer", "yahoo.com"),
           },
         ],
@@ -153,11 +175,15 @@ const startMenuConfig = [
           {
             label: "Amazon",
             icon: ICONS.htmlFile[16],
+            appId: "internet-explorer",
+            args: "amazon.com",
             action: () => launchApp("internet-explorer", "amazon.com"),
           },
           {
             label: "GeoCities",
             icon: ICONS.htmlFile[16],
+            appId: "internet-explorer",
+            args: "geocities.com",
             action: () => launchApp("internet-explorer", "geocities.com"),
           },
         ],
@@ -165,11 +191,15 @@ const startMenuConfig = [
       {
         label: "Microsoft",
         icon: ICONS.htmlFile[16],
+        appId: "internet-explorer",
+        args: "microsoft.com",
         action: () => launchApp("internet-explorer", "microsoft.com"),
       },
       {
         label: "MSN",
         icon: ICONS.htmlFile[16],
+        appId: "internet-explorer",
+        args: "msn.com",
         action: () => launchApp("internet-explorer", "msn.com"),
       },
     ],
@@ -182,7 +212,7 @@ const startMenuConfig = [
         label: "My Documents",
         icon: ICONS.folder[16],
         action: () =>
-          launchApp("explorer", "/drive-c/folder-user/folder-documents"),
+          launchApp("explorer", "/C:/My Documents"),
       },
     ],
   },
