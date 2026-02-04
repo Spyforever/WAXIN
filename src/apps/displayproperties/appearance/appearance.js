@@ -10,6 +10,8 @@ import {
   applyPropertiesToPreview,
 } from "../../../utils/themePreview.js";
 import { ShowDialogWindow } from "../../../components/DialogWindow.js";
+import { ShowFilePicker } from "../../../utils/filePicker.js";
+import { getZenFSFileAsText } from "../../../utils/zenfs-utils.js";
 import previewHtml from "./AppearancePreview.html?raw";
 import "./appearance.css";
 
@@ -21,12 +23,6 @@ export const appearanceTab = {
     const $schemeSelect = $tab.find(".scheme-select");
     const $previewContainer = $tab.find(".preview-container");
     $previewContainer.html(previewHtml);
-
-    // Add a hidden file input for theme loading
-    const $fileInput = $(
-      '<input type="file" accept=".theme" style="display: none;">',
-    );
-    $tab.append($fileInput);
 
     // Inject a style block to map preview variables to os-gui variables
     const styleBlock = `
@@ -79,12 +75,62 @@ export const appearanceTab = {
     }
     $schemeSelect.append($loadOption);
 
-    $schemeSelect.on("change", () => {
+    $schemeSelect.on("change", async () => {
       const selectedValue = $schemeSelect.val();
       if (selectedValue === "__load__") {
-        $fileInput.click();
         // Reset the dropdown to the previous value after a brief moment
         setTimeout(() => $schemeSelect.val(currentSchemeId), 100);
+
+        const path = await ShowFilePicker({
+          title: "Load Color Scheme",
+          mode: "open",
+          fileTypes: [
+            { label: "Theme Files (*.theme)", extensions: ["theme"] },
+          ],
+        });
+
+        if (!path) return;
+
+        app._enableApplyButton(win);
+
+        try {
+          const fileContent = await getZenFSFileAsText(path);
+          await loadThemeParser();
+          const colors = window.getColorsFromThemeFile(fileContent);
+
+          if (colors) {
+            const cssProperties =
+              window.generateThemePropertiesFromColors(colors);
+            self.loadedCustomScheme = cssProperties;
+            let variables = {};
+            for (const [key, value] of Object.entries(cssProperties)) {
+              variables[key.replace(/^--/, "")] = value;
+            }
+
+            applyPropertiesToPreview(
+              variables,
+              $previewContainer.find("#appearance-preview-wrapper")[0],
+            );
+            // Update dropdown to show a temporary "Custom" entry
+            $schemeSelect.find('option[value="__load__"]').text("Custom");
+            $schemeSelect.val("__load__");
+          } else {
+            self.loadedCustomScheme = null;
+            ShowDialogWindow({
+              title: "Error",
+              text: "This is not a valid theme file or it does not contain color information.",
+            });
+            $schemeSelect.val(currentSchemeId); // Revert to last selection
+          }
+        } catch (error) {
+          console.error("Error parsing theme file:", error);
+          self.loadedCustomScheme = null;
+          ShowDialogWindow({
+            title: "Error",
+            text: "An error occurred while trying to load the theme file.",
+          });
+          $schemeSelect.val(currentSchemeId); // Revert to last selection
+        }
       } else {
         currentSchemeId = selectedValue;
         self.loadedCustomScheme = null; // Clear custom scheme if a built-in one is selected
@@ -96,55 +142,6 @@ export const appearanceTab = {
           selectedValue,
           $previewContainer.find("#appearance-preview-wrapper")[0],
         );
-      }
-    });
-
-    $fileInput.on("change", async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      app._enableApplyButton(win);
-
-      try {
-        const fileContent = await file.text();
-        await loadThemeParser();
-        const colors = window.getColorsFromThemeFile(fileContent);
-
-        if (colors) {
-          const cssProperties =
-            window.generateThemePropertiesFromColors(colors);
-          self.loadedCustomScheme = cssProperties;
-          let variables = {};
-          for (const [key, value] of Object.entries(cssProperties)) {
-            variables[key.replace(/^--/, "")] = value;
-          }
-
-          applyPropertiesToPreview(
-            variables,
-            $previewContainer.find("#appearance-preview-wrapper")[0],
-          );
-          // Update dropdown to show a temporary "Custom" entry
-          $schemeSelect.find('option[value="__load__"]').text("Custom");
-          $schemeSelect.val("__load__");
-        } else {
-          self.loadedCustomScheme = null;
-          ShowDialogWindow({
-            title: "Error",
-            text: "This is not a valid theme file or it does not contain color information.",
-          });
-          $schemeSelect.val(currentSchemeId); // Revert to last selection
-        }
-      } catch (error) {
-        console.error("Error parsing theme file:", error);
-        self.loadedCustomScheme = null;
-        ShowDialogWindow({
-          title: "Error",
-          text: "An error occurred while trying to load the theme file.",
-        });
-        $schemeSelect.val(currentSchemeId); // Revert to last selection
-      } finally {
-        // Reset file input so the same file can be loaded again
-        $fileInput.val("");
       }
     });
 
