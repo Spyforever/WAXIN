@@ -46,10 +46,19 @@ ShellManager.registerExtension(new InternetExplorerExtension());
 export class ZenExplorerApp extends Application {
   isWebPath(path) {
     if (!path) return false;
-    return (
+    if (
       path.startsWith("http://") ||
       path.startsWith("https://") ||
       path.includes("azay.rahmad")
+    ) {
+      return true;
+    }
+    // Domain-like: contains a dot, doesn't start with a slash or drive letter, and no spaces
+    return (
+      !path.startsWith("/") &&
+      !/^[A-Z]:/i.test(path) &&
+      path.includes(".") &&
+      !path.includes(" ")
     );
   }
 
