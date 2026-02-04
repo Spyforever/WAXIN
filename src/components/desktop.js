@@ -210,10 +210,30 @@ class DesktopController {
     }
   }
 
-  enterRenameModeByPath(path) {
-    const icon = this.iconContainer.querySelector(
+  async enterRenameModeByPath(path) {
+    // Wait for any active refresh to complete
+    while (isRefreshing) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+
+    let icon = this.iconContainer.querySelector(
       `.explorer-icon[data-path="${path}"]`,
     );
+
+    // Retry a few times if not found, as rendering might be async
+    if (!icon) {
+      for (let i = 0; i < 20; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        while (isRefreshing) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+        icon = this.iconContainer.querySelector(
+          `.explorer-icon[data-path="${path}"]`,
+        );
+        if (icon) break;
+      }
+    }
+
     if (icon) {
       this.iconManager.setSelection(new Set([icon]));
       this.enterRenameMode(icon);
@@ -245,11 +265,17 @@ class DesktopController {
     };
     adjustTextareaHeight(textarea);
 
-    const dotIndex = oldName.lastIndexOf(".");
-    if (dotIndex > 0 && icon.getAttribute("data-type") !== "directory")
-      textarea.setSelectionRange(0, dotIndex);
-    else textarea.select();
-    textarea.focus();
+    textarea.scrollIntoView({ block: "nearest" });
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (!this._isRenaming) return;
+        const dotIndex = oldName.lastIndexOf(".");
+        if (dotIndex > 0 && icon.getAttribute("data-type") !== "directory")
+          textarea.setSelectionRange(0, dotIndex);
+        else textarea.select();
+        textarea.focus();
+      });
+    });
 
     textarea.addEventListener("input", () => adjustTextareaHeight(textarea));
 
@@ -365,6 +391,9 @@ export async function setupIcons() {
 async function refreshIcons() {
   if (isRefreshing) {
     pendingRefresh = true;
+    while (isRefreshing) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
     return;
   }
   isRefreshing = true;
@@ -458,7 +487,7 @@ async function refreshIcons() {
   isRefreshing = false;
   if (pendingRefresh) {
     pendingRefresh = false;
-    refreshIcons();
+    await refreshIcons();
   }
 }
 

@@ -288,10 +288,19 @@ export class DirectoryView {
       ta.style.height = `${ta.scrollHeight}px`;
     };
     adjustTextareaHeight(textarea);
-    const dotIndex = oldName.lastIndexOf(".");
-    if (dotIndex > 0 && icon.getAttribute("data-type") !== "directory") textarea.setSelectionRange(0, dotIndex);
-    else textarea.select();
-    textarea.focus();
+
+    textarea.scrollIntoView({ block: "nearest" });
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (!this._isRenaming) return;
+        const dotIndex = oldName.lastIndexOf(".");
+        if (dotIndex > 0 && icon.getAttribute("data-type") !== "directory")
+          textarea.setSelectionRange(0, dotIndex);
+        else textarea.select();
+        textarea.focus();
+      });
+    });
+
     textarea.addEventListener("input", () => adjustTextareaHeight(textarea));
 
     const finishRename = async (save) => {
@@ -337,8 +346,22 @@ export class DirectoryView {
     textarea.ondblclick = (e) => e.stopPropagation();
   }
 
-  enterRenameModeByPath(path) {
-    const icon = this.app.iconContainer.querySelector(`.explorer-icon[data-path="${path}"]`);
+  async enterRenameModeByPath(path) {
+    let icon = this.app.iconContainer.querySelector(
+      `.explorer-icon[data-path="${path}"]`,
+    );
+
+    // Retry a few times if not found, as rendering might be async
+    if (!icon) {
+      for (let i = 0; i < 10; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        icon = this.app.iconContainer.querySelector(
+          `.explorer-icon[data-path="${path}"]`,
+        );
+        if (icon) break;
+      }
+    }
+
     if (icon) {
       this.app.iconManager.setSelection(new Set([icon]));
       this.enterRenameMode(icon);
