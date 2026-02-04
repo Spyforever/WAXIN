@@ -113,15 +113,17 @@ export class FileOperations {
             for (const itemPath of sourcePaths) {
                 if (dialog && dialog.cancelled) break;
                 const itemName = getPathName(itemPath);
-                const targetPath = await this.getUniquePastePath(destinationPath, itemName, "cut");
-                if (dialog) {
-                    const stats = await fs.promises.stat(ShellManager.getRealPath(itemPath));
-                    const sourceDir = getParentPath(itemPath);
-                    dialog.update(itemPath, sourceDir, destinationPath, 0);
-                    await fs.promises.rename(ShellManager.getRealPath(itemPath), ShellManager.getRealPath(targetPath));
-                    dialog.finishItem(stats.isDirectory() ? 0 : stats.size);
-                } else {
-                    await fs.promises.rename(ShellManager.getRealPath(itemPath), ShellManager.getRealPath(targetPath));
+                const targetPath = await this.getUniquePastePath(destinationPath, itemName, "cut", itemPath);
+                if (itemPath !== targetPath) {
+                    if (dialog) {
+                        const stats = await fs.promises.stat(ShellManager.getRealPath(itemPath));
+                        const sourceDir = getParentPath(itemPath);
+                        dialog.update(itemPath, sourceDir, destinationPath, 0);
+                        await fs.promises.rename(ShellManager.getRealPath(itemPath), ShellManager.getRealPath(targetPath));
+                        dialog.finishItem(stats.isDirectory() ? 0 : stats.size);
+                    } else {
+                        await fs.promises.rename(ShellManager.getRealPath(itemPath), ShellManager.getRealPath(targetPath));
+                    }
                 }
                 targetPaths.push(targetPath);
             }
@@ -149,7 +151,7 @@ export class FileOperations {
             for (const itemPath of sourcePaths) {
                 if (dialog && dialog.cancelled) break;
                 const itemName = getPathName(itemPath);
-                const targetPath = await this.getUniquePastePath(destinationPath, itemName, "copy");
+                const targetPath = await this.getUniquePastePath(destinationPath, itemName, "copy", itemPath);
                 await this.copyRecursive(itemPath, targetPath, dialog);
                 targetPaths.push(targetPath);
             }
@@ -171,7 +173,7 @@ export class FileOperations {
         }
     }
 
-    async getUniquePastePath(destPath, originalName, operation) {
+    async getUniquePastePath(destPath, originalName, operation, sourcePath = null) {
         if (operation === "shortcut") {
             let candidateName = `Shortcut to ${originalName}.lnk`;
             let checkPath = normalizePath(joinPath(destPath, candidateName));
@@ -190,6 +192,11 @@ export class FileOperations {
         }
 
         let checkPath = normalizePath(joinPath(destPath, originalName));
+
+        if (operation === "cut" && sourcePath && normalizePath(sourcePath) === normalizePath(checkPath)) {
+            return checkPath;
+        }
+
         try {
             await fs.promises.stat(ShellManager.getRealPath(checkPath));
         } catch (e) {
