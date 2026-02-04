@@ -173,7 +173,7 @@ export const ICONS = {
     16: new URL("../assets/icons/SHELL32_47-16.png", import.meta.url).href,
     32: new URL("../assets/icons/SHELL32_47-32.png", import.meta.url).href,
   },
-  taskmanager: {
+  startMenuFolder: {
     16: new URL("../assets/icons/SHELL32_37-16.png", import.meta.url).href,
     32: new URL("../assets/icons/SHELL32_37-32.png", import.meta.url).href,
   },
@@ -326,6 +326,12 @@ export const ICONS = {
       "../assets/icons/directory_control_panel-2.png",
       import.meta.url,
     ).href,
+  },
+  favoritesFolder: {
+    16: new URL("../assets/icons/directory_favorites-5.png", import.meta.url)
+      .href,
+    32: new URL("../assets/icons/directory_favorites-4.png", import.meta.url)
+      .href,
   },
   mouse: {
     16: new URL("../assets/icons/mouse-3.png", import.meta.url).href,

@@ -28,10 +28,18 @@ export function getThemedIconObj(specialType, isEmpty = true) {
       return scheme.myComputer || defaultScheme.myComputer || ICONS.computer;
     case "recycle":
       return isEmpty
-        ? scheme.recycleBinEmpty || defaultScheme.recycleBinEmpty || ICONS.recycleBinEmpty
-        : scheme.recycleBinFull || defaultScheme.recycleBinFull || ICONS.recycleBinFull;
+        ? scheme.recycleBinEmpty ||
+            defaultScheme.recycleBinEmpty ||
+            ICONS.recycleBinEmpty
+        : scheme.recycleBinFull ||
+            defaultScheme.recycleBinFull ||
+            ICONS.recycleBinFull;
     case "network":
-      return scheme.networkNeighborhood || defaultScheme.networkNeighborhood || ICONS.networkNeighborhood;
+      return (
+        scheme.networkNeighborhood ||
+        defaultScheme.networkNeighborhood ||
+        ICONS.networkNeighborhood
+      );
     default:
       return null;
   }
@@ -85,7 +93,8 @@ export function getIconForFile(fileName, isDir) {
 export async function renderFileIcon(fileName, fullPath, isDir, options = {}) {
   // Check shell extension icon first
   const shellIcon = ShellManager.getIconObj(fullPath);
-  const fileStat = options.stat || await ShellManager.stat(fullPath).catch(() => ({}));
+  const fileStat =
+    options.stat || (await ShellManager.stat(fullPath).catch(() => ({})));
 
   const iconDiv = document.createElement("div");
   iconDiv.className = "explorer-icon";
@@ -93,7 +102,10 @@ export async function renderFileIcon(fileName, fullPath, isDir, options = {}) {
   iconDiv.setAttribute("data-path", fullPath);
   iconDiv.setAttribute("data-type", isDir ? "directory" : "file");
   iconDiv.setAttribute("data-name", fileName);
-  iconDiv.setAttribute("data-is-virtual", fileStat.isVirtual ? "true" : "false");
+  iconDiv.setAttribute(
+    "data-is-virtual",
+    fileStat.isVirtual ? "true" : "false",
+  );
 
   const iconInner = document.createElement("div");
   iconInner.className = "icon";
@@ -104,8 +116,12 @@ export async function renderFileIcon(fileName, fullPath, isDir, options = {}) {
   let iconObj = shellIcon || getIconObjForFile(fileName, isDir);
 
   // Special handling for Start Menu and Favorites folders in Explorer
-  if (isDir && (fullPath.includes("/WINDOWS/Start Menu") || fullPath.includes("/WINDOWS/Favorites"))) {
-    iconObj = ICONS.programs;
+  if (isDir && fullPath.includes("/WINDOWS/Start Menu/Programs")) {
+    iconObj = ICONS.startMenuFolder;
+  }
+
+  if (isDir && fullPath.endsWith("/WINDOWS/Favorites")) {
+    iconObj = ICONS.favoritesFolder;
   }
 
   let displayName = options.stat?.originalName || getDisplayName(fileName);
@@ -115,7 +131,10 @@ export async function renderFileIcon(fileName, fullPath, isDir, options = {}) {
   if (!isDir && fileName.endsWith(".lnk")) {
     isShortcut = true;
     try {
-      const content = await fs.promises.readFile(ShellManager.getRealPath(fullPath), "utf8");
+      const content = await fs.promises.readFile(
+        ShellManager.getRealPath(fullPath),
+        "utf8",
+      );
       const data = JSON.parse(content);
       if (data.type === "shortcut") {
         if (data.appId) {
@@ -128,7 +147,10 @@ export async function renderFileIcon(fileName, fullPath, isDir, options = {}) {
           if (!iconObj) {
             try {
               const targetStats = await ShellManager.stat(data.targetPath);
-              iconObj = getIconObjForFile(getPathName(data.targetPath), targetStats.isDirectory());
+              iconObj = getIconObjForFile(
+                getPathName(data.targetPath),
+                targetStats.isDirectory(),
+              );
             } catch (e) {
               iconObj = ICONS.file;
             }
@@ -165,10 +187,12 @@ export async function renderFileIcon(fileName, fullPath, isDir, options = {}) {
   }
   // Special handling for items INSIDE Recycle Bin
   else if (RecycleBinManager.isRecycledItemPath(fullPath)) {
-    const entry = options.stat?.isVirtual ? {
-        originalName: options.stat.originalName,
-        originalPath: options.stat.originalPath
-    } : await RecycleBinManager.getRecycledItemInfo(fullPath);
+    const entry = options.stat?.isVirtual
+      ? {
+          originalName: options.stat.originalName,
+          originalPath: options.stat.originalPath,
+        }
+      : await RecycleBinManager.getRecycledItemInfo(fullPath);
 
     if (entry) {
       iconObj = getIconObjForFile(entry.originalName, isDir);
