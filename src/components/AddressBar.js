@@ -4,7 +4,7 @@ export class AddressBar {
   constructor(options = {}) {
     this.options = options;
     this.element = document.createElement("div");
-    this.element.className = "address-bar inset-deep";
+    this.element.className = "address-bar";
 
     const label = document.createElement("label");
     label.className = "address-bar-label";
@@ -13,7 +13,7 @@ export class AddressBar {
 
     // Combo box container
     this.combo = document.createElement("div");
-    this.combo.className = "address-bar-combo";
+    this.combo.className = "address-bar-combo inset-deep";
     this.element.appendChild(this.combo);
 
     // Input wrapper (Icon + Input)

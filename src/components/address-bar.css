@@ -22,10 +22,6 @@
   display: flex;
   flex-grow: 1;
   background-color: var(--Window);
-  box-shadow: inset -1px -1px var(--ButtonHighlight),
-              inset 1px 1px var(--ButtonShadow),
-              inset -2px -2px var(--ButtonFace),
-              inset 2px 2px var(--WindowFrame);
   align-items: center;
   height: 22px;
   box-sizing: border-box;
@@ -118,9 +114,15 @@
   font-size: 12px;
 }
 
-.address-bar-tree-item:hover {
+.address-bar-tree-item:hover img {
+  filter: var(--icon-filter);
+}
+
+.address-bar-tree-item:hover .address-bar-tree-item-name {
   background-color: var(--Hilight);
   color: var(--HilightText);
+  outline: 1px dotted white;
+  outline-offset: -1px;
 }
 
 .address-bar-tree-item img {
@@ -132,4 +134,5 @@
 
 .address-bar-tree-item-name {
   pointer-events: none;
+  padding: 0 2px;
 }
