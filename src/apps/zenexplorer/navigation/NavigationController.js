@@ -48,11 +48,13 @@ export class NavigationController {
       }
 
       const stats = await ShellManager.stat(normalizedPath);
-      const isWeb = this.app.isWebPath(normalizedPath);
+      const isWeb = this.app.isWebPath(normalizedPath) && !stats.isDirectory();
 
       if (!stats.isDirectory() && !isWeb) {
         throw new Error("Not a directory");
       }
+
+      this.app.isInWebMode = isWeb;
 
       // Update navigation history
       if (!isHistoryNav) {

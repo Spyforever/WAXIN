@@ -57,7 +57,7 @@ export class DirectoryView {
       icon = getThemedIconObj("recycle", isEmpty);
     }
 
-    const isWeb = this.app.isWebPath(path);
+    const isWeb = this.app.isInWebMode;
     const displayPath = isWeb ? path : formatPathForDisplay(path);
     const displayTitle = isWeb ? `${name} - Internet Explorer` : name;
 
