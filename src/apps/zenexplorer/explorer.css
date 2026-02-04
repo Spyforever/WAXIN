@@ -213,8 +213,8 @@
 .explorer-icon .icon-label-input {
     /* This will be applied to <textarea> */
     width: 100%;
-    box-sizing: content-box;
-    border: none;
+    box-sizing: border-box;
+    border: 1px solid black;
     box-shadow: none;
     background: white;
     color: black;

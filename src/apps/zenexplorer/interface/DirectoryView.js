@@ -278,8 +278,11 @@ export class DirectoryView {
     textarea.className = "icon-label-input";
     textarea.value = oldName;
     textarea.spellcheck = false;
-    label.innerHTML = "";
-    label.appendChild(textarea);
+
+    // Hide label and add textarea as sibling
+    label.style.display = "none";
+    icon.appendChild(textarea);
+
     const adjustTextareaHeight = (ta) => {
       ta.style.height = "auto";
       ta.style.height = `${ta.scrollHeight}px`;
@@ -290,12 +293,22 @@ export class DirectoryView {
     else textarea.select();
     textarea.focus();
     textarea.addEventListener("input", () => adjustTextareaHeight(textarea));
+
     const finishRename = async (save) => {
       if (!this._isRenaming) return;
       this._isRenaming = false;
+
       const newName = textarea.value.trim();
       const busyId = `rename-${Math.random()}`;
+
+      // Clean up UI immediately
+      textarea.remove();
+      label.style.display = "";
+
       if (save && newName && newName !== oldName) {
+        // Optimistic update
+        label.textContent = newName;
+
         requestBusyState(busyId, this.app.win.element);
         try {
           const parentPath = getParentPath(fullPath);
@@ -310,16 +323,16 @@ export class DirectoryView {
           releaseBusyState(busyId, this.app.win.element);
         }
       } else {
-        await this.app.navigateTo(this.app.currentPath, true, true);
-        document.dispatchEvent(new CustomEvent("fs-change", { detail: { sourceAppId: this.app.win.element.id } }));
+        // Already reverted by label.style.display = "" above
       }
     };
     textarea.onkeydown = (e) => {
       e.stopPropagation();
       if (e.key === "Enter") { e.preventDefault(); finishRename(true); }
-      else if (e.key === "Escape") finishRename(false);
+      else if (e.key === "Escape") { e.preventDefault(); finishRename(false); }
     };
-    textarea.onblur = () => finishRename(true);
+    textarea.onblur = () => finishRename(false);
+    textarea.onmousedown = (e) => e.stopPropagation();
     textarea.onclick = (e) => e.stopPropagation();
     textarea.ondblclick = (e) => e.stopPropagation();
   }
