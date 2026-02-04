@@ -61,7 +61,8 @@
 }
 
 .file-picker-toolbar-button .toolbar-icon.desktop {
-    background-size: contain;
+    background-size: 16px;
+    background-position: center;
 }
 
 .file-picker-content {
@@ -96,7 +97,8 @@
     white-space: nowrap;
 }
 
-.file-picker-row input, .file-picker-row select {
+.file-picker-row input,
+.file-picker-row select {
     flex-grow: 1;
     padding: 2px;
 }

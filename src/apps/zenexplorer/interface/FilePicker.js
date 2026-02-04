@@ -60,16 +60,30 @@ export class FilePicker {
     const actions = document.createElement("div");
     actions.className = "file-picker-top-actions";
 
-    const btnUp = this._createToolbarButton("up", "Up One Level", () => this.goUp());
-    const btnDesktop = this._createToolbarButton("desktop", "Desktop", () => this.navigateTo("/Desktop"));
-    const btnNewFolder = this._createToolbarButton("new-folder", "Create New Folder", () => this.createNewFolder());
+    const btnUp = this._createToolbarButton("up", "Up One Level", () =>
+      this.goUp(),
+    );
+    const btnDesktop = this._createToolbarButton("desktop", "Desktop", () =>
+      this.navigateTo("/Desktop"),
+    );
+    const btnNewFolder = this._createToolbarButton(
+      "new-folder",
+      "Create New Folder",
+      () => this.createNewFolder(),
+    );
 
     const viewGroup = document.createElement("div");
     viewGroup.className = "view-mode-group";
 
-    const btnList = this._createToolbarButton("view-list", "List", () => this.setViewMode("list"));
+    const btnList = this._createToolbarButton("view-list", "List", () =>
+      this.setViewMode("list"),
+    );
     btnList.classList.add("toggle");
-    const btnDetails = this._createToolbarButton("view-details", "Details", () => this.setViewMode("details"));
+    const btnDetails = this._createToolbarButton(
+      "view-details",
+      "Details",
+      () => this.setViewMode("details"),
+    );
     btnDetails.classList.add("toggle");
 
     this.viewButtons = { list: btnList, details: btnDetails };
@@ -160,29 +174,28 @@ export class FilePicker {
 
     // Map icons to the new filepicker.png sprite (horizontal, 16px each)
     const ICON_MAP = {
-        "view-large": 0,
-        "view-small": 1,
-        "view-list": 2,
-        "view-details": 3,
-        "by-name": 4,
-        "by-size": 5,
-        "by-date": 6,
-        "by-type": 7,
-        "up": 8,
-        "new-file": 9,
-        "cut-file": 10,
-        "new-folder": 11,
+      "view-large": 0,
+      "view-small": 1,
+      "view-list": 2,
+      "view-details": 3,
+      "by-name": 4,
+      "by-size": 5,
+      "by-date": 6,
+      "by-type": 7,
+      up: 8,
+      "new-file": 9,
+      "cut-file": 10,
+      "new-folder": 11,
     };
 
     if (iconName === "desktop") {
-        icon.classList.add("desktop");
-        icon.style.backgroundImage = `url(${ICONS.desktop_old[16]})`;
-        icon.style.backgroundPosition = "0 0";
+      icon.classList.add("desktop");
+      icon.style.backgroundImage = `url(${ICONS.desktop_old[16]})`;
     } else {
-        const iconId = ICON_MAP[iconName];
-        if (iconId !== undefined) {
-            icon.style.backgroundPosition = `-${iconId * 16}px 0`;
-        }
+      const iconId = ICON_MAP[iconName];
+      if (iconId !== undefined) {
+        icon.style.backgroundPosition = `-${iconId * 16}px 0`;
+      }
     }
 
     btn.appendChild(icon);
@@ -192,11 +205,11 @@ export class FilePicker {
 
   _updateViewButtons() {
     Object.entries(this.viewButtons).forEach(([mode, btn]) => {
-        if (mode === this.viewMode) {
-            btn.classList.add("selected");
-        } else {
-            btn.classList.remove("selected");
-        }
+      if (mode === this.viewMode) {
+        btn.classList.add("selected");
+      } else {
+        btn.classList.remove("selected");
+      }
     });
   }
 
@@ -213,19 +226,20 @@ export class FilePicker {
     if (!normalizedPath.startsWith("/")) normalizedPath = "/" + normalizedPath;
 
     try {
-        await ShellManager.stat(normalizedPath);
-        this.currentPath = normalizedPath;
+      await ShellManager.stat(normalizedPath);
+      this.currentPath = normalizedPath;
 
-        // Update Address Bar
-        const name = getDisplayName(normalizedPath);
-        const icon = ShellManager.getIconObj(normalizedPath) || ICONS.folderClosed;
-        this.addressBar.setValue(formatPathForDisplay(normalizedPath));
-        this.addressBar.setIcon(icon[16]);
-        this.addressBar.setCurrentPath(normalizedPath);
+      // Update Address Bar
+      const name = getDisplayName(normalizedPath);
+      const icon =
+        ShellManager.getIconObj(normalizedPath) || ICONS.folderClosed;
+      this.addressBar.setValue(formatPathForDisplay(normalizedPath));
+      this.addressBar.setIcon(icon[16]);
+      this.addressBar.setCurrentPath(normalizedPath);
 
-        await this.renderDirectoryContents();
+      await this.renderDirectoryContents();
     } catch (e) {
-        console.error("Navigation failed", e);
+      console.error("Navigation failed", e);
     }
   }
 
@@ -250,10 +264,10 @@ export class FilePicker {
 
         // Filter files by extension if not All Files
         if (!isDir && extensions && !extensions.includes("*")) {
-            const ext = file.split(".").pop().toLowerCase();
-            if (!extensions.map(e => e.toLowerCase()).includes(ext)) {
-                continue;
-            }
+          const ext = file.split(".").pop().toLowerCase();
+          if (!extensions.map((e) => e.toLowerCase()).includes(ext)) {
+            continue;
+          }
         }
 
         fileInfos.push({
@@ -276,13 +290,19 @@ export class FilePicker {
       const table = document.createElement("table");
       table.className = "interactive";
       const thead = document.createElement("thead");
-      thead.innerHTML = "<tr><th>Name</th><th>Size</th><th>Type</th><th>Modified</th></tr>";
+      thead.innerHTML =
+        "<tr><th>Name</th><th>Size</th><th>Type</th><th>Modified</th></tr>";
       table.appendChild(thead);
       const tbody = document.createElement("tbody");
       table.appendChild(tbody);
 
       for (const info of sortedInfos) {
-        const { name: file, fullPath, stat: fileStat, isDirectory: isDir } = info;
+        const {
+          name: file,
+          fullPath,
+          stat: fileStat,
+          isDirectory: isDir,
+        } = info;
         const tr = document.createElement("tr");
         tr.className = "explorer-icon";
         tr.setAttribute("data-path", fullPath);
@@ -291,7 +311,9 @@ export class FilePicker {
 
         const tdName = document.createElement("td");
         tdName.className = "name-cell";
-        const iconObj = await renderFileIcon(file, fullPath, isDir, { stat: fileStat });
+        const iconObj = await renderFileIcon(file, fullPath, isDir, {
+          stat: fileStat,
+        });
         tdName.appendChild(iconObj.querySelector(".icon"));
         tdName.appendChild(iconObj.querySelector(".icon-label"));
         tr.appendChild(tdName);
@@ -301,7 +323,9 @@ export class FilePicker {
         tr.appendChild(tdSize);
 
         const tdType = document.createElement("td");
-        tdType.textContent = isDir ? "Folder" : getAssociation(file).name || "File";
+        tdType.textContent = isDir
+          ? "Folder"
+          : getAssociation(file).name || "File";
         tr.appendChild(tdType);
 
         const tdMod = document.createElement("td");
@@ -314,8 +338,15 @@ export class FilePicker {
       this.iconContainer.appendChild(table);
     } else {
       for (const info of sortedInfos) {
-        const { name: file, fullPath, stat: fileStat, isDirectory: isDir } = info;
-        const iconDiv = await renderFileIcon(file, fullPath, isDir, { stat: fileStat });
+        const {
+          name: file,
+          fullPath,
+          stat: fileStat,
+          isDirectory: isDir,
+        } = info;
+        const iconDiv = await renderFileIcon(file, fullPath, isDir, {
+          stat: fileStat,
+        });
         this.iconManager.configureIcon(iconDiv);
         this.iconContainer.appendChild(iconDiv);
       }
@@ -349,9 +380,9 @@ export class FilePicker {
     });
 
     this.nameInput.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-            this._handleAction();
-        }
+      if (e.key === "Enter") {
+        this._handleAction();
+      }
     });
   }
 
@@ -362,52 +393,57 @@ export class FilePicker {
     const selectedType = this.options.fileTypes[this.typeSelect.value];
 
     // Auto-append extension if missing in save mode
-    if (this.options.mode === "save" && selectedType && selectedType.extensions && !selectedType.extensions.includes("*")) {
-        const hasExtension = filename.includes(".");
-        if (!hasExtension) {
-            filename += "." + selectedType.extensions[0];
-        }
+    if (
+      this.options.mode === "save" &&
+      selectedType &&
+      selectedType.extensions &&
+      !selectedType.extensions.includes("*")
+    ) {
+      const hasExtension = filename.includes(".");
+      if (!hasExtension) {
+        filename += "." + selectedType.extensions[0];
+      }
     }
 
     const fullPath = joinPath(this.currentPath, filename);
 
     if (this.options.mode === "open") {
-        try {
-            const stats = await ShellManager.stat(fullPath);
-            if (stats.isDirectory()) {
-                this.navigateTo(fullPath);
-                return;
-            }
-            this._resolve(fullPath);
-        } catch (e) {
-            ShowDialogWindow({
-                title: "Open",
-                text: "File not found.",
-                buttons: [{ label: "OK", isDefault: true }],
-            });
+      try {
+        const stats = await ShellManager.stat(fullPath);
+        if (stats.isDirectory()) {
+          this.navigateTo(fullPath);
+          return;
         }
+        this._resolve(fullPath);
+      } catch (e) {
+        ShowDialogWindow({
+          title: "Open",
+          text: "File not found.",
+          buttons: [{ label: "OK", isDefault: true }],
+        });
+      }
     } else {
-        // Save mode
-        try {
-            const stats = await ShellManager.stat(fullPath);
-            if (stats.isDirectory()) {
-                this.navigateTo(fullPath);
-                return;
-            }
-            // If file exists, confirm overwrite
-            ShowDialogWindow({
-                title: "Save As",
-                text: `A file with the name ${filename} already exists. Do you want to replace it?`,
-                buttons: [
-                    { label: "Yes", action: () => this._resolve(fullPath) },
-                    { label: "No", action: () => {} }
-                ],
-                modal: true,
-            });
-        } catch (e) {
-            // File doesn't exist, which is fine for save
-            this._resolve(fullPath);
+      // Save mode
+      try {
+        const stats = await ShellManager.stat(fullPath);
+        if (stats.isDirectory()) {
+          this.navigateTo(fullPath);
+          return;
         }
+        // If file exists, confirm overwrite
+        ShowDialogWindow({
+          title: "Save As",
+          text: `A file with the name ${filename} already exists. Do you want to replace it?`,
+          buttons: [
+            { label: "Yes", action: () => this._resolve(fullPath) },
+            { label: "No", action: () => {} },
+          ],
+          modal: true,
+        });
+      } catch (e) {
+        // File doesn't exist, which is fine for save
+        this._resolve(fullPath);
+      }
     }
   }
 
@@ -417,10 +453,10 @@ export class FilePicker {
 
   _resolve(result) {
     if (this.onResolve) {
-        this.onResolve(result);
+      this.onResolve(result);
     }
     if (this.win) {
-        this.win.close();
+      this.win.close();
     }
   }
 
@@ -435,12 +471,21 @@ export class FilePicker {
     const desktopExt = ShellManager.getExtensionForPath("/Desktop");
     if (desktopExt) {
       for (const vItem of desktopExt.virtualItems) {
-        const vPath = vItem.target && !vItem.target.startsWith("launch:") ? vItem.target : joinPath("/Desktop", vItem.name);
+        const vPath =
+          vItem.target && !vItem.target.startsWith("launch:")
+            ? vItem.target
+            : joinPath("/Desktop", vItem.name);
         let iconObj = vItem.icon;
         if (!iconObj) {
-          if (vItem.name === "My Computer") iconObj = getThemedIconObj("computer");
-          else if (vItem.name === "Recycle Bin") iconObj = getThemedIconObj("recycle", await RecycleBinManager.isEmpty("/Recycle Bin"));
-          else if (vItem.name === "Network Neighborhood") iconObj = getThemedIconObj("network");
+          if (vItem.name === "My Computer")
+            iconObj = getThemedIconObj("computer");
+          else if (vItem.name === "Recycle Bin")
+            iconObj = getThemedIconObj(
+              "recycle",
+              await RecycleBinManager.isEmpty("/Recycle Bin"),
+            );
+          else if (vItem.name === "Network Neighborhood")
+            iconObj = getThemedIconObj("network");
         }
         if (!iconObj) iconObj = ICONS.folder;
         addItem(vItem.name, vPath, iconObj, 1);
@@ -449,14 +494,23 @@ export class FilePicker {
           const drives = await ShellManager.readdir("/");
           for (const drive of drives) {
             const drivePath = joinPath("/", drive);
-            const driveIcon = drive === "A:" ? ICONS.disketteDrive : (drive === "E:" ? ICONS.cdDrive : ICONS.drive);
+            const driveIcon =
+              drive === "A:"
+                ? ICONS.disketteDrive
+                : drive === "E:"
+                  ? ICONS.cdDrive
+                  : ICONS.drive;
             addItem(getDisplayName(drivePath), drivePath, driveIcon, 2);
             if (currentPath.startsWith(drivePath)) {
-              const relativePath = currentPath.substring(drivePath.length).split("/").filter(Boolean);
+              const relativePath = currentPath
+                .substring(drivePath.length)
+                .split("/")
+                .filter(Boolean);
               let tempPath = drivePath;
               for (let i = 0; i < relativePath.length; i++) {
                 tempPath = joinPath(tempPath, relativePath[i]);
-                const icon = ShellManager.getIconObj(tempPath) || ICONS.folderClosed;
+                const icon =
+                  ShellManager.getIconObj(tempPath) || ICONS.folderClosed;
                 addItem(relativePath[i], tempPath, icon, 3 + i);
               }
             }
@@ -471,26 +525,26 @@ export class FilePicker {
     let name = "New Folder";
     let counter = 1;
     while (await this._exists(joinPath(this.currentPath, name))) {
-        name = `New Folder (${counter++})`;
+      name = `New Folder (${counter++})`;
     }
     try {
-        await fs.promises.mkdir(joinPath(this.currentPath, name));
-        await this.renderDirectoryContents();
+      await fs.promises.mkdir(joinPath(this.currentPath, name));
+      await this.renderDirectoryContents();
     } catch (e) {
-        ShowDialogWindow({
-            title: "Error",
-            text: "Could not create folder.",
-            buttons: [{ label: "OK", isDefault: true }],
-        });
+      ShowDialogWindow({
+        title: "Error",
+        text: "Could not create folder.",
+        buttons: [{ label: "OK", isDefault: true }],
+      });
     }
   }
 
   async _exists(path) {
     try {
-        await ShellManager.stat(path);
-        return true;
+      await ShellManager.stat(path);
+      return true;
     } catch (e) {
-        return false;
+      return false;
     }
   }
 
@@ -501,6 +555,10 @@ export class FilePicker {
 
   _formatDate(date) {
     const d = new Date(date);
-    return d.toLocaleDateString() + " " + d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return (
+      d.toLocaleDateString() +
+      " " +
+      d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    );
   }
 }
