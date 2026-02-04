@@ -187,6 +187,16 @@ export class ZenExplorerApp extends Application {
           items.push({ name, path, icon: iconObj[16], indent });
         };
 
+        if (this.isWebPath(currentPath)) {
+          // Show history in IE mode
+          return this.navHistory.history.map((url) => ({
+            name: url,
+            path: url,
+            icon: ICONS["internet-explorer"][16],
+            indent: 0,
+          }));
+        }
+
         // 1. Desktop
         addItem("Desktop", "/Desktop", ICONS.desktop_old, 0);
 
@@ -268,6 +278,9 @@ export class ZenExplorerApp extends Application {
     content.style.height = "calc(100% - 60px)"; // Adjust for bars
     this.content = content;
 
+    // 5. Status Bar (Initialize early to avoid errors in _onIframeLoad)
+    this.statusBar = new StatusBar();
+
     // 4.1 Iframe for IE Mode
     this.iframe = window.os_gui_utils.E("iframe", {
       className: "content-window",
@@ -297,8 +310,6 @@ export class ZenExplorerApp extends Application {
     // 4d. Resize Observer for responsive layout
     this._setupResizeObserver();
 
-    // 5. Status Bar
-    this.statusBar = new StatusBar();
     win.$content.append(this.statusBar.element);
 
     // 6. Icon Manager
@@ -947,7 +958,7 @@ export class ZenExplorerApp extends Application {
   }
 
   _onIframeLoad() {
-    if (!this.iframe) return;
+    if (!this.iframe || !this.statusBar) return;
 
     if (this.iframe.src.includes("/azay.rahmad/404.html")) {
       this.statusBar.setText("Page not found.");

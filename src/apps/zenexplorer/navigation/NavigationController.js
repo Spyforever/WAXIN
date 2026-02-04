@@ -25,6 +25,9 @@ export class NavigationController {
       if (path === "My Computer") {
         path = "/";
       }
+      if (path === "/Desktop/Internet Explorer") {
+        path = "azay.rahmad";
+      }
 
       // Normalize path for ZenFS
       let normalizedPath = path.replace(/\\/g, "/");
