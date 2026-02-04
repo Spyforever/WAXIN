@@ -35,7 +35,12 @@
 
 .file-picker-top-actions {
     display: flex;
-    gap: 2px;
+    align-items: center;
+    gap: 5px;
+}
+
+.view-mode-group {
+    display: flex;
 }
 
 .file-picker-toolbar-button {
@@ -45,6 +50,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    min-width: 0;
 }
 
 .file-picker-toolbar-button .toolbar-icon {
@@ -55,14 +61,7 @@
 }
 
 .file-picker-toolbar-button .toolbar-icon.desktop {
-    background-image: url("/src/assets/icons/browse-ui-icons.png");
-    background-position: -360px 0; /* Index 18 */
-    transform: scale(0.8);
-}
-
-.file-picker-toolbar-button.active {
-    background-color: var(--ButtonHilight);
-    box-shadow: inset 1px 1px var(--ButtonShadow);
+    background-size: contain;
 }
 
 .file-picker-content {

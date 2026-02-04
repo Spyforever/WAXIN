@@ -63,13 +63,20 @@ export class FilePicker {
     const btnUp = this._createToolbarButton("up", "Up One Level", () => this.goUp());
     const btnDesktop = this._createToolbarButton("desktop", "Desktop", () => this.navigateTo("/Desktop"));
     const btnNewFolder = this._createToolbarButton("new-folder", "Create New Folder", () => this.createNewFolder());
+
+    const viewGroup = document.createElement("div");
+    viewGroup.className = "view-mode-group";
+
     const btnList = this._createToolbarButton("view-list", "List", () => this.setViewMode("list"));
+    btnList.classList.add("toggle");
     const btnDetails = this._createToolbarButton("view-details", "Details", () => this.setViewMode("details"));
+    btnDetails.classList.add("toggle");
 
     this.viewButtons = { list: btnList, details: btnDetails };
     this._updateViewButtons();
 
-    actions.append(btnUp, btnDesktop, btnNewFolder, btnList, btnDetails);
+    viewGroup.append(btnList, btnDetails);
+    actions.append(btnUp, btnDesktop, btnNewFolder, viewGroup);
     topRow.appendChild(actions);
 
     this.element.appendChild(topRow);
@@ -145,7 +152,7 @@ export class FilePicker {
 
   _createToolbarButton(iconName, title, action) {
     const btn = document.createElement("button");
-    btn.className = "file-picker-toolbar-button lightweight";
+    btn.className = "file-picker-toolbar-button";
     btn.title = title;
 
     const icon = document.createElement("div");
@@ -169,6 +176,8 @@ export class FilePicker {
 
     if (iconName === "desktop") {
         icon.classList.add("desktop");
+        icon.style.backgroundImage = `url(${ICONS.desktop_old[16]})`;
+        icon.style.backgroundPosition = "0 0";
     } else {
         const iconId = ICON_MAP[iconName];
         if (iconId !== undefined) {
@@ -184,9 +193,9 @@ export class FilePicker {
   _updateViewButtons() {
     Object.entries(this.viewButtons).forEach(([mode, btn]) => {
         if (mode === this.viewMode) {
-            btn.classList.add("active");
+            btn.classList.add("selected");
         } else {
-            btn.classList.remove("active");
+            btn.classList.remove("selected");
         }
     });
   }
