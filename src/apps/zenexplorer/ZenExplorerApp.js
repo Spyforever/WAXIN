@@ -25,9 +25,10 @@ import { PropertiesManager } from "./fileoperations/PropertiesManager.js";
 import DragDropManager from "./fileoperations/DragDropManager.js";
 import LayoutManager from "./interface/LayoutManager.js";
 import { ShellManager } from "./extensions/ShellManager.js";
-import { joinPath } from "./navigation/PathUtils.js";
+import { joinPath, getDisplayName } from "./navigation/PathUtils.js";
 import { getToolbarItems } from "./interface/ToolbarBuilder.js";
 import { sortFileInfos } from "./fileoperations/SortUtils.js";
+import { getThemedIconObj } from "./interface/FileIconRenderer.js";
 import { ControlPanelExtension } from "./extensions/ControlPanelExtension.js";
 import { DesktopExtension } from "./extensions/DesktopExtension.js";
 import { RecycleBinExtension } from "./extensions/RecycleBinExtension.js";
@@ -156,6 +157,77 @@ export class ZenExplorerApp extends Application {
     // 3a. Address Bar
     this.addressBar = new AddressBar({
       onEnter: (path) => this.navigateTo(path),
+      getTreeItems: async (currentPath) => {
+        const items = [];
+        const addItem = (name, path, iconObj, indent) => {
+          items.push({ name, path, icon: iconObj[16], indent });
+        };
+
+        // 1. Desktop
+        addItem("Desktop", "/Desktop", ICONS.desktop_old, 0);
+
+        // 2. Desktop children (virtual items)
+        const desktopExt = ShellManager.getExtensionForPath("/Desktop");
+        if (desktopExt) {
+          for (const vItem of desktopExt.virtualItems) {
+            const vPath = vItem.target && !vItem.target.startsWith("launch:") ? vItem.target : joinPath("/Desktop", vItem.name);
+            let iconObj = vItem.icon;
+            if (!iconObj) {
+              if (vItem.name === "My Computer") iconObj = getThemedIconObj("computer");
+              else if (vItem.name === "Recycle Bin") iconObj = getThemedIconObj("recycle", await RecycleBinManager.isEmpty("/Recycle Bin"));
+              else if (vItem.name === "Network Neighborhood") iconObj = getThemedIconObj("network");
+            }
+            if (!iconObj) iconObj = ICONS.folder;
+
+            addItem(vItem.name, vPath, iconObj, 1);
+
+            if (vItem.name === "My Computer") {
+              // 3. My Computer children (drives)
+              const drives = await ShellManager.readdir("/");
+              for (const drive of drives) {
+                const drivePath = joinPath("/", drive);
+                const driveIcon = drive === "A:" ? ICONS.disketteDrive : (drive === "E:" ? ICONS.cdDrive : ICONS.drive);
+                addItem(getDisplayName(drivePath), drivePath, driveIcon, 2);
+
+                // 4. If current path is under this drive, show ancestry
+                if (currentPath.startsWith(drivePath)) {
+                  const relativePath = currentPath.substring(drivePath.length).split("/").filter(Boolean);
+                  let tempPath = drivePath;
+                  for (let i = 0; i < relativePath.length; i++) {
+                    tempPath = joinPath(tempPath, relativePath[i]);
+                    const icon = ShellManager.getIconObj(tempPath) || ICONS.folderClosed;
+                    addItem(relativePath[i], tempPath, icon, 3 + i);
+                  }
+                }
+              }
+            }
+          }
+
+          // 5. Folders in C:\WINDOWS\Desktop
+          try {
+            const desktopFiles = await fs.promises.readdir("/C:/WINDOWS/Desktop");
+            for (const file of desktopFiles) {
+              if (file === ".zen_layout.json") continue;
+              const fullPath = joinPath("/C:/WINDOWS/Desktop", file);
+              const stats = await fs.promises.stat(fullPath);
+              if (stats.isDirectory()) {
+                addItem(file, fullPath, ICONS.folderClosed, 1);
+
+                // 6. If current path is under this folder
+                if (currentPath.startsWith(fullPath) && currentPath !== fullPath) {
+                  const relativePath = currentPath.substring(fullPath.length).split("/").filter(Boolean);
+                  let tempPath = fullPath;
+                  for (let i = 0; i < relativePath.length; i++) {
+                    tempPath = joinPath(tempPath, relativePath[i]);
+                    addItem(relativePath[i], tempPath, ICONS.folderClosed, 2 + i);
+                  }
+                }
+              }
+            }
+          } catch (e) {}
+        }
+        return items;
+      }
     });
     win.$content.append(this.addressBar.element);
 
@@ -759,6 +831,9 @@ export class ZenExplorerApp extends Application {
   }
 
   _onClose() {
+    if (this.addressBar && this.addressBar.destroy) {
+      this.addressBar.destroy();
+    }
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();
     }
