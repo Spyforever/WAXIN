@@ -15,6 +15,7 @@ export class DesktopExtension {
         name: "My Computer",
         icon: ICONS.computer,
         target: "/",
+        isDirectory: true,
       },
       {
         name: "My Documents",
@@ -28,15 +29,15 @@ export class DesktopExtension {
         target: "launch:internet-explorer",
       },
       {
-        name: "Recycle Bin",
-        icon: ICONS.recycleBinEmpty,
-        target: "/Recycle Bin",
-        isDirectory: true,
-      },
-      {
         name: "Network Neighborhood",
         icon: ICONS.networkNeighborhood,
         target: "/Network Neighborhood",
+        isDirectory: true,
+      },
+      {
+        name: "Recycle Bin",
+        icon: ICONS.recycleBinEmpty,
+        target: "/Recycle Bin",
         isDirectory: true,
       },
     ];
