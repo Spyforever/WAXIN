@@ -331,7 +331,7 @@ export class DirectoryView {
       if (e.key === "Enter") { e.preventDefault(); finishRename(true); }
       else if (e.key === "Escape") { e.preventDefault(); finishRename(false); }
     };
-    textarea.onblur = () => finishRename(false);
+    textarea.onblur = () => finishRename(true);
     textarea.onmousedown = (e) => e.stopPropagation();
     textarea.onclick = (e) => e.stopPropagation();
     textarea.ondblclick = (e) => e.stopPropagation();

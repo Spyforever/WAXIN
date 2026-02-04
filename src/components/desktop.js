@@ -297,7 +297,7 @@ class DesktopController {
         finishRename(false);
       }
     };
-    textarea.onblur = () => finishRename(false);
+    textarea.onblur = () => finishRename(true);
     textarea.onmousedown = (e) => e.stopPropagation();
     textarea.onclick = (e) => e.stopPropagation();
     textarea.ondblclick = (e) => e.stopPropagation();
