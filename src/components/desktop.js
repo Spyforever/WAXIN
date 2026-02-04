@@ -210,10 +210,30 @@ class DesktopController {
     }
   }
 
-  enterRenameModeByPath(path) {
-    const icon = this.iconContainer.querySelector(
+  async enterRenameModeByPath(path) {
+    // Wait for any active refresh to complete
+    while (isRefreshing) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+
+    let icon = this.iconContainer.querySelector(
       `.explorer-icon[data-path="${path}"]`,
     );
+
+    // Retry a few times if not found, as rendering might be async
+    if (!icon) {
+      for (let i = 0; i < 20; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        while (isRefreshing) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+        icon = this.iconContainer.querySelector(
+          `.explorer-icon[data-path="${path}"]`,
+        );
+        if (icon) break;
+      }
+    }
+
     if (icon) {
       this.iconManager.setSelection(new Set([icon]));
       this.enterRenameMode(icon);
@@ -235,8 +255,10 @@ class DesktopController {
     textarea.className = "icon-label-input";
     textarea.value = isShortcut ? oldName.replace(".lnk.json", "").replace(".lnk", "") : oldName;
     textarea.spellcheck = false;
-    label.innerHTML = "";
-    label.appendChild(textarea);
+
+    // Hide label and add textarea as sibling
+    label.style.display = "none";
+    icon.appendChild(textarea);
 
     const adjustTextareaHeight = (ta) => {
       ta.style.height = "auto";
@@ -244,21 +266,37 @@ class DesktopController {
     };
     adjustTextareaHeight(textarea);
 
-    const dotIndex = oldName.lastIndexOf(".");
-    if (dotIndex > 0 && icon.getAttribute("data-type") !== "directory")
-      textarea.setSelectionRange(0, dotIndex);
-    else textarea.select();
-    textarea.focus();
+    textarea.scrollIntoView({ block: "nearest" });
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (!this._isRenaming) return;
+        const dotIndex = oldName.lastIndexOf(".");
+        if (dotIndex > 0 && icon.getAttribute("data-type") !== "directory")
+          textarea.setSelectionRange(0, dotIndex);
+        else textarea.select();
+        textarea.focus();
+      });
+    });
 
     textarea.addEventListener("input", () => adjustTextareaHeight(textarea));
+
     const finishRename = async (save) => {
       if (!this._isRenaming) return;
       this._isRenaming = false;
+
       let newName = textarea.value.trim();
       if (isShortcut && newName && !newName.endsWith(".lnk.json") && !newName.endsWith(".lnk")) {
         newName += ".lnk.json";
       }
+      
+      // Clean up UI immediately
+      textarea.remove();
+      label.style.display = "";
+      
       if (save && newName && newName !== oldName) {
+        // Optimistic update
+        label.textContent = newName;
+
         try {
           const parentPath =
             fullPath.substring(0, fullPath.lastIndexOf("/")) || "/";
@@ -276,7 +314,7 @@ class DesktopController {
           );
         }
       } else {
-        await refreshIcons();
+        // Already reverted by label.style.display = "" above
       }
     };
     textarea.onkeydown = (e) => {
@@ -284,9 +322,13 @@ class DesktopController {
       if (e.key === "Enter") {
         e.preventDefault();
         finishRename(true);
-      } else if (e.key === "Escape") finishRename(false);
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        finishRename(false);
+      }
     };
     textarea.onblur = () => finishRename(true);
+    textarea.onmousedown = (e) => e.stopPropagation();
     textarea.onclick = (e) => e.stopPropagation();
     textarea.ondblclick = (e) => e.stopPropagation();
   }
@@ -353,6 +395,9 @@ export async function setupIcons() {
 async function refreshIcons() {
   if (isRefreshing) {
     pendingRefresh = true;
+    while (isRefreshing) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
     return;
   }
   isRefreshing = true;
@@ -446,7 +491,7 @@ async function refreshIcons() {
   isRefreshing = false;
   if (pendingRefresh) {
     pendingRefresh = false;
-    refreshIcons();
+    await refreshIcons();
   }
 }
 
@@ -549,6 +594,24 @@ export async function initDesktop(profile = null) {
     if (icon) {
       const path = icon.getAttribute("data-path");
       desktopController.onOpen(path);
+    }
+  });
+
+  window.addEventListener("keydown", (e) => {
+    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+
+    const selectedIcons = [...desktopController.iconManager.selectedIcons];
+
+    if (e.key === "F2" && selectedIcons.length === 1) {
+      desktopController.enterRenameMode(selectedIcons[0]);
+      e.preventDefault();
+    } else if (e.key === "Enter" && selectedIcons.length > 0) {
+      selectedIcons.forEach((icon) => desktopController.openFile(icon));
+      e.preventDefault();
+    } else if (e.key === "Delete" && selectedIcons.length > 0) {
+      const paths = selectedIcons.map((i) => i.getAttribute("data-path"));
+      desktopController.fileOps.deleteItems(paths, e.shiftKey);
+      e.preventDefault();
     }
   });
 

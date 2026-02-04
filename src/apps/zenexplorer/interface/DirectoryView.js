@@ -279,18 +279,31 @@ export class DirectoryView {
     textarea.className = "icon-label-input";
     textarea.value = isShortcut ? oldName.replace(".lnk.json", "").replace(".lnk", "") : oldName;
     textarea.spellcheck = false;
-    label.innerHTML = "";
-    label.appendChild(textarea);
+
+    // Hide label and add textarea as sibling
+    label.style.display = "none";
+    icon.appendChild(textarea);
+
     const adjustTextareaHeight = (ta) => {
       ta.style.height = "auto";
       ta.style.height = `${ta.scrollHeight}px`;
     };
     adjustTextareaHeight(textarea);
-    const dotIndex = oldName.lastIndexOf(".");
-    if (dotIndex > 0 && icon.getAttribute("data-type") !== "directory") textarea.setSelectionRange(0, dotIndex);
-    else textarea.select();
-    textarea.focus();
+
+    textarea.scrollIntoView({ block: "nearest" });
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (!this._isRenaming) return;
+        const dotIndex = oldName.lastIndexOf(".");
+        if (dotIndex > 0 && icon.getAttribute("data-type") !== "directory")
+          textarea.setSelectionRange(0, dotIndex);
+        else textarea.select();
+        textarea.focus();
+      });
+    });
+
     textarea.addEventListener("input", () => adjustTextareaHeight(textarea));
+
     const finishRename = async (save) => {
       if (!this._isRenaming) return;
       this._isRenaming = false;
@@ -299,7 +312,15 @@ export class DirectoryView {
         newName += ".lnk.json";
       }
       const busyId = `rename-${Math.random()}`;
+
+      // Clean up UI immediately
+      textarea.remove();
+      label.style.display = "";
+
       if (save && newName && newName !== oldName) {
+        // Optimistic update
+        label.textContent = newName;
+
         requestBusyState(busyId, this.app.win.element);
         try {
           const parentPath = getParentPath(fullPath);
@@ -314,22 +335,36 @@ export class DirectoryView {
           releaseBusyState(busyId, this.app.win.element);
         }
       } else {
-        await this.app.navigateTo(this.app.currentPath, true, true);
-        document.dispatchEvent(new CustomEvent("fs-change", { detail: { sourceAppId: this.app.win.element.id } }));
+        // Already reverted by label.style.display = "" above
       }
     };
     textarea.onkeydown = (e) => {
       e.stopPropagation();
       if (e.key === "Enter") { e.preventDefault(); finishRename(true); }
-      else if (e.key === "Escape") finishRename(false);
+      else if (e.key === "Escape") { e.preventDefault(); finishRename(false); }
     };
     textarea.onblur = () => finishRename(true);
+    textarea.onmousedown = (e) => e.stopPropagation();
     textarea.onclick = (e) => e.stopPropagation();
     textarea.ondblclick = (e) => e.stopPropagation();
   }
 
-  enterRenameModeByPath(path) {
-    const icon = this.app.iconContainer.querySelector(`.explorer-icon[data-path="${path}"]`);
+  async enterRenameModeByPath(path) {
+    let icon = this.app.iconContainer.querySelector(
+      `.explorer-icon[data-path="${path}"]`,
+    );
+
+    // Retry a few times if not found, as rendering might be async
+    if (!icon) {
+      for (let i = 0; i < 10; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        icon = this.app.iconContainer.querySelector(
+          `.explorer-icon[data-path="${path}"]`,
+        );
+        if (icon) break;
+      }
+    }
+
     if (icon) {
       this.app.iconManager.setSelection(new Set([icon]));
       this.enterRenameMode(icon);

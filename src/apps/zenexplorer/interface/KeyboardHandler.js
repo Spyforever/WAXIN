@@ -38,7 +38,10 @@ export class KeyboardHandler {
           break;
       }
     } else {
-      if (e.key === "Enter" && selectedIcons.length > 0) {
+      if (e.key === "F2" && selectedIcons.length === 1) {
+        this.app.enterRenameMode(selectedIcons[0]);
+        e.preventDefault();
+      } else if (e.key === "Enter" && selectedIcons.length > 0) {
         selectedIcons.forEach((icon) => {
           const type = icon.getAttribute("data-type");
           const path = icon.getAttribute("data-path");

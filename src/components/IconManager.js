@@ -128,7 +128,6 @@ export class IconManager {
     this.container.appendChild(this.lasso);
 
     this.clearSelection();
-    e.preventDefault();
 
     const onMouseMove = (moveEvent) => {
       if (!this.isLassoing) return;

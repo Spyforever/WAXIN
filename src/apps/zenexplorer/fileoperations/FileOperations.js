@@ -411,40 +411,42 @@ export class FileOperations {
     }
 
     async renameItem(fullPath) {
-        this.app.enterRenameModeByPath(fullPath);
+        await this.app.enterRenameModeByPath(fullPath);
     }
 
     async createNewFolder() {
         const busyId = `create-folder-${Math.random()}`;
+        let newPath = null;
         requestBusyState(busyId, this.app.win.element);
         try {
             const name = await this.getUniqueName(this.app.currentPath, "New Folder");
-            const newPath = joinPath(this.app.currentPath, name);
+            newPath = joinPath(this.app.currentPath, name);
             await fs.promises.mkdir(ShellManager.getRealPath(newPath));
             await this.app.navigateTo(this.app.currentPath, true, true);
             document.dispatchEvent(new CustomEvent("fs-change", { detail: { sourceAppId: this.app.win.element.id } }));
-            this.app.enterRenameModeByPath(newPath);
         } catch (e) {
             handleFileSystemError("create", e, "folder");
         } finally {
             releaseBusyState(busyId, this.app.win.element);
+            if (newPath) await this.app.enterRenameModeByPath(newPath);
         }
     }
 
     async createNewTextFile() {
         const busyId = `create-file-${Math.random()}`;
+        let newPath = null;
         requestBusyState(busyId, this.app.win.element);
         try {
             const name = await this.getUniqueName(this.app.currentPath, "New Text Document", ".txt");
-            const newPath = joinPath(this.app.currentPath, name);
+            newPath = joinPath(this.app.currentPath, name);
             await fs.promises.writeFile(ShellManager.getRealPath(newPath), "");
             await this.app.navigateTo(this.app.currentPath, true, true);
             document.dispatchEvent(new CustomEvent("fs-change", { detail: { sourceAppId: this.app.win.element.id } }));
-            this.app.enterRenameModeByPath(newPath);
         } catch (e) {
             handleFileSystemError("create", e, "file");
         } finally {
             releaseBusyState(busyId, this.app.win.element);
+            if (newPath) await this.app.enterRenameModeByPath(newPath);
         }
     }
 
