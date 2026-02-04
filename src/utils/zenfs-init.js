@@ -62,6 +62,53 @@ export async function initFileSystem(onProgress) {
             await fs.promises.mkdir('/C:/WINDOWS/Desktop');
         }
 
+        // Add default shortcuts to Desktop
+        const defaultShortcuts = [
+            { name: "buggyprogram.lnk.json", appId: "buggyprogram" },
+            { name: "sheep.lnk.json", appId: "esheep" },
+            { name: "Winamp.lnk.json", appId: "webamp" },
+        ];
+
+        for (const shortcut of defaultShortcuts) {
+            const lnkPath = `/C:/WINDOWS/Desktop/${shortcut.name}`;
+            if (!(await existsAsync(lnkPath))) {
+                await fs.promises.writeFile(lnkPath, JSON.stringify({
+                    type: "shortcut",
+                    appId: shortcut.appId,
+                }, null, 2));
+            }
+        }
+
+        // Add Games folder to Desktop
+        const gamesPath = '/C:/WINDOWS/Desktop/Games';
+        if (!(await existsAsync(gamesPath))) {
+            await fs.promises.mkdir(gamesPath);
+        }
+
+        const games = [
+            { name: "Space Cadet Pinball.lnk.json", appId: "pinball" },
+            { name: "Minesweeper.lnk.json", appId: "minesweeper" },
+            { name: "Solitaire.lnk.json", appId: "solitaire" },
+            { name: "Spider Solitaire.lnk.json", appId: "spidersolitaire" },
+            { name: "FreeCell.lnk.json", appId: "freecell" },
+            { name: "Commander Keen.lnk.json", appId: "keen" },
+            { name: "Doom.lnk.json", appId: "doom" },
+            { name: "SimCity 2000.lnk.json", appId: "simcity2000" },
+            { name: "Diablo.lnk.json", appId: "diablo" },
+            { name: "Quake.lnk.json", appId: "quake" },
+            { name: "Prince of Persia.lnk.json", appId: "princeofpersia" },
+        ];
+
+        for (const game of games) {
+            const lnkPath = `${gamesPath}/${game.name}`;
+            if (!(await existsAsync(lnkPath))) {
+                await fs.promises.writeFile(lnkPath, JSON.stringify({
+                    type: "shortcut",
+                    appId: game.appId,
+                }, null, 2));
+            }
+        }
+
         // Ensure My Documents directory exists
         if (!(await existsAsync('/C:/My Documents'))) {
             await fs.promises.mkdir('/C:/My Documents');

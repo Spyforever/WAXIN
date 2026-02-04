@@ -6,12 +6,31 @@ import { getAssociation } from "../../../utils/directory.js";
  */
 
 export function sortFileInfos(fileInfos, sortBy, path, order = []) {
+  const VIRTUAL_ORDER = [
+    "My Computer",
+    "My Documents",
+    "Internet Explorer",
+    "Network Neighborhood",
+    "Recycle Bin",
+  ];
+
   const getOrderIndex = (name) => {
     const index = order.indexOf(name);
     return index === -1 ? Infinity : index;
   };
 
   const sortFn = (a, b) => {
+    // Special priority for specific virtual icons (regardless of sort method or order)
+    const indexA = VIRTUAL_ORDER.indexOf(a.name);
+    const indexB = VIRTUAL_ORDER.indexOf(b.name);
+    const isSpecialA = indexA !== -1 && a.stat?.isVirtual;
+    const isSpecialB = indexB !== -1 && b.stat?.isVirtual;
+
+    if (isSpecialA || isSpecialB) {
+      if (isSpecialA && isSpecialB) return indexA - indexB;
+      return isSpecialA ? -1 : 1;
+    }
+
     // Special sort for root: Drives before shell extensions
     if (path === "/" && order.length === 0) {
       const isDriveA = a.name.match(/^[A-Z]:$/i);
