@@ -67,6 +67,20 @@ const systemApps = [
     },
   },
   {
+    id: "internet-explorer",
+    title: "Internet Explorer",
+    description: "Browse the web.",
+    get icon() {
+      return getIcon("internet-explorer");
+    },
+    action: {
+      type: "function",
+      handler: () => {
+        window.System.launchApp("explorer", "azay.rahmad");
+      },
+    },
+  },
+  {
     id: "my-briefcase",
     title: "My Briefcase",
     description: "Stores your uploaded files.",

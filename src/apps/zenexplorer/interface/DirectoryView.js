@@ -57,10 +57,14 @@ export class DirectoryView {
       icon = getThemedIconObj("recycle", isEmpty);
     }
 
-    this.app.addressBar.setValue(formatPathForDisplay(path));
+    const isWeb = this.app.isWebPath(path);
+    const displayPath = isWeb ? path : formatPathForDisplay(path);
+    const displayTitle = isWeb ? `${name} - Internet Explorer` : name;
+
+    this.app.addressBar.setValue(displayPath);
     this.app.addressBar.setIcon(icon[16]);
     this.app.addressBar.setCurrentPath(path);
-    this.app.win.title(name);
+    this.app.win.title(displayTitle);
     this.app.sidebar.update(name, icon[32]);
     this.app.titleElement.textContent = name;
     this.app.win.setIcons(icon);

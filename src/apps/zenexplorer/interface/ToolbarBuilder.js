@@ -8,6 +8,102 @@ import { PropertiesManager } from "../fileoperations/PropertiesManager.js";
  */
 
 export function getToolbarItems(app) {
+  if (app.isWebPath(app.currentPath)) {
+    return [
+      "handler",
+      {
+        label: "Back",
+        iconName: "back",
+        action: () => app.goBack(),
+        enabled: () => app.navHistory?.canGoBack(),
+        submenu: () => {
+          const history = app.navHistory.history;
+          const index = app.navHistory.historyIndex;
+          return history
+            .slice(0, index)
+            .reverse()
+            .slice(0, 10)
+            .map((path, i) => ({
+              label: path,
+              action: () => {
+                const steps = i + 1;
+                for (let s = 0; s < steps; s++) {
+                  app.goBack();
+                }
+              },
+            }));
+        },
+      },
+      {
+        label: "Forward",
+        iconName: "forward",
+        action: () => app.goForward(),
+        enabled: () => app.navHistory?.canGoForward(),
+        submenu: () => {
+          const history = app.navHistory.history;
+          const index = app.navHistory.historyIndex;
+          return history
+            .slice(index + 1)
+            .slice(0, 10)
+            .map((path, i) => ({
+              label: path,
+              action: () => {
+                const steps = i + 1;
+                for (let s = 0; s < steps; s++) {
+                  app.goForward();
+                }
+              },
+            }));
+        },
+      },
+      {
+        label: "Stop",
+        iconName: "stop",
+        action: () => {
+          if (app.iframe && app.iframe.contentWindow) {
+            app.iframe.contentWindow.stop();
+          }
+        },
+      },
+      {
+        label: "Refresh",
+        iconName: "refresh",
+        action: () => {
+          if (app.iframe && app.iframe.contentWindow) {
+            app.iframe.contentWindow.location.reload();
+          }
+        },
+      },
+      {
+        label: "Home",
+        iconName: "home",
+        action: () => app.navigateTo("azay.rahmad"),
+      },
+      "divider",
+      {
+        label: "Search",
+        iconName: "search",
+        enabled: false,
+      },
+      {
+        label: "Favorites",
+        iconName: "favorites",
+        enabled: false,
+      },
+      {
+        label: "History",
+        iconName: "history",
+        enabled: false,
+      },
+      "divider",
+      {
+        label: "Print",
+        iconName: "print",
+        enabled: false,
+      },
+    ];
+  }
+
   const getSelectedPaths = () => {
     const selectedIcons = app.iconManager?.selectedIcons || new Set();
     return [...selectedIcons].map((icon) => icon.getAttribute("data-path"));

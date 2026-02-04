@@ -32,6 +32,8 @@ import { ControlPanelExtension } from "./extensions/ControlPanelExtension.js";
 import { DesktopExtension } from "./extensions/DesktopExtension.js";
 import { RecycleBinExtension } from "./extensions/RecycleBinExtension.js";
 import { NetworkNeighborhoodExtension } from "./extensions/NetworkNeighborhoodExtension.js";
+import { InternetExplorerExtension } from "./extensions/InternetExplorerExtension.js";
+import { isZenFSPath, getZenFSFileUrl } from "../../utils/zenfs-utils.js";
 import "./explorer.css";
 
 // Initialize Shell Extensions
@@ -39,8 +41,18 @@ ShellManager.registerExtension(new ControlPanelExtension());
 ShellManager.registerExtension(new DesktopExtension());
 ShellManager.registerExtension(new RecycleBinExtension());
 ShellManager.registerExtension(new NetworkNeighborhoodExtension());
+ShellManager.registerExtension(new InternetExplorerExtension());
 
 export class ZenExplorerApp extends Application {
+  isWebPath(path) {
+    if (!path) return false;
+    return (
+      path.startsWith("http://") ||
+      path.startsWith("https://") ||
+      path.includes("azay.rahmad")
+    );
+  }
+
   static config = {
     id: "explorer",
     title: "Windows Explorer",
@@ -63,9 +75,19 @@ export class ZenExplorerApp extends Application {
     this.driveManager = new DriveManager(this);
     this.contextMenuBuilder = new ContextMenuBuilder(this);
     this.keyboardHandler = new KeyboardHandler(this);
+    this.retroMode = true;
+    this.blobUrl = null;
   }
 
   async launch(data = null) {
+    if (data && typeof data === "object") {
+      if (data.retroMode !== undefined) {
+        this.retroMode = data.retroMode;
+      }
+    } else if (typeof data === "string" && data.includes("retroMode=false")) {
+      this.retroMode = false;
+    }
+
     const targetPath = this._normalizePath(data);
     let existingAppAtSamePath = null;
     let anyExplorer = false;
@@ -119,6 +141,8 @@ export class ZenExplorerApp extends Application {
     }
 
     if (typeof p !== "string") p = "/";
+
+    if (this.isWebPath(p)) return p;
 
     p = p.replace(/\\/g, "/");
     if (!p.startsWith("/")) p = "/" + p;
@@ -243,6 +267,15 @@ export class ZenExplorerApp extends Application {
     content.style.flexGrow = "1";
     content.style.height = "calc(100% - 60px)"; // Adjust for bars
     this.content = content;
+
+    // 4.1 Iframe for IE Mode
+    this.iframe = window.os_gui_utils.E("iframe", {
+      className: "content-window",
+      style:
+        "width: 100%; height: 100%; flex-grow: 1; background-color: var(--Window); display: none; border: none;",
+    });
+    this.iframe.onload = () => this._onIframeLoad();
+    content.appendChild(this.iframe);
 
     // 4a. Sidebar
     this.sidebar = new Sidebar();
@@ -526,8 +559,36 @@ export class ZenExplorerApp extends Application {
     document.addEventListener("theme-changed", this._themeHandler);
   }
 
+  _updateMode() {
+    const isWeb = this.isWebPath(this.currentPath);
+    const wasWeb = this.iframe.style.display === "block";
+
+    if (isWeb) {
+      this.iframe.style.display = "block";
+      this.iconContainer.style.display = "none";
+      this.sidebar.element.style.display = "none";
+      this.content.classList.remove("with-sidebar");
+      if (this.logo) this.logo.classList.remove("animate-only-busy");
+    } else {
+      this.iframe.style.display = "none";
+      this.iconContainer.style.display = "";
+      this.sidebar.element.style.display = "";
+      if (this.logo) this.logo.classList.add("animate-only-busy");
+      // The resize observer will handle "with-sidebar" class for non-web paths
+    }
+
+    this._updateMenuBar();
+    this._updateToolbar(isWeb !== wasWeb);
+  }
+
   async navigateTo(path, isHistoryNav = false, skipMRU = false) {
-    const result = await this.navController.navigateTo(path, isHistoryNav, skipMRU);
+    const result = await this.navController.navigateTo(
+      path,
+      isHistoryNav,
+      skipMRU,
+    );
+    this._updateMode();
+
     if (this.iconContainer) {
       this.iconContainer.setAttribute("data-current-path", this.currentPath);
       // Update autoArrange state from layout
@@ -775,10 +836,20 @@ export class ZenExplorerApp extends Application {
     container.appendChild(this.logo);
   }
 
-  _updateToolbar() {
-    if (this.toolbar) {
-      this.toolbar.element.dispatchEvent(new Event("update"));
+  _updateToolbar(forceRebuild = false) {
+    if (!this.toolbar) return;
+
+    if (forceRebuild) {
+      const toolbarItems = getToolbarItems(this);
+      const newToolbar = new window.Toolbar(toolbarItems, {
+        icons: browseUiIcons,
+        iconsGrayscale: browseUiIconsGrayscale,
+      });
+      this.toolbar.element.replaceWith(newToolbar.element);
+      this.toolbar = newToolbar;
     }
+
+    this.toolbar.element.dispatchEvent(new Event("update"));
   }
 
   /**
@@ -872,6 +943,120 @@ export class ZenExplorerApp extends Application {
     }
     if (this._themeHandler) {
       document.removeEventListener("theme-changed", this._themeHandler);
+    }
+  }
+
+  _onIframeLoad() {
+    if (!this.iframe) return;
+
+    if (this.iframe.src.includes("/azay.rahmad/404.html")) {
+      this.statusBar.setText("Page not found.");
+      this._updateToolbar();
+      return;
+    }
+
+    try {
+      const iframeDoc = this.iframe.contentDocument;
+      if (
+        iframeDoc.title.includes("Not Found") ||
+        iframeDoc.body.innerHTML.includes("Wayback Machine doesn")
+      ) {
+        this.iframe.src = "./azay.rahmad/404.html";
+        this.statusBar.setText("Page not found.");
+      } else {
+        this.statusBar.setText("Done");
+      }
+
+      // Add a click listener to the iframe content
+      iframeDoc.body.addEventListener("click", (e) => {
+        const anchor = e.target.closest("a");
+        if (anchor && anchor.getAttribute("href")) {
+          const href = anchor.getAttribute("href");
+          e.preventDefault();
+
+          // Handle relative links for azay.rahmad
+          if (
+            this.iframe.src.includes("azay.rahmad") &&
+            !href.startsWith("http") &&
+            !href.startsWith("https") &&
+            !href.startsWith("//")
+          ) {
+            const cleanHref = href.replace("./", "");
+            this.navigateTo(`azay.rahmad/${cleanHref}`);
+          } else {
+            this.navigateTo(href);
+          }
+        }
+      });
+    } catch (e) {
+      this.statusBar.setText("Done");
+    }
+
+    this._updateToolbar();
+  }
+
+  async _loadWebUrl(url) {
+    if (url.includes("azay.rahmad")) {
+      let page = "home.html";
+      if (url.includes("about.html") || url.endsWith("/about")) {
+        page = "about.html";
+      } else if (url.includes("home.html")) {
+        page = "home.html";
+      } else if (
+        url !== "azay.rahmad" &&
+        url !== "http://azay.rahmad/" &&
+        url !== "http://azay.rahmad"
+      ) {
+        page = "404.html";
+      }
+      this.iframe.src = `./azay.rahmad/${page}`;
+      return;
+    }
+
+    let finalUrl = url.trim();
+
+    const isZenFS = isZenFSPath(finalUrl);
+    const isLocal =
+      isZenFS ||
+      finalUrl.startsWith("blob:") ||
+      finalUrl.startsWith("file:") ||
+      finalUrl.includes("localhost") ||
+      finalUrl.includes("127.0.0.1");
+
+    if (
+      !isLocal &&
+      !finalUrl.startsWith("http://") &&
+      !finalUrl.startsWith("https://")
+    ) {
+      finalUrl = `https://${finalUrl}`;
+    }
+
+    const loadIframe = async (target) => {
+      if (this.blobUrl) {
+        URL.revokeObjectURL(this.blobUrl);
+        this.blobUrl = null;
+      }
+      if (isZenFSPath(finalUrl)) {
+        this.blobUrl = target;
+      }
+      this.statusBar.setText("Connecting to site...");
+      this.iframe.src = "about:blank";
+      this.iframe.src = target;
+    };
+
+    if (isZenFS) {
+      getZenFSFileUrl(finalUrl)
+        .then(loadIframe)
+        .catch((err) => {
+          console.error("Failed to load ZenFS file in IE:", err);
+          this.statusBar.setText("Failed to load local file.");
+        });
+    } else {
+      const targetUrl =
+        this.retroMode && !isLocal
+          ? `https://web.archive.org/web/1998/${finalUrl}`
+          : finalUrl;
+      loadIframe(targetUrl);
     }
   }
 }

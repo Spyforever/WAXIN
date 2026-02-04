@@ -17,14 +17,24 @@ export class MenuBarBuilder {
   }
 
   build() {
+    const isWeb = this.app.isWebPath(this.app.currentPath);
     try {
+      if (isWeb) {
         return new window.MenuBar({
-          "&File": this._getFileMenuItems(),
-          "&Edit": this._getEditMenuItems(),
-          "&View": this._getViewMenuItems(),
-          "&Go": this._getGoMenuItems(),
-          "&Help": this._getHelpMenuItems(),
+          "&File": this._getIEFileMenuItems(),
+          "&Edit": this._getIEEditMenuItems(),
+          "&View": this._getIEViewMenuItems(),
+          "&Go": this._getIEGoMenuItems(),
+          "&Help": this._getIEHelpMenuItems(),
         });
+      }
+      return new window.MenuBar({
+        "&File": this._getFileMenuItems(),
+        "&Edit": this._getEditMenuItems(),
+        "&View": this._getViewMenuItems(),
+        "&Go": this._getGoMenuItems(),
+        "&Help": this._getHelpMenuItems(),
+      });
     } catch (e) {
         console.error("Failed to build MenuBar:", e);
         return new window.MenuBar({
@@ -311,6 +321,118 @@ export class MenuBarBuilder {
           ShowDialogWindow({
             title: "About ZenFS",
             text: "ZenExplorer v0.1<br>Powered by ZenFS",
+            modal: true,
+            buttons: [{ label: "OK" }],
+          });
+        },
+      },
+    ];
+  }
+
+  _getIEFileMenuItems() {
+    return [
+      {
+        label: "New &Retro Window",
+        action: () =>
+          window.System.launchApp("explorer", "azay.rahmad"),
+      },
+      {
+        label: "New &Live Window",
+        action: () =>
+          window.System.launchApp("explorer", { path: "azay.rahmad", retroMode: false }),
+      },
+      "MENU_DIVIDER",
+      {
+        label: "&Close",
+        action: () => this.app.win.close(),
+      },
+    ];
+  }
+
+  _getIEEditMenuItems() {
+    return [
+      { label: "Cu&t", enabled: false },
+      { label: "&Copy", enabled: false },
+      { label: "&Paste", enabled: false },
+    ];
+  }
+
+  _getIEViewMenuItems() {
+    return [
+      {
+        label: "&Stop",
+        action: () => {
+          if (this.app.iframe && this.app.iframe.contentWindow) {
+            this.app.iframe.contentWindow.stop();
+          }
+        },
+      },
+      {
+        label: "&Refresh",
+        shortcutLabel: "F5",
+        action: () => {
+          if (this.app.iframe && this.app.iframe.contentWindow) {
+            this.app.iframe.contentWindow.location.reload();
+          }
+        },
+      },
+      "MENU_DIVIDER",
+      {
+        label: "&Retro Mode",
+        checkbox: {
+          check: () => this.app.retroMode,
+          toggle: () => {
+            this.app.retroMode = !this.app.retroMode;
+            this.app.navigateTo(this.app.currentPath, true, true);
+          },
+        },
+      },
+    ];
+  }
+
+  _getIEGoMenuItems() {
+    return [
+      {
+        label: "&Back",
+        action: () => this.app.goBack(),
+        enabled: () => this.app.navHistory?.canGoBack(),
+      },
+      {
+        label: "&Forward",
+        action: () => this.app.goForward(),
+        enabled: () => this.app.navHistory?.canGoForward(),
+      },
+      {
+        label: "&Up One Level",
+        action: () => {
+          try {
+            const currentUrl = new URL(this.app.currentPath);
+            const pathParts = currentUrl.pathname.split("/").filter((p) => p);
+            if (pathParts.length > 0) {
+              pathParts.pop();
+              currentUrl.pathname = pathParts.join("/");
+              this.app.navigateTo(currentUrl.toString());
+            }
+          } catch (e) {
+            // Not a standard URL or at root
+          }
+        },
+      },
+      {
+        label: "&Home Page",
+        action: () => this.app.navigateTo("azay.rahmad"),
+      },
+    ];
+  }
+
+  _getIEHelpMenuItems() {
+    return [
+      {
+        label: "&About Internet Explorer",
+        action: () => {
+          ShowDialogWindow({
+            title: "About Internet Explorer",
+            text: "Internet Explorer 4.0<br>Zen Edition",
             modal: true,
             buttons: [{ label: "OK" }],
           });
