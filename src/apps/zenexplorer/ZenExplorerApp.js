@@ -46,20 +46,29 @@ ShellManager.registerExtension(new InternetExplorerExtension());
 export class ZenExplorerApp extends Application {
   isWebPath(path) {
     if (!path) return false;
+    const p = path.toLowerCase();
     if (
-      path.startsWith("http://") ||
-      path.startsWith("https://") ||
-      path.includes("azay.rahmad")
+      p.startsWith("http://") ||
+      p.startsWith("https://") ||
+      p.includes("azay.rahmad")
     ) {
       return true;
     }
     // Domain-like: contains a dot, doesn't start with a slash or drive letter, and no spaces
-    return (
+    if (
       !path.startsWith("/") &&
       !/^[A-Z]:/i.test(path) &&
       path.includes(".") &&
       !path.includes(" ")
-    );
+    ) {
+      return true;
+    }
+    // Local HTML: must start with a slash to be considered a "web path" within the shell
+    // This allows unnormalized local paths (like C:\index.html) to be normalized first
+    if (path.startsWith("/") && (p.endsWith(".html") || p.endsWith(".htm"))) {
+      return true;
+    }
+    return false;
   }
 
   static config = {
@@ -86,6 +95,7 @@ export class ZenExplorerApp extends Application {
     this.keyboardHandler = new KeyboardHandler(this);
     this.retroMode = true;
     this.blobUrl = null;
+    this.isInWebMode = false;
   }
 
   async launch(data = null) {
@@ -196,7 +206,7 @@ export class ZenExplorerApp extends Application {
           items.push({ name, path, icon: iconObj[16], indent });
         };
 
-        if (this.isWebPath(currentPath)) {
+        if (this.isInWebMode) {
           // Show history in IE mode
           return this.navHistory.history.map((url) => ({
             name: url,
@@ -580,7 +590,7 @@ export class ZenExplorerApp extends Application {
   }
 
   _updateMode() {
-    const isWeb = this.isWebPath(this.currentPath);
+    const isWeb = this.isInWebMode;
     const wasWeb = this.iframe.style.display === "block";
 
     if (isWeb) {
