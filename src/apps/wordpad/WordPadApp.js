@@ -1,5 +1,8 @@
 import { Application } from "../Application.js";
+import { fs } from "@zenfs/core";
 import { ShowDialogWindow } from "../../components/DialogWindow.js";
+import { ShowFilePicker } from "../../utils/filePicker.js";
+import { getZenFSFileAsText } from "../../utils/zenfs-utils.js";
 import "./wordpad.css";
 import { ICONS } from "../../config/icons.js";
 
@@ -20,7 +23,7 @@ export class WordPadApp extends Application {
     this.win = null;
     this.editor = null;
     this.colorPalette = null;
-    this.fileHandle = null;
+    this.zenfsPath = null;
     this.isDirty = false;
     this.fileName = "Untitled";
     this.findState = {
@@ -811,7 +814,7 @@ export class WordPadApp extends Application {
     if ((await this.checkForUnsavedChanges()) === "cancel") return;
     this.editor.innerHTML = "";
     this.fileName = "Untitled";
-    this.fileHandle = null;
+    this.zenfsPath = null;
     this.isDirty = false;
     this.updateTitle();
     this.findState = {
@@ -823,33 +826,31 @@ export class WordPadApp extends Application {
 
   async openFile() {
     if ((await this.checkForUnsavedChanges()) === "cancel") return;
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".html";
-    input.onchange = (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
 
-      this.fileName = file.name;
-      this.fileHandle = null;
-      this.isDirty = false;
-      this.updateTitle();
+    const path = await ShowFilePicker({
+      title: "Open Document",
+      mode: "open",
+      fileTypes: [{ label: "HTML Document (*.html)", extensions: ["html"] }],
+    });
 
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        this.editor.innerHTML = event.target.result;
+    if (path) {
+      try {
+        const content = await getZenFSFileAsText(path);
+        this.editor.innerHTML = content;
+        this.zenfsPath = path;
+        this.fileName = path.split("/").pop();
         this.isDirty = false;
         this.updateTitle();
-      };
-      reader.readAsText(file);
-    };
-    input.click();
+      } catch (e) {
+        console.error("Error opening file from ZenFS:", e);
+      }
+    }
   }
 
   async saveFile() {
-    if (this.fileHandle) {
+    if (this.zenfsPath) {
       try {
-        await this.writeFile(this.fileHandle);
+        await fs.promises.writeFile(this.zenfsPath, this.editor.innerHTML);
         this.isDirty = false;
         this.updateTitle();
       } catch (err) {
@@ -861,46 +862,25 @@ export class WordPadApp extends Application {
   }
 
   async saveAs() {
-    const fileTypes = [
-      { description: "HTML Document", accept: { "text/html": [".html"] } },
-    ];
+    const path = await ShowFilePicker({
+      title: "Save Document As",
+      mode: "save",
+      suggestedName:
+        this.fileName === "Untitled" ? "Untitled.html" : this.fileName,
+      fileTypes: [{ label: "HTML Document (*.html)", extensions: ["html"] }],
+    });
 
-    if (window.showSaveFilePicker) {
+    if (path) {
       try {
-        const handle = await window.showSaveFilePicker({
-          types: fileTypes,
-          suggestedName: "Untitled.html",
-        });
-        this.fileHandle = handle;
-        this.fileName = handle.name;
-        await this.writeFile(handle);
+        await fs.promises.writeFile(path, this.editor.innerHTML);
+        this.zenfsPath = path;
+        this.fileName = path.split("/").pop();
         this.isDirty = false;
         this.updateTitle();
       } catch (err) {
-        if (err.name !== "AbortError") console.error("Error saving file:", err);
+        console.error("Error saving file:", err);
       }
-    } else {
-      // Fallback for older browsers
-      const content = this.editor.innerHTML;
-      const blob = new Blob([content], { type: "text/html" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = this.fileName.endsWith(".html")
-        ? this.fileName
-        : "Untitled.html";
-      a.click();
-      URL.revokeObjectURL(a.href);
-      this.isDirty = false;
-      this.fileName = a.download;
-      this.updateTitle();
     }
-  }
-
-  async writeFile(fileHandle) {
-    const writable = await fileHandle.createWritable();
-    const content = this.editor.innerHTML;
-    await writable.write(content);
-    await writable.close();
   }
 
   showUnsavedChangesDialog(options = {}) {

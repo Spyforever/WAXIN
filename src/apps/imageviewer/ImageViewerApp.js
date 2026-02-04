@@ -1,5 +1,7 @@
 import { Application } from "../Application.js";
+import { fs } from "@zenfs/core";
 import { ShowDialogWindow } from "../../components/DialogWindow.js";
+import { ShowFilePicker } from "../../utils/filePicker.js";
 import "./imageviewer.css";
 import { ICONS } from "../../config/icons.js";
 import { isZenFSPath, getZenFSFileAsBlob } from "../../utils/zenfs-utils.js";
@@ -19,6 +21,7 @@ export class ImageViewerApp extends Application {
   constructor(config) {
     super(config);
     this.file = null;
+    this.zenfsPath = null;
     this.zoomLevel = 1;
     this.zoomStep = 0.1;
 
@@ -136,6 +139,7 @@ export class ImageViewerApp extends Application {
         };
 
         if (isZenFSPath(data)) {
+          this.zenfsPath = data;
           getZenFSFileAsBlob(data)
             .then(handleBlob)
             .catch((e) => {
@@ -244,45 +248,46 @@ export class ImageViewerApp extends Application {
     reader.readAsDataURL(file);
   }
 
-  openFile() {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "image/*";
-    input.onchange = (e) => {
-      const file = e.target.files[0];
-      if (file) {
+  async openFile() {
+    const path = await ShowFilePicker({
+      title: "Open Image",
+      mode: "open",
+      fileTypes: [
+        {
+          label: "Image Files",
+          extensions: ["jpg", "jpeg", "png", "gif", "bmp", "ico"],
+        },
+        { label: "All Files", extensions: ["*"] },
+      ],
+    });
+
+    if (path) {
+      try {
+        const blob = await getZenFSFileAsBlob(path);
+        const fileName = path.split("/").pop();
+        const file = new File([blob], fileName, { type: blob.type });
+        this.zenfsPath = path;
         this.loadFile(file);
+      } catch (e) {
+        console.error("Error loading image from ZenFS:", e);
       }
-    };
-    input.click();
+    }
   }
 
-  saveFile() {
-    if (!this.img || !this.img.src) {
-      alert("There is no image to save.");
-      return;
+  async saveFile() {
+    if (this.zenfsPath) {
+      try {
+        const response = await fetch(this.img.src);
+        const blob = await response.blob();
+        const arrayBuffer = await blob.arrayBuffer();
+        await fs.promises.writeFile(this.zenfsPath, new Uint8Array(arrayBuffer));
+        console.log("Image saved successfully to ZenFS:", this.zenfsPath);
+        return;
+      } catch (e) {
+        console.error("Error saving image to ZenFS:", e);
+      }
     }
-
-    const link = document.createElement("a");
-    link.href = this.img.src;
-
-    let downloadName;
-    const originalName = this.file ? this.file.name : "image.png";
-
-    if (this.backgroundRemoved) {
-      const nameWithoutExt =
-        originalName.lastIndexOf(".") !== -1
-          ? originalName.substring(0, originalName.lastIndexOf("."))
-          : originalName;
-      downloadName = `${nameWithoutExt}-modified.png`;
-    } else {
-      downloadName = `resized-${originalName}`;
-    }
-
-    link.download = downloadName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    await this.saveFileAs();
   }
 
   async saveFileAs() {
@@ -291,68 +296,42 @@ export class ImageViewerApp extends Application {
       return;
     }
 
-    try {
-      if ("showSaveFilePicker" in window) {
+    let suggestedName = this.file ? this.file.name : "image.png";
+    if (this.backgroundRemoved) {
+      const nameWithoutExt =
+        suggestedName.lastIndexOf(".") !== -1
+          ? suggestedName.substring(0, suggestedName.lastIndexOf("."))
+          : suggestedName;
+      suggestedName = `${nameWithoutExt}-modified.png`;
+    } else if (suggestedName === "image.png") {
+      suggestedName = "resized-image.png";
+    } else if (!suggestedName.startsWith("resized-")) {
+      suggestedName = `resized-${suggestedName}`;
+    }
+
+    const path = await ShowFilePicker({
+      title: "Save Image As",
+      mode: "save",
+      suggestedName,
+      fileTypes: [
+        { label: "PNG Image", extensions: ["png"] },
+        { label: "JPEG Image", extensions: ["jpg", "jpeg"] },
+        { label: "All Files", extensions: ["*"] },
+      ],
+    });
+
+    if (path) {
+      try {
         const response = await fetch(this.img.src);
         const blob = await response.blob();
-
-        let suggestedName = this.file ? this.file.name : "image.png";
-        let fileType = blob.type;
-        let fileExtension = suggestedName.split(".").pop();
-
-        let types = [
-          {
-            description: "Image Files",
-            accept: { [fileType]: ["." + fileExtension] },
-          },
-        ];
-
-        if (this.backgroundRemoved) {
-          const nameWithoutExt =
-            suggestedName.lastIndexOf(".") !== -1
-              ? suggestedName.substring(0, suggestedName.lastIndexOf("."))
-              : suggestedName;
-          suggestedName = `${nameWithoutExt}-modified.png`;
-          types = [
-            { description: "PNG Image", accept: { "image/png": [".png"] } },
-          ];
-        }
-
-        const options = {
-          suggestedName,
-          types,
-        };
-
-        const fileHandle = await window.showSaveFilePicker(options);
-        const writableStream = await fileHandle.createWritable();
-        await writableStream.write(blob);
-        await writableStream.close();
-        console.log("Image saved successfully with File System Access API.");
-      } else {
-        // Fallback for browsers that don't support showSaveFilePicker
-        const link = document.createElement("a");
-        link.href = this.img.src;
-        let downloadName = this.file ? this.file.name : "image.png";
-
-        if (this.backgroundRemoved) {
-          const nameWithoutExt =
-            downloadName.lastIndexOf(".") !== -1
-              ? downloadName.substring(0, downloadName.lastIndexOf("."))
-              : downloadName;
-          downloadName = `${nameWithoutExt}-modified.png`;
-        }
-
-        link.download = downloadName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        console.log("Image downloaded (showSaveFilePicker not supported).");
-      }
-    } catch (error) {
-      if (error.name === "AbortError") {
-        console.log("Save operation aborted by user.");
-      } else {
-        console.error("Error saving file:", error);
+        const arrayBuffer = await blob.arrayBuffer();
+        await fs.promises.writeFile(path, new Uint8Array(arrayBuffer));
+        this.zenfsPath = path;
+        this.file = new File([blob], path.split("/").pop(), { type: blob.type });
+        this.win.title(`${this.file.name} - Image Viewer`);
+        console.log("Image saved successfully to ZenFS:", path);
+      } catch (e) {
+        console.error("Error saving image to ZenFS:", e);
         alert("Could not save the image. Please try again.");
       }
     }
@@ -659,7 +638,7 @@ export class ImageViewerApp extends Application {
     reader.readAsArrayBuffer(this.file);
   }
 
-  extractIcon(icon) {
+  async extractIcon(icon) {
     const canvas = document.createElement("canvas");
     canvas.width = icon.width;
     canvas.height = icon.height;
@@ -673,19 +652,32 @@ export class ImageViewerApp extends Application {
     ctx.putImageData(imageData, 0, 0);
 
     const dataUrl = canvas.toDataURL("image/png");
-    const link = document.createElement("a");
-    link.href = dataUrl;
 
     const originalName = this.file.name;
     const nameWithoutExt =
       originalName.lastIndexOf(".") !== -1
         ? originalName.substring(0, originalName.lastIndexOf("."))
         : originalName;
-    link.download = `${nameWithoutExt}-${icon.width}.png`;
+    const suggestedName = `${nameWithoutExt}-${icon.width}.png`;
 
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const path = await ShowFilePicker({
+      title: "Extract Icon",
+      mode: "save",
+      suggestedName,
+      fileTypes: [{ label: "PNG Image", extensions: ["png"] }],
+    });
+
+    if (path) {
+      try {
+        const base64Data = dataUrl.split(",")[1];
+        const buffer = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
+        await fs.promises.writeFile(path, buffer);
+        console.log("Icon extracted successfully to ZenFS:", path);
+      } catch (e) {
+        console.error("Error extracting icon to ZenFS:", e);
+        alert("Could not extract the icon.");
+      }
+    }
   }
 
   removeBackground() {

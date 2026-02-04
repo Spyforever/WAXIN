@@ -1,4 +1,7 @@
 import { Application } from '../Application.js';
+import { fs } from "@zenfs/core";
+import { ShowFilePicker } from '../../utils/filePicker.js';
+import { getZenFSFileAsBlob } from '../../utils/zenfs-utils.js';
 import './image-resizer.css';
 import { ICONS } from '../../config/icons.js';
 
@@ -104,14 +107,12 @@ export class ImageResizerApp extends Application {
                 <div class="status-bar" id="info">
                     <p class="status-bar-field">Drag an image onto the window or use File > Open</p>
                 </div>
-                <input type="file" id="fileInput" accept="image/*" style="display: none;">
             </div>
         `;
     }
 
     _initApp() {
         const content = this.win.$content;
-        const fileInput = content.find('#fileInput')[0];
         const widthInput = content.find('#widthInput')[0];
         const heightInput = content.find('#heightInput')[0];
         const aspectRatio = content.find('#aspectRatio')[0];
@@ -126,7 +127,28 @@ export class ImageResizerApp extends Application {
         let originalImage = null;
         let isUpdatingDimensions = false;
 
-        this.openFile = () => fileInput.click();
+        this.openFile = async () => {
+          const path = await ShowFilePicker({
+            title: "Open Image",
+            mode: "open",
+            fileTypes: [
+              {
+                label: "Image Files",
+                extensions: ["jpg", "jpeg", "png", "gif", "bmp"],
+              },
+              { label: "All Files", extensions: ["*"] },
+            ],
+          });
+
+          if (path) {
+            try {
+              const blob = await getZenFSFileAsBlob(path);
+              loadImage(blob);
+            } catch (e) {
+              console.error("Error loading image from ZenFS:", e);
+            }
+          }
+        };
 
         this.showAboutDialog = () => {
             alert("Image Resizer v1.0\\n\\nResizes images with pixel-perfect precision.");
@@ -151,13 +173,6 @@ export class ImageResizerApp extends Application {
             appContainer.classList.remove('dragover');
             const file = e.dataTransfer.files[0];
             if (file && file.type.startsWith('image/')) {
-                loadImage(file);
-            }
-        });
-
-        fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
                 loadImage(file);
             }
         });
@@ -258,11 +273,23 @@ export class ImageResizerApp extends Application {
             `;
         }
 
-        downloadBtn.addEventListener('click', () => {
-            const link = document.createElement('a');
-            link.download = `enlarged_${enlargedCanvas.width}x${enlargedCanvas.height}.png`;
-            link.href = enlargedCanvas.toDataURL('image/png');
-            link.click();
+        downloadBtn.addEventListener('click', async () => {
+          const suggestedName = `enlarged_${enlargedCanvas.width}x${enlargedCanvas.height}.png`;
+          const path = await ShowFilePicker({
+            title: "Save Enlarged Image",
+            mode: "save",
+            suggestedName,
+            fileTypes: [{ label: "PNG Image", extensions: ["png"] }],
+          });
+
+          if (path) {
+            const dataUrl = enlargedCanvas.toDataURL("image/png");
+            const base64Data = dataUrl.split(",")[1];
+            const buffer = Uint8Array.from(atob(base64Data), (c) =>
+              c.charCodeAt(0),
+            );
+            await fs.promises.writeFile(path, buffer);
+          }
         });
     }
 }

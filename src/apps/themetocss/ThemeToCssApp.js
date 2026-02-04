@@ -1,4 +1,7 @@
 import { Application } from "../Application.js";
+import { fs } from "@zenfs/core";
+import { ShowFilePicker } from "../../utils/filePicker.js";
+import { getZenFSFileAsText } from "../../utils/zenfs-utils.js";
 import { NotepadEditor } from "../../components/NotepadEditor.js";
 import "./themetocss.css";
 import { ICONS } from "../../config/icons.js";
@@ -94,63 +97,53 @@ export class ThemeToCssApp extends Application {
   }
 
   async _openFile() {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".theme,.themepack";
-    input.onchange = async (event) => {
-      const file = event.target.files[0];
-      if (!file) return;
+    const path = await ShowFilePicker({
+      title: "Open Theme File",
+      mode: "open",
+      fileTypes: [
+        {
+          label: "Theme Files (*.theme, *.themepack)",
+          extensions: ["theme", "themepack"],
+        },
+      ],
+    });
 
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        const themeContent = e.target.result;
-        try {
-          await this._loadParserScript();
-          const cssProperties = window.parseThemeFileString(themeContent);
-          if (cssProperties) {
-            const cssFileContent = window.makeThemeCSSFile(cssProperties);
-            this.editor.setValue(cssFileContent);
-            this._renderSwatches(cssProperties);
-          } else {
-            this.editor.setValue(
-              "/* Error: Failed to parse theme file. See console for details. */",
-            );
-          }
-        } catch (error) {
-          console.error(error);
-          this.editor.setValue(`/* Error: ${error.message} */`);
+    if (path) {
+      try {
+        const themeContent = await getZenFSFileAsText(path);
+        await this._loadParserScript();
+        const cssProperties = window.parseThemeFileString(themeContent);
+        if (cssProperties) {
+          const cssFileContent = window.makeThemeCSSFile(cssProperties);
+          this.editor.setValue(cssFileContent);
+          this._renderSwatches(cssProperties);
+        } else {
+          this.editor.setValue(
+            "/* Error: Failed to parse theme file. See console for details. */",
+          );
         }
-      };
-      reader.readAsText(file);
-    };
-    input.click();
+      } catch (error) {
+        console.error(error);
+        this.editor.setValue(`/* Error: ${error.message} */`);
+      }
+    }
   }
 
   async _saveFile() {
     const content = this.editor.getValue();
-    const blob = new Blob([content], { type: "text/css" });
 
-    try {
-      const handle = await window.showSaveFilePicker({
-        suggestedName: "theme.css",
-        types: [
-          {
-            description: "CSS Files",
-            accept: { "text/css": [".css"] },
-          },
-        ],
-      });
-      const writable = await handle.createWritable();
-      await writable.write(blob);
-      await writable.close();
-    } catch (err) {
-      // Fallback for browsers that don't support the API
-      if (err.name !== "AbortError") {
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = "theme.css";
-        a.click();
-        URL.revokeObjectURL(a.href);
+    const path = await ShowFilePicker({
+      title: "Save CSS",
+      mode: "save",
+      suggestedName: "theme.css",
+      fileTypes: [{ label: "CSS Files (*.css)", extensions: ["css"] }],
+    });
+
+    if (path) {
+      try {
+        await fs.promises.writeFile(path, content);
+      } catch (err) {
+        console.error("Error saving file:", err);
       }
     }
   }

@@ -1,5 +1,7 @@
 import { Application } from '../Application.js';
 import { ShowDialogWindow } from '../../components/DialogWindow.js';
+import { ShowFilePicker } from '../../utils/filePicker.js';
+import { getZenFSFileAsBlob, getZenFSFileAsText } from '../../utils/zenfs-utils.js';
 import './appmaker.css';
 import '../../components/notepad-editor.css';
 import { setupIcons } from '../../components/desktop.js';
@@ -135,7 +137,6 @@ export class AppMakerApp extends Application {
         this.appIconPreview = container.querySelector('#appIconPreview');
         this.appIconUrlInput = container.querySelector('#appIconUrl');
         const uploadButton = container.querySelector('#uploadButton');
-        this.appIconFileInput = container.querySelector('#appIconFile');
 
         this.appIconUrlInput.addEventListener('input', () => {
             const url = this.appIconUrlInput.value.trim();
@@ -155,22 +156,33 @@ export class AppMakerApp extends Application {
             this.appIcon = null;
         };
 
-        uploadButton.addEventListener('click', () => {
-            this.appIconFileInput.click();
-        });
+        uploadButton.addEventListener('click', async () => {
+          const path = await ShowFilePicker({
+            title: "Choose App Icon",
+            mode: "open",
+            fileTypes: [
+              {
+                label: "Image Files",
+                extensions: ["jpg", "jpeg", "png", "gif", "bmp"],
+              },
+            ],
+          });
 
-        this.appIconFileInput.addEventListener('change', (event) => {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    this.appIconPreview.src = e.target.result;
-                    this.appIconPreview.style.display = 'block';
-                    this.appIcon = e.target.result; // This is the data URL
-                    this.appIconUrlInput.value = ''; // Clear URL input
-                };
-                reader.readAsDataURL(file);
+          if (path) {
+            try {
+              const blob = await getZenFSFileAsBlob(path);
+              const reader = new FileReader();
+              reader.onload = (e) => {
+                this.appIconPreview.src = e.target.result;
+                this.appIconPreview.style.display = "block";
+                this.appIcon = e.target.result; // This is the data URL
+                this.appIconUrlInput.value = ""; // Clear URL input
+              };
+              reader.readAsDataURL(blob);
+            } catch (e) {
+              console.error("Error loading icon from ZenFS:", e);
             }
+          }
         });
 
         this._updateTitle();
@@ -182,27 +194,24 @@ export class AppMakerApp extends Application {
         this.win.title(newTitle);
     }
 
-    _openHtmlFile() {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.html';
-        input.onchange = (e) => {
-            const file = e.target.files[0];
-            if (!file) {
-                return;
-            }
+    async _openHtmlFile() {
+      const path = await ShowFilePicker({
+        title: "Open HTML File",
+        mode: "open",
+        fileTypes: [{ label: "HTML Files (*.html)", extensions: ["html"] }],
+      });
 
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const htmlContent = event.target.result;
-                const fileName = file.name.replace(/\.html$/, '');
-                this.appNameInput.value = fileName;
-                this.editor.setValue(htmlContent);
-                this._updateTitle();
-            };
-            reader.readAsText(file);
-        };
-        input.click();
+      if (path) {
+        try {
+          const htmlContent = await getZenFSFileAsText(path);
+          const fileName = path.split("/").pop().replace(/\.html$/, "");
+          this.appNameInput.value = fileName;
+          this.editor.setValue(htmlContent);
+          this._updateTitle();
+        } catch (e) {
+          console.error("Error loading HTML from ZenFS:", e);
+        }
+      }
     }
 
     _previewApp() {
@@ -288,7 +297,6 @@ export class AppMakerApp extends Application {
                     <input type="text" id="appIconUrl" placeholder="Enter image URL">
                     <span style="margin: 0 5px;">or</span>
                     <button id="uploadButton">Upload File</button>
-                    <input type="file" id="appIconFile" accept="image/*" style="display: none;">
                 </div>
             </div>
 
