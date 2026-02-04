@@ -9,6 +9,7 @@ import { ShowDialogWindow } from '../../components/DialogWindow.js';
 import { NotepadEditor } from '../../components/NotepadEditor.js';
 import { renderHTML } from '../../utils/domUtils.js';
 import { ICONS } from '../../config/icons.js';
+import { ShowFilePicker } from '../../utils/filePicker.js';
 
 const DEFAULT_THEME = 'atom-one-light';
 
@@ -64,7 +65,7 @@ export class NotepadApp extends Application {
                     action: () => this.clearContent(),
                 },
                 {
-                    label: "&Open",
+                    label: "&Open...",
                     shortcutLabel: "Ctrl+O",
                     action: () => this.openFile(),
                 },
@@ -72,11 +73,6 @@ export class NotepadApp extends Application {
                     label: "&Save",
                     shortcutLabel: "Ctrl+S",
                     action: () => this.saveFile(),
-                },
-                {
-                    label: "Save &Locally",
-                    action: () => this.saveLocally(),
-                    enabled: () => !!this.zenfsPath,
                 },
                 {
                     label: "Save &As...",
@@ -710,108 +706,99 @@ export class NotepadApp extends Application {
 
     async openFile() {
         if (await this.checkForUnsavedChanges() === 'cancel') return;
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = languages.flatMap(lang => lang.extensions.map(ext => `.${ext}`)).join(',');
-        input.onchange = e => {
-            const file = e.target.files[0];
-            if (!file) return;
-            this.fileName = file.name;
-            this.fileHandle = null;
-            this.isDirty = false;
-            this.updateTitle();
-            this.setLanguage(this.getLanguageFromExtension(file.name));
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                this.editor.setValue(event.target.result);
+
+        const fileTypes = [
+            { label: "Text Documents (*.txt)", extensions: ["txt"] },
+            { label: "All Files (*.*)", extensions: ["*"] }
+        ];
+
+        const path = await ShowFilePicker({
+            title: "Open",
+            mode: "open",
+            fileTypes
+        });
+
+        if (path) {
+            try {
+                const text = await fs.promises.readFile(path, 'utf8');
+                this.zenfsPath = path;
+                this.fileName = path.split("/").pop();
+                this.editor.setValue(text);
                 this.isDirty = false;
                 this.updateTitle();
-            };
-            reader.readAsText(file);
-        };
-        input.click();
+                this.setLanguage(this.getLanguageFromExtension(this.fileName));
+            } catch (e) {
+                console.error("Error opening file:", e);
+                ShowDialogWindow({
+                    title: "Error",
+                    text: `Could not open file: ${path}`,
+                    buttons: [{ label: "OK", isDefault: true }],
+                });
+            }
+        }
     }
 
     async clearContent() {
         if (await this.checkForUnsavedChanges() === 'cancel') return;
         this.editor.setValue('');
         this.fileName = 'Untitled';
-        this.fileHandle = null;
+        this.zenfsPath = null;
         this.isDirty = false;
         this.updateTitle();
     }
 
     async saveFile() {
         if (this.zenfsPath) {
-            await this.saveLocally();
-        } else if (this.fileHandle) {
             try {
-                await this.writeFile(this.fileHandle);
+                await fs.promises.writeFile(this.zenfsPath, this.editor.getValue());
                 this.isDirty = false;
                 this.updateTitle();
                 this.editor.statusText.textContent = 'File saved.';
                 setTimeout(() => this.editor.statusText.textContent = 'Ready', 2000);
             } catch (err) {
                 console.error('Error saving file:', err);
+                ShowDialogWindow({
+                    title: "Error",
+                    text: `Could not save file: ${err.message}`,
+                    buttons: [{ label: "OK", isDefault: true }],
+                });
             }
         } else {
             await this.saveAs();
         }
     }
 
-    async saveLocally() {
-        if (!this.zenfsPath) return;
-        try {
-            await fs.promises.writeFile(this.zenfsPath, this.editor.getValue());
-            this.isDirty = false;
-            this.updateTitle();
-            this.editor.statusText.textContent = 'File saved to ZenFS.';
-            setTimeout(() => this.editor.statusText.textContent = 'Ready', 2000);
-        } catch (err) {
-            console.error('Error saving to ZenFS:', err);
-            ShowDialogWindow({
-                title: "Error",
-                text: `Could not save to ZenFS: ${err.message}`,
-                buttons: [{ label: "OK", isDefault: true }],
-            });
-        }
-    }
-
     async saveAs() {
-        if (window.showSaveFilePicker) {
+        const fileTypes = [
+            { label: "Text Documents (*.txt)", extensions: ["txt"] },
+            { label: "All Files (*.*)", extensions: ["*"] }
+        ];
+
+        const path = await ShowFilePicker({
+            title: "Save As",
+            mode: "save",
+            fileTypes,
+            suggestedName: this.fileName === 'Untitled' ? 'Untitled.txt' : this.fileName
+        });
+
+        if (path) {
             try {
-                const fileTypes = languages.map(lang => ({
-                    description: lang.name,
-                    accept: { [lang.mimeType || 'text/plain']: lang.extensions.map(ext => `.${ext}`) },
-                }));
-                const handle = await window.showSaveFilePicker({ types: fileTypes, suggestedName: 'Untitled.txt' });
-                this.fileHandle = handle;
-                this.fileName = handle.name;
-                await this.writeFile(handle);
+                await fs.promises.writeFile(path, this.editor.getValue());
+                this.zenfsPath = path;
+                this.fileName = path.split("/").pop();
                 this.isDirty = false;
                 this.updateTitle();
+                this.editor.statusText.textContent = 'File saved.';
+                setTimeout(() => this.editor.statusText.textContent = 'Ready', 2000);
             } catch (err) {
-                if (err.name !== 'AbortError') console.error('Error saving file:', err);
+                console.error('Error saving file:', err);
+                ShowDialogWindow({
+                    title: "Error",
+                    text: `Could not save file: ${err.message}`,
+                    buttons: [{ label: "OK", isDefault: true }],
+                });
             }
-        } else {
-            const newFileName = prompt("Enter a filename:", this.fileName === 'Untitled' ? 'Untitled.txt' : this.fileName);
-            if (!newFileName) return;
-            this.fileName = newFileName;
-            const blob = new Blob([this.editor.getValue()], { type: 'text/plain' });
-            const a = document.createElement('a');
-a.href = URL.createObjectURL(blob);
-            a.download = this.fileName;
-            a.click();
-            URL.revokeObjectURL(a.href);
-            this.isDirty = false;
-            this.updateTitle();
         }
-    }
-
-    async writeFile(fileHandle) {
-        const writable = await fileHandle.createWritable();
-        await writable.write(this.editor.getValue());
-        await writable.close();
     }
 
     pasteText() {
