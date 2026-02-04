@@ -4,7 +4,7 @@ export class AddressBar {
   constructor(options = {}) {
     this.options = options;
     this.element = document.createElement("div");
-    this.element.className = "address-bar";
+    this.element.className = "address-bar inset-deep";
 
     const label = document.createElement("label");
     label.className = "address-bar-label";

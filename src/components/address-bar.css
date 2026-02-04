@@ -3,8 +3,13 @@
   align-items: center;
   padding: 2px;
   background-color: var(--ButtonFace);
-  border-bottom: 1px solid var(--border-color);
   position: relative;
+}
+
+.inset-deep {
+  border: 2px groove transparent;
+  border-image: var(--inset-deep-border-image);
+  box-sizing: border-box;
 }
 
 .address-bar-label {
@@ -114,8 +119,8 @@
 }
 
 .address-bar-tree-item:hover {
-  background-color: var(--Highlight);
-  color: var(--HighlightText);
+  background-color: var(--Hilight);
+  color: var(--HilightText);
 }
 
 .address-bar-tree-item img {
