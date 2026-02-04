@@ -25,10 +25,13 @@ export class NavigationController {
       if (path === "My Computer") {
         path = "/";
       }
+      if (path === "/Desktop/Internet Explorer") {
+        path = "azay.rahmad";
+      }
 
       // Normalize path for ZenFS
       let normalizedPath = path.replace(/\\/g, "/");
-      if (!normalizedPath.startsWith("/")) {
+      if (!this.app.isWebPath(normalizedPath) && !normalizedPath.startsWith("/")) {
         normalizedPath = "/" + normalizedPath;
       }
 
@@ -45,8 +48,9 @@ export class NavigationController {
       }
 
       const stats = await ShellManager.stat(normalizedPath);
+      const isWeb = this.app.isWebPath(normalizedPath);
 
-      if (!stats.isDirectory()) {
+      if (!stats.isDirectory() && !isWeb) {
         throw new Error("Not a directory");
       }
 
@@ -69,8 +73,12 @@ export class NavigationController {
       // Update UI elements
       await this.app.directoryView.updateUIForPath(normalizedPath);
 
-      // Read and render directory contents
-      await this.app.directoryView.renderDirectoryContents(normalizedPath);
+      if (isWeb) {
+        await this.app._loadWebUrl(normalizedPath);
+      } else {
+        // Read and render directory contents
+        await this.app.directoryView.renderDirectoryContents(normalizedPath);
+      }
 
       // Update cut icons
       this.app.directoryView.updateCutIcons();

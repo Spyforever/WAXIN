@@ -64,7 +64,7 @@ export async function launchApp(appId, data = null) {
             document.dispatchEvent(new CustomEvent('app-launched', { detail: { appId } }));
             return appInstance;
         } else if (appConfig.action?.type === "function") {
-            appConfig.action.handler();
+            appConfig.action.handler(data);
         } else {
             console.error(`No application class or legacy action found for ID: ${appId}`);
         }
