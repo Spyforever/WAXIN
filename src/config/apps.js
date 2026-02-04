@@ -75,8 +75,8 @@ const systemApps = [
     },
     action: {
       type: "function",
-      handler: () => {
-        window.System.launchApp("explorer", "azay.rahmad");
+      handler: (data) => {
+        window.System.launchApp("explorer", data || "azay.rahmad");
       },
     },
   },
