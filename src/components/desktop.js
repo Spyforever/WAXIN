@@ -250,9 +250,10 @@ class DesktopController {
     const label = icon.querySelector(".icon-label");
     const fullPath = path;
     const oldName = fullPath.split("/").pop();
+    const isShortcut = oldName.endsWith(".lnk.json") || oldName.endsWith(".lnk");
     const textarea = document.createElement("textarea");
     textarea.className = "icon-label-input";
-    textarea.value = oldName;
+    textarea.value = isShortcut ? oldName.replace(".lnk.json", "").replace(".lnk", "") : oldName;
     textarea.spellcheck = false;
 
     // Hide label and add textarea as sibling
@@ -283,12 +284,15 @@ class DesktopController {
       if (!this._isRenaming) return;
       this._isRenaming = false;
 
-      const newName = textarea.value.trim();
-
+      let newName = textarea.value.trim();
+      if (isShortcut && newName && !newName.endsWith(".lnk.json") && !newName.endsWith(".lnk")) {
+        newName += ".lnk.json";
+      }
+      
       // Clean up UI immediately
       textarea.remove();
       label.style.display = "";
-
+      
       if (save && newName && newName !== oldName) {
         // Optimistic update
         label.textContent = newName;
@@ -336,7 +340,7 @@ class DesktopController {
     if (handled) return;
 
     const name = path.split("/").pop();
-    if (name.endsWith(".lnk")) {
+    if (name.endsWith(".lnk.json") || name.endsWith(".lnk")) {
       try {
         const content = await fs.promises.readFile(ShellManager.getRealPath(path), "utf8");
         const data = JSON.parse(content);

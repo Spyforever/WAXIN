@@ -67,7 +67,12 @@ export function formatPathForDisplay(path) {
  */
 export function getDisplayName(path) {
     if (path === "/" || path === "My Computer") return "My Computer";
-    const name = path.split("/").filter(Boolean).pop();
+    let name = path.split("/").filter(Boolean).pop();
+
+    if (name && (name.endsWith(".lnk.json") || name.endsWith(".lnk"))) {
+        name = name.replace(".lnk.json", "").replace(".lnk", "");
+    }
+
     if (name && name.match(/^A:$/i)) {
         const label = FloppyManager.getLabel();
         return label ? `${label} (${name.toUpperCase()})` : `3½ Floppy (${name.toUpperCase()})`;

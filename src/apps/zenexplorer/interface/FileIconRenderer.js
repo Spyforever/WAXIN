@@ -128,8 +128,9 @@ export async function renderFileIcon(fileName, fullPath, isDir, options = {}) {
   let isShortcut = false;
 
   // Special handling for shortcuts (.lnk files)
-  if (!isDir && fileName.endsWith(".lnk")) {
+  if (!isDir && (fileName.endsWith(".lnk.json") || fileName.endsWith(".lnk"))) {
     isShortcut = true;
+    displayName = displayName.replace(".lnk.json", "").replace(".lnk", "");
     try {
       const content = await fs.promises.readFile(
         ShellManager.getRealPath(fullPath),

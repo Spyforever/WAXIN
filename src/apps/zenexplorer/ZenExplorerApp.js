@@ -468,7 +468,7 @@ export class ZenExplorerApp extends Application {
     if (handled) return;
 
     // Handle .lnk files
-    if (name.endsWith(".lnk")) {
+    if (name.endsWith(".lnk.json") || name.endsWith(".lnk")) {
       try {
         const content = await fs.promises.readFile(ShellManager.getRealPath(fullPath), "utf8");
         const data = JSON.parse(content);

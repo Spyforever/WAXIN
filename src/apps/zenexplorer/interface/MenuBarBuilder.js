@@ -84,6 +84,11 @@ export class MenuBarBuilder {
         action: () => this.app.fileOps.pasteItems(this.app.currentPath),
         enabled: () => !ClipboardManager.isEmpty() && !isRoot && !isRecycleBin,
       },
+      {
+        label: "Paste &Shortcut",
+        action: () => this.app.fileOps.pasteShortcuts(this.app.currentPath),
+        enabled: () => !ClipboardManager.isEmpty() && ClipboardManager.operation === "copy" && !isRoot && !isRecycleBin,
+      },
     ];
   }
 
