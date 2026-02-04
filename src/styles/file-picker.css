@@ -48,10 +48,15 @@
 }
 
 .file-picker-toolbar-button .toolbar-icon {
-    width: 20px;
-    height: 20px;
-    background-image: url("/src/assets/icons/browse-ui-icons.png");
+    width: 16px;
+    height: 16px;
+    background-image: url("/src/assets/icons/filepicker.png");
     background-repeat: no-repeat;
+}
+
+.file-picker-toolbar-button .toolbar-icon.desktop {
+    background-image: url("/src/assets/icons/browse-ui-icons.png");
+    background-position: -360px 0; /* Index 18 */
     transform: scale(0.8);
 }
 

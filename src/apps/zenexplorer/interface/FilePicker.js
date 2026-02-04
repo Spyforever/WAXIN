@@ -151,18 +151,29 @@ export class FilePicker {
     const icon = document.createElement("div");
     icon.className = "toolbar-icon";
 
-    // Map icons
+    // Map icons to the new filepicker.png sprite (horizontal, 16px each)
     const ICON_MAP = {
-        "up": 44,
-        "view-list": 38,
-        "view-details": 39,
-        "desktop": 18,
-        "new-folder": 27,
+        "view-large": 0,
+        "view-small": 1,
+        "view-list": 2,
+        "view-details": 3,
+        "by-name": 4,
+        "by-size": 5,
+        "by-date": 6,
+        "by-type": 7,
+        "up": 8,
+        "new-file": 9,
+        "cut-file": 10,
+        "new-folder": 11,
     };
 
-    const iconId = ICON_MAP[iconName];
-    if (iconId !== undefined) {
-        icon.style.backgroundPosition = `-${iconId * 20}px 0`;
+    if (iconName === "desktop") {
+        icon.classList.add("desktop");
+    } else {
+        const iconId = ICON_MAP[iconName];
+        if (iconId !== undefined) {
+            icon.style.backgroundPosition = `-${iconId * 16}px 0`;
+        }
     }
 
     btn.appendChild(icon);
