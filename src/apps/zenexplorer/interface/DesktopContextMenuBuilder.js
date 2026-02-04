@@ -92,6 +92,11 @@ export class DesktopContextMenuBuilder extends ContextMenuBuilder {
         action: () => this.app.fileOps.pasteItems(this.app.currentPath),
         enabled: () => !ClipboardManager.isEmpty(),
       },
+      {
+        label: "Paste Shortcut",
+        action: () => this.app.fileOps.pasteShortcuts(this.app.currentPath),
+        enabled: () => !ClipboardManager.isEmpty() && ClipboardManager.operation === "copy",
+      },
       "MENU_DIVIDER",
       {
         label: "New",

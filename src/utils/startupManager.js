@@ -19,7 +19,7 @@ export async function getStartupApps() {
     if (await existsAsync(STARTUP_PATH)) {
       const files = await fs.promises.readdir(STARTUP_PATH);
       for (const file of files) {
-        if (file.endsWith(".lnk")) {
+        if (file.endsWith(".lnk.json")) {
           const content = await fs.promises.readFile(`${STARTUP_PATH}/${file}`, "utf8");
           const data = JSON.parse(content);
           if (data.appId) {
@@ -51,7 +51,7 @@ export async function addStartupApp(appId) {
     }
     const app = apps.find(a => a.id === appId);
     const label = app ? app.title : appId;
-    const lnkPath = `${STARTUP_PATH}/${label}.lnk`;
+    const lnkPath = `${STARTUP_PATH}/${label}.lnk.json`;
 
     if (!(await existsAsync(lnkPath))) {
       await fs.promises.writeFile(lnkPath, JSON.stringify({
@@ -81,7 +81,7 @@ export async function removeStartupApp(appId) {
     if (await existsAsync(STARTUP_PATH)) {
       const files = await fs.promises.readdir(STARTUP_PATH);
       for (const file of files) {
-        if (file.endsWith(".lnk")) {
+        if (file.endsWith(".lnk.json")) {
           const content = await fs.promises.readFile(`${STARTUP_PATH}/${file}`, "utf8");
           const data = JSON.parse(content);
           if (data.appId === appId) {

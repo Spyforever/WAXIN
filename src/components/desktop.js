@@ -294,7 +294,7 @@ class DesktopController {
     if (handled) return;
 
     const name = path.split("/").pop();
-    if (name.endsWith(".lnk")) {
+    if (name.endsWith(".lnk.json") || name.endsWith(".lnk")) {
       try {
         const content = await fs.promises.readFile(ShellManager.getRealPath(path), "utf8");
         const data = JSON.parse(content);

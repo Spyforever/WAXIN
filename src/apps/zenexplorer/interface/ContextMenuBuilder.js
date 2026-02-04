@@ -164,6 +164,12 @@ export class ContextMenuBuilder {
             !ClipboardManager.isEmpty() && type === "directory",
         },
         {
+          label: "Paste Shortcut",
+          action: () => this.app.fileOps.pasteShortcuts(path),
+          enabled: () =>
+            !ClipboardManager.isEmpty() && ClipboardManager.operation === "copy" && type === "directory",
+        },
+        {
           label: "Create Shortcut",
           action: () => this.app.fileOps.createShortcuts(selectedPaths),
           enabled: () => !isRootItem && !isRecycleBin && !anyVirtual,
@@ -253,6 +259,11 @@ export class ContextMenuBuilder {
         label: "Paste",
         action: () => this.app.fileOps.pasteItems(this.app.currentPath),
         enabled: () => !ClipboardManager.isEmpty() && ((!isRoot || isVirtualDesktop) && !isGlobalRecycleBin),
+      },
+      {
+        label: "Paste Shortcut",
+        action: () => this.app.fileOps.pasteShortcuts(this.app.currentPath),
+        enabled: () => !ClipboardManager.isEmpty() && ClipboardManager.operation === "copy" && ((!isRoot || isVirtualDesktop) && !isGlobalRecycleBin),
       },
       "MENU_DIVIDER",
       {

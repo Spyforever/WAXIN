@@ -26,7 +26,8 @@ export class ProgressBarDialogWindow {
       recycle: "Recycling...",
       delete: "Deleting...",
       empty: "Emptying Recycle Bin...",
-      restore: "Restoring..."
+      restore: "Restoring...",
+      shortcut: "Creating Shortcuts..."
     }[this.operation] || "Processing...";
 
     const gifUrl = {
@@ -35,7 +36,8 @@ export class ProgressBarDialogWindow {
       recycle: new URL("../assets/moving.gif", import.meta.url).href,
       delete: new URL("../assets/copying.gif", import.meta.url).href,
       empty: new URL("../assets/moving.gif", import.meta.url).href,
-      restore: new URL("../assets/moving.gif", import.meta.url).href
+      restore: new URL("../assets/moving.gif", import.meta.url).href,
+      shortcut: new URL("../assets/moving.gif", import.meta.url).href
     }[this.operation] || new URL("../assets/moving.gif", import.meta.url).href;
 
     const content = document.createElement("div");
