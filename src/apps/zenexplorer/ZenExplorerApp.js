@@ -9,7 +9,6 @@ import { StatusBar } from "../../components/StatusBar.js";
 import { AnimatedLogo } from "../../components/AnimatedLogo.js";
 import browseUiIcons from "../../assets/icons/browse-ui-icons.png";
 import browseUiIconsGrayscale from "../../assets/icons/browse-ui-icons-grayscale.png";
-import "../explorer/explorer.css"; // Reuse explorer styles
 
 // Reorganized modules
 import { Sidebar } from "./interface/Sidebar.js";
@@ -33,6 +32,7 @@ import { ControlPanelExtension } from "./extensions/ControlPanelExtension.js";
 import { DesktopExtension } from "./extensions/DesktopExtension.js";
 import { RecycleBinExtension } from "./extensions/RecycleBinExtension.js";
 import { NetworkNeighborhoodExtension } from "./extensions/NetworkNeighborhoodExtension.js";
+import "./explorer.css";
 
 // Initialize Shell Extensions
 ShellManager.registerExtension(new ControlPanelExtension());
@@ -42,10 +42,10 @@ ShellManager.registerExtension(new NetworkNeighborhoodExtension());
 
 export class ZenExplorerApp extends Application {
   static config = {
-    id: "zenexplorer",
-    title: "File Manager (ZenFS)",
-    description: "Browse files using ZenFS.",
-    icon: ICONS.computer,
+    id: "explorer",
+    title: "Windows Explorer",
+    description: "Browse files and folders.",
+    icon: ICONS.windowsExplorer,
     width: 640,
     height: 480,
     resizable: true,
@@ -68,11 +68,11 @@ export class ZenExplorerApp extends Application {
   async launch(data = null) {
     const targetPath = this._normalizePath(data);
     let existingAppAtSamePath = null;
-    let anyZenExplorer = false;
+    let anyExplorer = false;
 
     for (const app of openApps.values()) {
       if (app.config?.id === this.id) {
-        anyZenExplorer = true;
+        anyExplorer = true;
         if (this._normalizePath(app.currentPath) === targetPath) {
           existingAppAtSamePath = app;
           break;
@@ -87,9 +87,9 @@ export class ZenExplorerApp extends Application {
       return;
     }
 
-    // If we have any existing ZenExplorer, we need a unique windowId
+    // If we have any existing explorer, we need a unique windowId
     // to bypass the singleton-like check in Application.launch.
-    if (anyZenExplorer) {
+    if (anyExplorer) {
       const filePath =
         typeof data === "string"
           ? data
@@ -106,7 +106,7 @@ export class ZenExplorerApp extends Application {
       });
     }
 
-    // First instance: use default launch behavior (maintains #zenexplorer ID if launched without path)
+    // First instance: use default launch behavior (maintains #explorer ID if launched without path)
     return super.launch(data);
   }
 

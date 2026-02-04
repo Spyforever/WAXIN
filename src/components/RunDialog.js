@@ -1,11 +1,12 @@
 import { ICONS } from "../config/icons.js";
 import { launchApp } from "../utils/appManager.js";
-import { findItemByPath, getAssociation } from "../utils/directory.js";
+import { getAssociation } from "../utils/directory.js";
 import { convertWindowsPathToInternal } from "../utils/path.js";
 import { ShowDialogWindow } from "./DialogWindow.js";
 import { apps } from "../config/apps.js";
+import { ShellManager } from "../apps/zenexplorer/extensions/ShellManager.js";
 
-function ShowRunDialog() {
+async function ShowRunDialog() {
   const win = new $FormWindow("Run");
   win.setDimensions({
     outerWidth: 300,
@@ -46,7 +47,7 @@ function ShowRunDialog() {
 
   win.$main.append(contentContainer, formContainer);
 
-  const executeCommand = () => {
+  const executeCommand = async () => {
     const command = inputEl.value.trim();
     if (!command) {
       return;
@@ -75,17 +76,18 @@ function ShowRunDialog() {
 
     // Treat as a file path
     const internalPath = convertWindowsPathToInternal(command);
-    const item = internalPath ? findItemByPath(internalPath) : null;
-
-    if (item) {
-      if (item.type === "folder" || item.type === "drive") {
+    try {
+      const stats = await ShellManager.stat(internalPath);
+      if (stats.isDirectory()) {
         launchApp("explorer", internalPath);
-      } else if (item.type === "file") {
-        const association = getAssociation(item.name);
-        launchApp(association.appId, item.contentUrl);
+      } else {
+        const association = getAssociation(internalPath.split("/").pop());
+        launchApp(association.appId, internalPath);
       }
       win.close();
       return;
+    } catch (e) {
+      // Not found, continue to error
     }
 
     // If nothing matches, show an error
@@ -96,7 +98,7 @@ function ShowRunDialog() {
     });
   };
 
-  win.$Button("OK", executeCommand).addClass("default");
+  win.$Button("OK", async () => await executeCommand()).addClass("default");
   win.$Button("Cancel", () => win.close());
   const browseButton = win.$Button("Browse...", () => {});
   browseButton.disabled = true;
