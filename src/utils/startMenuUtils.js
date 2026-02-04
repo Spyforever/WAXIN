@@ -28,7 +28,7 @@ export async function migrateToZenFS(config, targetPath) {
       await migrateToZenFS(item.submenu, dirPath);
     } else if (item.appId) {
       // Create a shortcut
-      const lnkPath = `${targetPath}/${item.label}.lnk`;
+      const lnkPath = `${targetPath}/${item.label}.lnk.json`;
       const lnkData = {
         type: "shortcut",
         appId: item.appId,
@@ -48,7 +48,7 @@ export async function migrateToZenFS(config, targetPath) {
 export async function loadLnk(path, iconSize = 16) {
   try {
     const filename = path.split("/").pop();
-    const label = filename.replace(".lnk", "");
+    const label = filename.replace(".lnk.json", "").replace(".lnk", "");
     const content = await fs.promises.readFile(path, "utf8");
     const data = JSON.parse(content);
 
@@ -117,7 +117,7 @@ export async function getPinnedItemsFromZenFS(path = PINNED_PATH) {
       const fullPath = `${path}/${file}`;
       const stat = await fs.promises.stat(fullPath);
 
-      if (!stat.isDirectory() && file.endsWith(".lnk")) {
+      if (!stat.isDirectory() && file.endsWith(".lnk.json")) {
         const item = await loadLnk(fullPath, 32);
         if (item) {
           menuItems.push(item);
@@ -158,7 +158,7 @@ export async function getMenuFromZenFS(path) {
           icon: ICONS.programs[16],
           submenu: await getMenuFromZenFS(fullPath),
         });
-      } else if (file.endsWith(".lnk")) {
+      } else if (file.endsWith(".lnk.json")) {
         const item = await loadLnk(fullPath);
         if (item) {
           menuItems.push(item);

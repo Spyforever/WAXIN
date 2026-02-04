@@ -119,7 +119,7 @@ export async function addDesktopShortcut(appId, appTitle) {
     if (!(await existsAsync(desktopPath))) {
       await fs.promises.mkdir(desktopPath, { recursive: true });
     }
-    const lnkPath = `${desktopPath}/${appTitle}.lnk`;
+    const lnkPath = `${desktopPath}/${appTitle}.lnk.json`;
 
     if (!(await existsAsync(lnkPath))) {
       await fs.promises.writeFile(lnkPath, JSON.stringify({
@@ -143,7 +143,7 @@ export async function removeDesktopShortcut(appId) {
     if (await existsAsync(desktopPath)) {
       const files = await fs.promises.readdir(desktopPath);
       for (const file of files) {
-        if (file.endsWith(".lnk")) {
+        if (file.endsWith(".lnk.json")) {
           const content = await fs.promises.readFile(`${desktopPath}/${file}`, "utf8");
           try {
             const data = JSON.parse(content);

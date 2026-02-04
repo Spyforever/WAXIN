@@ -1,6 +1,7 @@
 import { resolveMountConfig, InMemory, fs } from "@zenfs/core";
 import { IndexedDB } from "@zenfs/dom";
 import { migrateToZenFS, PINNED_PATH, START_MENU_PATH, FAVORITES_PATH } from "./startMenuUtils.js";
+import { migrateShortcuts } from "./migrateShortcuts.js";
 import startMenuConfig from "../config/startmenu.js";
 import { getStartupApps } from "./startupManager.js";
 import { apps } from "../config/apps.js";
@@ -73,7 +74,7 @@ export async function initFileSystem(onProgress) {
         }
 
         // Ensure About shortcut exists in PINNED_PATH
-        const aboutLnkPath = `${PINNED_PATH}/About.lnk`;
+        const aboutLnkPath = `${PINNED_PATH}/About.lnk.json`;
         if (!(await existsAsync(aboutLnkPath))) {
             await fs.promises.writeFile(aboutLnkPath, JSON.stringify({
                 type: "shortcut",
@@ -97,7 +98,7 @@ export async function initFileSystem(onProgress) {
                 for (const appId of startupApps) {
                     const app = apps.find(a => a.id === appId);
                     const label = app ? app.title : appId;
-                    const lnkPath = `${startupPath}/${label}.lnk`;
+                    const lnkPath = `${startupPath}/${label}.lnk.json`;
                     if (!(await existsAsync(lnkPath))) {
                         await fs.promises.writeFile(lnkPath, JSON.stringify({
                             type: "shortcut",
@@ -106,6 +107,12 @@ export async function initFileSystem(onProgress) {
                     }
                 }
             }
+        }
+
+        if (!(await existsAsync("/C:/.shortcuts_migrated"))) {
+            if (onProgress) onProgress("Migrating shortcuts...");
+            await migrateShortcuts("/C:");
+            await fs.promises.writeFile("/C:/.shortcuts_migrated", "done");
         }
 
         if (onProgress) onProgress("Initializing Favorites...");

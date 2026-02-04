@@ -28,19 +28,25 @@ export class FileOperations {
         ClipboardManager.set(paths, "copy");
     }
 
-    async createShortcuts(paths, destinationPath = null) {
+    async createShortcuts(paths, destinationPath = null, dialog = null) {
         const dest = destinationPath || this.app.currentPath;
         const targetPaths = [];
         try {
             for (const itemPath of paths) {
+                if (dialog && dialog.cancelled) break;
                 const itemName = getPathName(itemPath);
                 const targetLnkPath = await this.getUniquePastePath(dest, itemName, "shortcut");
+
+                if (dialog) {
+                    const sourceDir = getParentPath(itemPath);
+                    dialog.update(itemPath, sourceDir, dest, 0);
+                }
 
                 let lnkData = { type: "shortcut" };
 
                 // Check if it's already a shortcut with an appId
                 const stats = await ShellManager.stat(itemPath).catch(() => ({}));
-                if (stats.isFile && stats.isFile() && itemPath.endsWith(".lnk")) {
+                if (stats.isFile && stats.isFile() && (itemPath.endsWith(".lnk.json") || itemPath.endsWith(".lnk"))) {
                     try {
                         const content = await fs.promises.readFile(ShellManager.getRealPath(itemPath), "utf8");
                         const data = JSON.parse(content);
@@ -59,9 +65,12 @@ export class FileOperations {
 
                 await fs.promises.writeFile(ShellManager.getRealPath(targetLnkPath), JSON.stringify(lnkData, null, 2));
                 targetPaths.push(targetLnkPath);
+                if (dialog) dialog.finishItem(0);
             }
 
-            await this.app.navigateTo(this.app.currentPath, true, true);
+            if (dest === this.app.currentPath) {
+                await this.app.navigateTo(this.app.currentPath, true, true);
+            }
             document.dispatchEvent(new CustomEvent("fs-change", { detail: { sourceAppId: this.app.win.element.id } }));
         } catch (e) {
             handleFileSystemError("create", e, "shortcut");
@@ -102,6 +111,20 @@ export class FileOperations {
             } else if (operation === "copy") {
                 await this.copyItemsDirect(items, destinationPath, {}, dialog);
             }
+        } finally {
+            dialog.close();
+        }
+    }
+
+    async pasteShortcuts(destinationPath) {
+        const { items, operation } = ClipboardManager.get();
+        if (items.length === 0 || operation === "cut") return;
+
+        const { ProgressBarDialogWindow } = await import("../interface/ProgressBarDialogWindow.js");
+        const dialog = new ProgressBarDialogWindow("shortcut", items.length, 0);
+
+        try {
+            await this.createShortcuts(items, destinationPath, dialog);
         } finally {
             dialog.close();
         }
@@ -175,13 +198,14 @@ export class FileOperations {
 
     async getUniquePastePath(destPath, originalName, operation, sourcePath = null) {
         if (operation === "shortcut") {
-            let candidateName = `Shortcut to ${originalName}.lnk`;
+            const cleanName = originalName.replace(".lnk.json", "").replace(".lnk", "");
+            let candidateName = `Shortcut to ${cleanName}.lnk.json`;
             let checkPath = normalizePath(joinPath(destPath, candidateName));
             try {
                 await fs.promises.stat(ShellManager.getRealPath(checkPath));
                 let counter = 2;
                 while (true) {
-                    candidateName = `Shortcut (${counter}) to ${originalName}.lnk`;
+                    candidateName = `Shortcut (${counter}) to ${cleanName}.lnk.json`;
                     checkPath = normalizePath(joinPath(destPath, candidateName));
                     try {
                         await fs.promises.stat(ShellManager.getRealPath(checkPath));

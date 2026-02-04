@@ -274,9 +274,10 @@ export class DirectoryView {
     const label = icon.querySelector(".icon-label");
     const fullPath = icon.getAttribute("data-path");
     const oldName = fullPath.split("/").pop();
+    const isShortcut = oldName.endsWith(".lnk.json") || oldName.endsWith(".lnk");
     const textarea = document.createElement("textarea");
     textarea.className = "icon-label-input";
-    textarea.value = oldName;
+    textarea.value = isShortcut ? oldName.replace(".lnk.json", "").replace(".lnk", "") : oldName;
     textarea.spellcheck = false;
     label.innerHTML = "";
     label.appendChild(textarea);
@@ -293,7 +294,10 @@ export class DirectoryView {
     const finishRename = async (save) => {
       if (!this._isRenaming) return;
       this._isRenaming = false;
-      const newName = textarea.value.trim();
+      let newName = textarea.value.trim();
+      if (isShortcut && newName && !newName.endsWith(".lnk.json") && !newName.endsWith(".lnk")) {
+        newName += ".lnk.json";
+      }
       const busyId = `rename-${Math.random()}`;
       if (save && newName && newName !== oldName) {
         requestBusyState(busyId, this.app.win.element);
