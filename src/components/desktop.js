@@ -598,7 +598,16 @@ export async function initDesktop(profile = null) {
   });
 
   window.addEventListener("keydown", (e) => {
-    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+    const tag = e.target.tagName;
+    if (
+      tag === "INPUT" ||
+      tag === "TEXTAREA" ||
+      tag === "SELECT" ||
+      tag === "BUTTON" ||
+      e.target.closest(".os-window")
+    ) {
+      return;
+    }
 
     const selectedIcons = [...desktopController.iconManager.selectedIcons];
 
