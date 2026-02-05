@@ -357,7 +357,7 @@ class DesktopController {
               const { getAssociation } = await import("../utils/directory.js");
               const association = getAssociation(targetName);
               if (association.appId) {
-                launchApp(association.appId, data.targetPath);
+                launchApp(association.appId, ShellManager.getRealPath(data.targetPath));
               } else {
                 alert(`Cannot open file: ${targetName} (No association)`);
               }
@@ -377,7 +377,7 @@ class DesktopController {
       const { getAssociation } = await import("../utils/directory.js");
       const association = getAssociation(path.split("/").pop());
       if (association.appId) {
-        launchApp(association.appId, path);
+        launchApp(association.appId, ShellManager.getRealPath(path));
       }
     }
   }

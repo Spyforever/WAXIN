@@ -139,7 +139,7 @@ export class ShellManager {
   static getRealPath(path) {
     const ext = this.getExtensionForPath(path);
     if (ext && ext.getRealPath) {
-      return ext.getRealPath(path);
+      return ext.getRealPath(path) || path;
     }
     return path;
   }

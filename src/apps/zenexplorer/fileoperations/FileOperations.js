@@ -54,13 +54,13 @@ export class FileOperations {
                             lnkData.appId = data.appId;
                             lnkData.args = data.args;
                         } else {
-                            lnkData.targetPath = data.targetPath || itemPath;
+                            lnkData.targetPath = ShellManager.getRealPath(data.targetPath || itemPath);
                         }
                     } catch (e) {
-                        lnkData.targetPath = itemPath;
+                        lnkData.targetPath = ShellManager.getRealPath(itemPath);
                     }
                 } else {
-                    lnkData.targetPath = itemPath;
+                    lnkData.targetPath = ShellManager.getRealPath(itemPath);
                 }
 
                 await fs.promises.writeFile(ShellManager.getRealPath(targetLnkPath), JSON.stringify(lnkData, null, 2));

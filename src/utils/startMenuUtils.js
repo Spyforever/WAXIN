@@ -4,6 +4,7 @@ import { launchApp } from "./appManager.js";
 import { ICONS } from "../config/icons.js";
 import { getAssociation } from "./directory.js";
 import { existsAsync } from "./zenfs-utils.js";
+import { ShellManager } from "../apps/zenexplorer/extensions/ShellManager.js";
 
 export const PINNED_PATH = "/C:/WINDOWS/Start Menu";
 export const START_MENU_PATH = "/C:/WINDOWS/Start Menu/Programs";
@@ -65,7 +66,7 @@ export async function loadLnk(path, iconSize = 16) {
       let action = () => {};
 
       try {
-        const stats = await fs.promises.stat(data.targetPath);
+        const stats = await ShellManager.stat(data.targetPath);
         if (stats.isDirectory()) {
           icon = ICONS.folderClosed[iconSize];
           action = () => launchApp("explorer", data.targetPath);
@@ -73,10 +74,10 @@ export async function loadLnk(path, iconSize = 16) {
           const association = getAssociation(targetName);
           if (association) {
             icon = association.icon[iconSize];
-            action = () => launchApp(association.appId, data.targetPath);
+            action = () => launchApp(association.appId, ShellManager.getRealPath(data.targetPath));
           } else {
             icon = ICONS.file[iconSize];
-            action = () => launchApp("notepad", data.targetPath);
+            action = () => launchApp("notepad", ShellManager.getRealPath(data.targetPath));
           }
         }
       } catch (e) {
