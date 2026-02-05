@@ -1,24 +1,24 @@
-import "./styles/cursors.css";
-import "./styles/file-picker.css";
-import "./style.css";
-import "./styles/splash.css";
-import "./styles/shutdown-screen.css";
+import "./shared/styles/cursors.css";
+import "./shared/styles/file-picker.css";
+import "./shared/styles/main.css";
+import "./shared/styles/splash.css";
+import "./shell/shutdown-screen.css";
 
 import splashBg from "./assets/img/splash.png";
-import { themes } from "./config/themes.js";
-import { colorSchemes } from "./config/colorSchemes.js";
-import { setupCounter } from "./counter.js";
-import { initDesktop } from "./components/desktop.js";
-import { getItem, LOCAL_STORAGE_KEYS } from "./utils/localStorage.js";
-import { apps, appClasses } from "./config/apps.js";
-import { ICONS } from "./config/icons.js";
-import { Application } from "./apps/Application.js";
-import { registerCustomApp } from "./utils/customAppManager.js";
-import { taskbar } from "./components/taskbar.js";
-import { ShowDialogWindow } from "./components/DialogWindow.js";
-import { playSound } from "./utils/soundManager.js";
-import { setTheme, getCurrentTheme, setColorScheme } from "./utils/themeManager.js";
-import { profiles } from "./config/profiles.js";
+import { themes } from './config/themes.js';
+import { colorSchemes } from './config/color-schemes.js';
+import { setupCounter } from './shared/utils/counter.js';
+import { initDesktop } from './shell/desktop/desktop.js';
+import { getItem, LOCAL_STORAGE_KEYS } from './system/local-storage.js';
+import { apps, appClasses } from './config/apps.js';
+import { ICONS } from './config/icons.js';
+import { Application } from './system/application.js';
+import { registerCustomApp } from './system/custom-app-manager.js';
+import { taskbar } from './shell/taskbar/taskbar.js';
+import { ShowDialogWindow } from './shared/components/dialog-window.js';
+import { playSound } from './system/sound-manager.js';
+import { setTheme, getCurrentTheme, setColorScheme } from './system/theme-manager.js';
+import { profiles } from './config/profiles.js';
 import {
   hideBootScreen,
   startBootProcessStep,
@@ -26,17 +26,17 @@ import {
   showBlinkingCursor,
   promptToContinue,
   showSetupScreen,
-} from "./components/bootScreen.js";
-import { preloadThemeAssets } from "./utils/assetPreloader.js";
-import { launchApp } from "./utils/appManager.js";
-import { createMainUI } from "./components/ui.js";
-import { initColorModeManager } from "./utils/colorModeManager.js";
-import screensaver from "./utils/screensaverUtils.js";
-import { initScreenManager } from "./utils/screenManager.js";
+} from './system/boot-screen.js';
+import { preloadThemeAssets } from './system/asset-preloader.js';
+import { launchApp } from './system/app-manager.js';
+import { createMainUI } from './shell/ui.js';
+import { initColorModeManager } from './system/color-mode-manager.js';
+import screensaver from './system/screensaver-utils.js';
+import { initScreenManager } from './system/screen-manager.js';
 import { fs, mounts } from "@zenfs/core";
-import { initFileSystem } from "./utils/zenfs-init.js";
-import { RecycleBinManager } from "./apps/zenexplorer/fileoperations/RecycleBinManager.js";
-import { appManager } from "./utils/appManager.js";
+import { initFileSystem } from './system/zenfs-init.js';
+import { RecycleBinManager } from './shell/explorer/file-operations/recycle-bin-manager.js';
+import { appManager } from './system/app-manager.js';
 
 // Window Management System
 class WindowManagerSystem {
