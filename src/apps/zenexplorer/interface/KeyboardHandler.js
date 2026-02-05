@@ -9,7 +9,13 @@ export class KeyboardHandler {
   }
 
   handleKeyDown(e) {
-    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") {
+    const tag = e.target.tagName;
+    if (
+      tag === "INPUT" ||
+      tag === "TEXTAREA" ||
+      tag === "SELECT" ||
+      tag === "BUTTON"
+    ) {
       return;
     }
 
