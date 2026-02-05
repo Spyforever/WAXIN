@@ -1,8 +1,8 @@
-import { ICONS } from '../../../config/icons.js';
-import { apps } from '../../../config/apps.js';
-import { launchApp } from '../../../system/app-manager.js';
-import { VirtualStats } from './shell-manager.js';
-import { getPathName } from '../navigation/path-utils.js';
+import { ICONS } from "../../../config/icons.js";
+import { apps } from "../../../config/apps.js";
+import { launchApp } from "../../../system/app-manager.js";
+import { VirtualStats } from "./shell-manager.js";
+import { getPathName } from "../navigation/path-utils.js";
 
 /**
  * ControlPanelExtension - Shell extension for the virtual Control Panel folder
@@ -14,7 +14,7 @@ export class ControlPanelExtension {
       {
         id: "display",
         name: "Display",
-        appId: "displayproperties",
+        appId: "display-properties",
         description: "Customize your display settings.",
       },
       {
@@ -26,19 +26,19 @@ export class ControlPanelExtension {
       {
         id: "sounds",
         name: "Sound",
-        appId: "soundschemeexplorer",
+        appId: "sound-scheme-explorer",
         description: "Explore and listen to sound schemes.",
       },
       {
         id: "themetocss",
         name: "Theme to CSS",
-        appId: "themetocss",
+        appId: "theme-to-css",
         description: "Convert a Windows theme file to CSS.",
       },
       {
         id: "mouse",
         name: "Mouse",
-        appId: "cursorexplorer",
+        appId: "cursor-explorer",
         description: "Explore and preview cursor schemes.",
       },
     ];

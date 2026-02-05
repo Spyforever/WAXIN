@@ -1,71 +1,73 @@
-import { ContextMenuBuilder } from './context-menu-builder.js';
+import { ContextMenuBuilder } from "./context-menu-builder.js";
 import {
   getThemes,
   getCurrentTheme,
   setTheme,
-} from '../../../system/theme-manager.js';
+} from "../../../system/theme-manager.js";
 import {
   setColorMode,
   getCurrentColorMode,
   getColorModes,
-} from '../../../system/color-mode-manager.js';
-import screensaver from '../../../system/screensaver-utils.js';
+} from "../../../system/color-mode-manager.js";
+import screensaver from "../../../system/screensaver-utils.js";
 import {
   getAvailableResolutions,
   setResolution,
   getCurrentResolutionId,
-} from '../../../system/screen-manager.js';
+} from "../../../system/screen-manager.js";
 import {
   getItem,
   setItem,
   removeItem,
   LOCAL_STORAGE_KEYS,
-} from '../../../system/local-storage.js';
-import { launchApp } from '../../../system/app-manager.js';
-import ClipboardManager from '../file-operations/clipboard-manager.js';
+} from "../../../system/local-storage.js";
+import { launchApp } from "../../../system/app-manager.js";
+import ClipboardManager from "../file-operations/clipboard-manager.js";
 
 export class DesktopContextMenuBuilder extends ContextMenuBuilder {
   buildBackgroundMenu(e) {
     const themes = getThemes();
 
     const setWallpaper = () => {
-        const input = document.createElement("input");
-        input.type = "file";
-        input.accept = "image/*";
-        input.onchange = (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (readerEvent) => {
-                    const dataUrl = readerEvent.target.result;
-                    setItem(LOCAL_STORAGE_KEYS.WALLPAPER, dataUrl);
-                    document.dispatchEvent(new CustomEvent("wallpaper-changed"));
-                };
-                reader.readAsDataURL(file);
-            }
-        };
-        input.click();
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "image/*";
+      input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (readerEvent) => {
+            const dataUrl = readerEvent.target.result;
+            setItem(LOCAL_STORAGE_KEYS.WALLPAPER, dataUrl);
+            document.dispatchEvent(new CustomEvent("wallpaper-changed"));
+          };
+          reader.readAsDataURL(file);
+        }
+      };
+      input.click();
     };
 
     const removeWallpaper = () => {
-        removeItem(LOCAL_STORAGE_KEYS.WALLPAPER);
-        document.dispatchEvent(new CustomEvent("wallpaper-changed"));
+      removeItem(LOCAL_STORAGE_KEYS.WALLPAPER);
+      document.dispatchEvent(new CustomEvent("wallpaper-changed"));
     };
 
-    const getWallpaperMode = () => getItem(LOCAL_STORAGE_KEYS.WALLPAPER_MODE) || "tile";
+    const getWallpaperMode = () =>
+      getItem(LOCAL_STORAGE_KEYS.WALLPAPER_MODE) || "tile";
     const setWallpaperMode = (mode) => {
-        setItem(LOCAL_STORAGE_KEYS.WALLPAPER_MODE, mode);
-        document.dispatchEvent(new CustomEvent("wallpaper-changed"));
+      setItem(LOCAL_STORAGE_KEYS.WALLPAPER_MODE, mode);
+      document.dispatchEvent(new CustomEvent("wallpaper-changed"));
     };
 
-    const getMonitorType = () => getItem(LOCAL_STORAGE_KEYS.MONITOR_TYPE) || "TFT";
+    const getMonitorType = () =>
+      getItem(LOCAL_STORAGE_KEYS.MONITOR_TYPE) || "TFT";
     const setMonitorType = (type) => {
-        setItem(LOCAL_STORAGE_KEYS.MONITOR_TYPE, type);
-        if (type === "CRT") {
-            document.body.classList.add("scanlines");
-        } else {
-            document.body.classList.remove("scanlines");
-        }
+      setItem(LOCAL_STORAGE_KEYS.MONITOR_TYPE, type);
+      if (type === "CRT") {
+        document.body.classList.add("scanlines");
+      } else {
+        document.body.classList.remove("scanlines");
+      }
     };
 
     const menuItems = [
@@ -95,7 +97,8 @@ export class DesktopContextMenuBuilder extends ContextMenuBuilder {
       {
         label: "Paste Shortcut",
         action: () => this.app.fileOps.pasteShortcuts(this.app.currentPath),
-        enabled: () => !ClipboardManager.isEmpty() && ClipboardManager.operation === "copy",
+        enabled: () =>
+          !ClipboardManager.isEmpty() && ClipboardManager.operation === "copy",
       },
       "MENU_DIVIDER",
       {
@@ -237,7 +240,7 @@ export class DesktopContextMenuBuilder extends ContextMenuBuilder {
       "MENU_DIVIDER",
       {
         label: "Properties",
-        action: () => launchApp("displayproperties"),
+        action: () => launchApp("display-properties"),
       },
     ];
 

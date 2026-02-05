@@ -1,7 +1,7 @@
-import { Application } from '../../system/application.js';
-import { launchApp } from '../../system/app-manager.js';
-import { playSound } from '../../system/sound-manager.js';
-import { ICONS } from '../../config/icons.js';
+import { Application } from "../../system/application.js";
+import { launchApp } from "../../system/app-manager.js";
+import { playSound } from "../../system/sound-manager.js";
+import { ICONS } from "../../config/icons.js";
 import warningIconUrl from "../../assets/icons/msg_warning-0.png";
 import html2canvas from "html2canvas";
 
@@ -48,7 +48,7 @@ export class BuggyProgramApp extends Application {
 
     const okButton = win.$content.find(".ok-button")[0];
     okButton.addEventListener("click", () => {
-      launchApp("buggyprogram");
+      launchApp("buggy-program");
     });
 
     setTimeout(() => {
@@ -129,7 +129,7 @@ export class BuggyProgramApp extends Application {
     }, 100);
 
     win.on("close", () => {
-      launchApp("buggyprogram");
+      launchApp("buggy-program");
     });
     return win;
   }

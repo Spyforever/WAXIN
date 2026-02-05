@@ -4,10 +4,10 @@
  */
 
 // Vite handles these imports automatically and will optimize them
-import { ICONS } from '../../config/icons.js';
-import StartMenu from '../start-menu/start-menu.js';
-import { showClippyContextMenu } from '../../apps/clippy/clippy.js';
-import { launchApp } from '../../system/app-manager.js';
+import { ICONS } from "../../config/icons.js";
+import StartMenu from "../start-menu/start-menu.js";
+import { showClippyContextMenu } from "../../apps/clippy/clippy.js";
+import { launchApp } from "../../system/app-manager.js";
 
 // Constants for better maintainability
 const SELECTORS = {
@@ -178,7 +178,7 @@ class Taskbar {
         {
           label: "Task Manager",
           action: () => {
-            launchApp("taskmanager");
+            launchApp("task-manager");
           },
         },
       ];
