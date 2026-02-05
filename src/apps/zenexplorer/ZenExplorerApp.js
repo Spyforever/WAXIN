@@ -484,7 +484,7 @@ export class ZenExplorerApp extends Application {
               const targetName = data.targetPath.split("/").pop();
               const association = getAssociation(targetName);
               if (association.appId) {
-                launchApp(association.appId, data.targetPath);
+                launchApp(association.appId, ShellManager.getRealPath(data.targetPath));
               } else {
                 alert(`Cannot open file: ${targetName} (No association)`);
               }
@@ -499,7 +499,7 @@ export class ZenExplorerApp extends Application {
 
     const association = getAssociation(name);
     if (association.appId) {
-      launchApp(association.appId, fullPath);
+      launchApp(association.appId, ShellManager.getRealPath(fullPath));
     } else {
       alert(`Cannot open file: ${name} (No association)`);
     }
