@@ -5,49 +5,46 @@ This guide provides instructions on how to add new applications to azOS Second E
 ## Applications
 
 ### Games & Entertainment
-*For applications that are primarily for fun and leisure.*
+*Classic games and media playback applications.*
 | Application | Description | Source |
 | :--- | :--- | :--- |
+| [3D Pinball](./pinball/README.md) | A classic "Space Cadet" pinball game. | |
+| [Buggy Program](./buggyprogram/README.md) | An intentionally buggy program that leaves trails. | |
 | [Commander Keen](./keen/README.md) | Play the classic game Commander Keen. | |
 | [Diablo](./diablo/README.md) | Play the classic game Diablo. | |
-| [DOS Game](./dosgame/README.md) | A generic launcher for various DOS games. | |
+| [Doom](./doom/README.md) | Play the legendary first-person shooter Doom. | |
 | [eSheep](./esheep/README.md) | A classic desktop pet. | |
+| [FreeCell](./freecell/README.md) | Play the classic game of FreeCell solitaire. | |
 | [Media Player](./media-player/README.md) | Play audio and video files. | |
 | [Minesweeper](./minesweeper/README.md) | Play the classic game of Minesweeper. | |
-| [Pinball](./pinball/README.md) | A classic "Space Cadet" pinball game. | |
+| [Prince of Persia](./princeofpersia/README.md) | Play the classic cinematic platformer Prince of Persia. | |
+| [Quake](./quake/README.md) | Play the classic 3D shooter Quake. | |
+| [SimCity 2000](./simcity2000/README.md) | Play the SimCity 2000 demo. | |
+| [Solitaire](./solitaire/README.md) | Play the classic Klondike solitaire. | |
+| [Spider Solitaire](./spidersolitaire/README.md) | Play the challenging Spider solitaire. | |
 | [Webamp](./webamp/README.md) | A faithful recreation of the classic Winamp music player. | |
 
-### System Utilities
-*For tools that help manage, configure, or provide information about the OS.*
-| Application | Description | Source |
-| :--- | :--- | :--- |
-| [About](./about/README.md) | A simple utility that displays information about the azOS Second Edition operating system. | |
-| [Cursor Explorer](./cursorexplorer/README.md) | Explore and preview cursor schemes. | |
-| [Desktop Themes](./desktopthemes/README.md) | A utility for managing and previewing desktop visual themes. | |
-| [Display Properties](./displayproperties/README.md) | A tool for customizing wallpaper, screen savers, and display settings. | |
-| [Explorer](./explorer/README.md) | A file and folder navigation tool for the virtual file system. | |
-| [Sound Scheme Explorer](./soundschemeexplorer/README.md) | A utility to browse and preview system sound schemes. | |
-| [Task Manager](./taskmanager/README.md) | A utility to view and close running applications. | |
-| [Tip of the Day](./tipOfTheDay/README.md) | A helpful utility that displays useful hints and tricks to the user upon startup. | |
-
 ### Accessories & Tools
-*For general-purpose productivity, creative, or developer tools.*
+*General-purpose productivity and creative tools.*
 | Application | Description | Source |
 | :--- | :--- | :--- |
 | [App Maker](./appmaker/README.md) | A tool to create custom, windowed applications using HTML. | |
+| [Calculator](./calculator/README.md) | A fully functional Standard and Scientific calculator. | |
 | [Clippy](./clippy/README.md) | An interactive AI assistant. | |
+| [Flash Player](./flashplayer/README.md) | Play classic Adobe Flash (.swf) files. | |
 | [Image Resizer](./image-resizer/README.md) | A utility to enlarge images using nearest-neighbor scaling. | |
-| [Image Viewer](./imageviewer/README.md) | A simple application for viewing and editing image files. | |
+| [Image Viewer](./image-viewer/README.md) | A simple application for viewing and editing image files. | |
 | [Notepad](./notepad/README.md) | A powerful text editor with syntax highlighting, code formatting, and Markdown preview. | |
 | [Paint](./paint/README.md) | A classic drawing and image editing application. | |
-| [PDF Viewer](./pdfviewer/README.md) | A simple application for viewing PDF documents. | |
-| [Theme to CSS](./themetocss/README.md) | A developer utility to convert `.theme` INI files into CSS. | |
+| [PDF Viewer](./pdf-viewer/README.md) | A simple application for viewing PDF documents. | |
+| [Theme to CSS](./theme-to-css/README.md) | A developer utility to convert `.theme` INI files into CSS. | |
 
 ### Community & Support
-*For applications related to supporting the project or its developer.*
+*Support the project and report issues.*
 | Application | Description | Source |
 | :--- | :--- | :--- |
 | [Buy me a coffee](./buy-me-a-coffee/README.md) | Support the developer. | |
+| [Report a Bug](./reportabug/README.md) | Report issues encountered while using the system. | |
 
 ## Adding New Applications
 
@@ -63,7 +60,7 @@ To add a windowed application, follow these steps:
 2.  **Add a new application object:** Add a new object to the `apps` array with the following properties:
     - `id`: A unique identifier for the application (e.g., `"notepad"`).
     - `title`: The name of the application that will be displayed on the desktop and in the window's title bar (e.g., `"Notepad"`).
-    - `icon`: The path to the application's icon. You can use an existing icon or add a new one to the `src/assets/icons` directory.
+    - `icon`: The path to the application's icon.
     - `action`: An object with the following properties:
       - `type`: Set to `"window"`.
       - `window`: An object that defines the window's properties:
