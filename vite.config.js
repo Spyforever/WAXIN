@@ -14,6 +14,12 @@ export default defineConfig({
   },
   assetsInclude: ["**/*.ani"],
   base: "/win98-web/",
+  server: {
+    hmr: {
+      protocol: "ws",
+      host: "localhost",
+    },
+  },
   plugins: [
     VitePWA({
       registerType: "autoUpdate",
