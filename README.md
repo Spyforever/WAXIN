@@ -1,110 +1,144 @@
 # Windows 98 Web Edition
 
-A pixel-perfect recreation attempt of Windows 98 desktop GUI using just HTML, CSS, and JavaScript. Many of the default programs and features of Windows 98 are also included, either recreated from scratch or embedding existing open source ports. 
+> A nostalgic, browser‑based recreation of the Windows 98 desktop — built for curious users, retro enthusiasts, and developers who love tinkering.
+
+A web-based recreation of the classic Windows 98 desktop experience, built using HTML, CSS, and JavaScript.
+
+Windows 98 Web Edition is a personal project inspired by curiosity, nostalgia, and an interest in how far modern browsers can be pushed to recreate complex desktop-style interfaces. It aims to feel familiar to anyone who once used Windows 98, while remaining approachable for developers who want to explore, learn from, or extend the system.
+
+This project is not intended as a perfect emulator or a commercial product. Instead, it is an experiment in UI systems, interaction design, and playful web engineering.
+
+---
+
+## Table of Contents
+
+* [Live Demo](#live-demo)
+* [What You Can Do Here](#what-you-can-do-here)
+* [Applications Included](#applications-included)
+* [For Developers and Tinkerers](#for-developers-and-tinkerers)
+* [Architecture Overview](#architecture-overview-placeholder)
+* [AI Assistant](#ai-assistant)
+* [Technologies Used](#technologies-used)
+* [Running Locally](#running-locally)
+* [Future Plans](#future-plans)
+* [Assets and Credits](#assets-and-credits)
+
+--- Instead, it is an experiment in UI systems, interaction design, and playful web engineering.
 
 ## Live Demo
 
-Experience Windows 98 Web Edition live: **[Windows 98 Web Edition](https://azayrahmad.github.io/win98-web/)**
+Experience it directly in your browser:
 
-## Screenshots
+👉 **[Windows 98 Web Edition](https://azayrahmad.github.io/win98-web/)**
 
-*Default Desktop*
-![Default Desktop with CRT filter enabled](./screenshots/default-desktop.PNG)
+*(Desktop browser recommended for the best experience.)*
 
-*Desktop with Clippy and Notepad*
-![Desktop with Clippy and Notepad](./screenshots/desktop-with-clippy-notepad.PNG)
+## What You Can Do Here
 
-*Desktop with Winamp and App Maker*
-![Desktop with Winamp and App Maker](./screenshots/desktop-with-appmaker-webamp.PNG)
+* Explore a browser-based desktop that behaves like a classic operating system
+* Launch, move, resize, and manage multiple windows
+* Change themes, colors, wallpapers, and sound schemes
+* Run classic games and utilities in a nostalgic environment
+* Install the project as a Progressive Web App
 
-*Desktop Context Menu with Theme Options*
-![Desktop Context Menu with Theme Options](./screenshots/desktop-context-menu.PNG)
+For casual users, this is a fun retro playground. For developers, it is an open system that can be modified and extended.
 
-## Features
+## What You Can Do Here
 
-- **Windows Classic Desktop Experience**: Pixel-perfect remake attempt of Windows 98 desktop shell components and animations.
+* Explore a browser-based desktop that behaves like a classic operating system
+* Launch, move, resize, and manage multiple windows
+* Change themes, colors, wallpapers, and sound schemes
+* Run classic games and utilities in a nostalgic environment
+* Install the project as a Progressive Web App
 
-- **Desktop Themes**: Featuring all of the original Windows 98 desktop themes, complete with color schemes, wallpapers, icon sets, and sound sets (screensavers are WIP).
+For casual users, this is a fun retro playground. For developers, it is an open system that can be modified and extended.
 
-- **Theme Customization**: Upload your own .theme files and wallpapers to apply to the desktop. Change the colors, set wallpaper to stretch, tile, or center. All are saved privately to your cache. (WIP).
+## Applications Included
 
-- **Programs and Games**: Ports of popular software used in Windows 98 are included here. Most of them are existing ports and remakes made by other people, but some of them are made by myself. See Featured Applications for more info.
+Windows 98 Web Edition includes a growing collection of built-in applications, similar to a real operating system distribution. These range from games and media players to productivity tools and system utilities.
 
-- **Progressive Web App**: Install it on your machine as a desktop application.
+Some examples include:
 
-- **Free**: Use it, download the source, fork it, add your own themes and apps and games, make it your own. I don't really care. Credit and attribution are nice though.
+* Classic games such as Doom, Quake, Diablo, Prince of Persia, Solitaire, FreeCell, Minesweeper, and Pinball
+* Media tools like Winamp (via Webamp), Media Player, and Flash Player
+* Accessories such as Notepad, Paint, WordPad, Calculator, Image Viewer, and PDF Viewer
+* System tools including File Explorer, Task Manager, Command Prompt, Display Properties, Disk Defragmenter, and Help
+* An AI-powered Clippy assistant that can answer questions and guide users around the system
 
-## Featured Applications
+A complete and up-to-date list of applications, including development notes, is available here:
 
-- **Assistant**: Clippy the Office Assistant has been resurrected, now powered with AI. Ask any question about Windows 98. Can even give you a short tour of the OS. For more details, see the [Clippy App README](./src/apps/clippy/README.md).
-- **Notepad**: Your basic text editor, now with added syntax highlighting, code formatting, and Markdown preview. For more details, see the [Notepad App README](./src/apps/notepad/README.md).
-- **Winamp**: Play your favorite songs and playlists here. Customize with your own skins. A faithful recreation of the classic Winamp music player that runs directly on the desktop. For more details, see the [Webamp App README](./src/apps/webamp/README.md).
-- **Internet Explorer**: Surf the Internet like it was 1998. With Retro Mode enabled, you will be brought to 1998 archived version of your favorite websites.
-- **Pinball**: A web port of Space Cadet Pinball.
+📄 **[Application Development Guide](./src/apps/README.md)**
 
-For a full list of applications and instructions on how to create your own, refer to the [Application Development Guide](./src/apps/README.md).
+## For Developers and Tinkerers
+
+This project is designed to be forked, studied, and experimented with.
+
+* Applications are registered through a central configuration file
+* Apps can be window-based or function-based
+* Context menus, menu bars, and keyboard shortcuts are configurable
+* Themes and visual styles are data-driven and modifiable
+
+If you are interested in creating your own apps, modifying existing ones, or building your own variant of the system, start with the Application Development Guide linked above.
+
+## Architecture Overview (Placeholder)
+
+> This section is intentionally reserved for deeper technical documentation.
+> It will be expanded as the internal systems stabilize and mature.
+
+This section will describe the internal structure of the system, including:
+
+* Desktop and window management
+* Application lifecycle and registration
+* Event handling and focus management
+* Theming and runtime style generation
+* File system abstractions
+
+*(Detailed documentation to be added.)*
+
+## AI Assistant
+
+Clippy is reintroduced as an optional, AI-powered assistant.
+
+* Provides help and guidance inside the desktop
+* Uses natural language for interaction
+* Backed by a separate API responsible for LLM processing
+
+The backend service lives in its own repository:
+👉 **[resume-chat-api](https://github.com/azayrahmad/resume-chat-api)**
 
 ## Technologies Used
 
-- **Frontend Framework**: Vanilla JavaScript, HTML, and CSS.
-- **Development Server**: [Vite](https://vitejs.dev/) for a fast and modern development experience.
-- **UI Libraries**:
-  - [98.css](https://jdan.github.io/98.css/): A CSS library for recreating the Windows 98 GUI.
-  - [os-gui](https://os-gui.js.org/): A library for building retro desktop GUI components.
-    Note that both libraries have been heavily modified to combine their features and fit the needs of this project.
-- **AI Assistant**:
-  - [Clippy.js](https://github.com/pi0/clippyjs): The frontend library for the Clippy agent. This also has been heavily modified with TTS and Ask functionality.
-  - **Resume Chat API**: A custom API for processing natural language questions. This has its own repository at [resume-chat-api](https://github.com/azayrahmad/resume-chat-api). I made this specifically to manage LLM feature for the assistant.
-- **External Libraries**:
-  - [Webamp](https://webamp.org/): The web-based Winamp player.
-  - [highlight.js](https://highlightjs.org/): For syntax highlighting in Notepad.
-  - [Prettier](https://prettier.io/): For code formatting.
-  - [Marked.js](https://marked.js.org/): For Markdown to HTML conversion.
-  - and many more.
+* **HTML, CSS, JavaScript** (no frontend frameworks)
+* **Vite** for development and bundling
+* **98.css** and **os-gui**, both heavily modified to fit the needs of this project
+* Various open-source libraries used by individual applications (Webamp, highlight.js, Marked.js, etc.)
 
-## Getting Started
+## Running Locally
 
-To run this project locally, follow these steps:
+```bash
+npm install
+npm run dev
+```
 
-1.  **Install Dependencies:**
-    ```bash
-    npm install
-    ```
+The development server will run at `http://localhost:5173`.
 
-2.  **Run the Development Server:**
-    ```bash
-    npm run dev
-    ```
-    The application will be available at `http://localhost:5173` (or another port if 5173 is in use).
+## Future Plans
 
-## Future plans
+* Expand the command prompt and system utilities
+* Add more classic applications and games
+* Improve theme customization and persistence
+* Add more documentation around architecture and internals
 
-- Command prompt (MS-DOS).
-- BIOS setup.
-- Calculator app.
-- Disk Defragmenter simulator.
-- More Windows 98 screensaver recreations.
-- More web ports and DOS games.
-- Let me know if you have ideas!
+Suggestions and ideas are welcome.
 
-## Asset Sources
+## Assets and Credits
 
-Windows 98 Web Edition uses a mixture of:
+This project uses a mix of:
 
-- original assets created specifically for this project,
-- third-party open-source recreations
-- visual elements derived from classic Windows operating systems for the purpose of historical interface recreation and compatibility.
+* Original assets created specifically for this project
+* Third-party open-source recreations
+* Visual elements inspired by classic Windows operating systems
 
-Some graphical elements may have been redrawn, color-corrected, resized, or otherwise transformed from their original form to ensure they render correctly in modern browsers.
+Assets are used strictly for educational, archival, and non-commercial purposes.
 
-These assets are provided strictly for:
-- educational
-- archival
-- non-commercial
-- fair-use–oriented
-
-purposes.
-
-- Sound Effect by <a href="https://pixabay.com/users/freesound_community-46691455/?utm_source=link-attribution&utm_medium=referral&utm_campaign=music&utm_content=35843">freesound_community</a> from <a href="https://pixabay.com//?utm_source=link-attribution&utm_medium=referral&utm_campaign=music&utm_content=35843">Pixabay</a>
-
-All rights to the original Windows artwork, icons, cursors, and media belong to Microsoft Corporation.
+All rights to original Windows artwork, icons, and media belong to **Microsoft Corporation**.
