@@ -1,8 +1,8 @@
 # Windows 98 Web Edition
 
-> A nostalgic, browser‑based recreation of the Windows 98 desktop — built for curious users, retro enthusiasts, and developers who love tinkering.
+> An ultimate pixel-perfect browser‑based recreation attempt of Windows 98.
 
-A web-based recreation of the classic Windows 98 desktop experience, built using vanilla JavaScript, HTML, and CSS. Experience the familiar interface of Windows 98 directly in your modern browser, complete with working applications, customizable themes, and an AI-powered assistant.
+A web-based recreation of the classic Windows 98 desktop experience, built using vanilla JavaScript, HTML, and CSS. Experience the familiar interface of Windows 98 directly in your modern browser, complete with working applications and games, customizable themes, and an AI-powered Clippy.
 
 ![Windows 98 Web Edition Desktop](./docs/images/screenshot-desktop.png)
 *Windows 98 Web Edition Desktop*
@@ -19,8 +19,6 @@ A web-based recreation of the classic Windows 98 desktop experience, built using
 * [AI Assistant](#ai-assistant)
 * [Technologies Used](#technologies-used)
 * [Running Locally](#running-locally)
-* [Contributing](#contributing)
-* [FAQ & Troubleshooting](#faq--troubleshooting)
 * [Future Roadmap](#future-roadmap)
 * [Assets and Credits](#assets-and-credits)
 
@@ -42,37 +40,35 @@ Experience it directly in your browser:
 New to Windows 98 Web Edition? Here's how to get started:
 
 1. **Launch the Demo**: Click the live demo link above.
-2. **Open the Start Menu**: Click the Start button in the bottom-left corner.
-3. **Try Some Apps**: Navigate to **Programs** → **Accessories** → **Games** → **Solitaire** or **Programs** → **Accessories** → **Paint**.
-4. **Customize Your Desktop**: Right-click anywhere on the desktop → **Properties** to change themes and wallpapers.
-5. **Meet Clippy**: Launch the **Assistant** from the Start Menu (under **Programs** → **Accessories**) to activate the AI-powered Clippy. Once running, you can find it in the system tray.
+2. **Open the Start Menu**: Click the **Start** button in the bottom-left corner.
+3. **Try Some Apps**: Navigate to **Programs** → **Accessories** → **Games** → **Solitaire** or **Programs** → **Accessories** → **WordPad**.
+4. **Explore Your Folders**: Double-click **My Computer** from Desktop and go to **File** → **Insert Removable Disk** on top left corner of the window to mount a folder from your real computer as a virtual drive. You can open and edit text files, play music & video files and also play your SWF Flash games.
+4. **Browse the Retro Web**: Double-click **Internet Explorer** from Desktop and navigate to your favorite websites in 1998. Try google.com!
+5. **Customize Your Desktop**: Right-click anywhere on the desktop → **Properties** to change color schemes and wallpapers. You can also go to click Start button and navigate to **Settings** → **Control Panel** → **Desktop Themes** to apply a new theme.
+6. **Meet Clippy**: Launch the **Assistant** from the Start Menu (under **Programs** → **Accessories**) to activate the AI-powered Clippy. Ask about anything you want! Once running, you can find it in the system tray. 
 
 **Pro Tips:**
 * Drag windows by their title bars to move them around.
-* Double-click the title bar to maximize/restore windows.
+* Store your files in the **My Documents** folder for easy access.
 * Right-click almost anywhere for context menus.
-* Use Alt+F4 to close the active window.
 * Install as a PWA (look for the install icon in your browser's address bar) for a more app-like experience.
 * **Mount Local Folders**: Open **My Computer**, go to **File** → **Insert Removable Disk** to mount a folder from your real computer as a virtual drive.
 
-## Background & Origin
+## Background
 
-This project started as a small experiment to give my personal blog a retro, late‑90s desktop feel. As I explored window management, menus, and file‑like interactions, that experiment gradually grew into a full browser‑based desktop environment.
+This project started as a small experiment to give my portfolio website a Windows 98 theme. As I explored many WebOS UI and filesystem libraries and dabbled with LLM agents like Google Jules, that experiment gradually grew into a full browser‑based desktop environment.
 
-Over time, it became a deliberate challenge: to push how far a **vanilla JavaScript application** (no React, Vue, or Angular) could go, to explore OS‑like UI structures in the browser, and to test my ability to design and sustain a larger, long‑running personal project.
+Over time, it became a challenge: to push how far a **vanilla JavaScript application** (no React, Vue, or Angular) could go, to explore OS‑like UI structures in the browser, and to test my ability to design and sustain a larger, long‑running personal project. It's also my opportunity to experience collaboration with LLM AI and test their limits.
 
-What exists now is the natural result of that growth—still playful and nostalgic, but intentionally modular and open‑ended.
-
-**Why Windows 98?** It represents a sweet spot in computing history: advanced enough to be genuinely useful, simple enough to be understandable, and nostalgic enough to be fun. It's a reminder of when operating systems felt more like tools you could tinker with rather than black boxes.
+**Why Windows 98?** The main inspiration for this is actually my (parents') first computer ever, a Windows 98 machine. It is my first experience with a computer, and I remember the excitement of tinkering with it. That feeling is what I'd like for you to experience as well. 
 
 ## What You Can Do Here
 
 * Explore a browser-based desktop that behaves like a classic operating system.
-* Launch, move, resize, minimize, and manage multiple windows simultaneously.
 * Change themes, colors, wallpapers, and sound schemes to customize your experience.
 * Run classic games and utilities in an authentic retro environment.
 * Create, edit, and manage files in a persistent virtual file system.
-* **Mount local folders** as virtual drives (A:, D:, etc.) to work with your real files.
+* Mount local folders and .ISO files as virtual drives (A:, D:, etc.) to work with your real files.
 * Install the project as a Progressive Web App for offline access.
 * Chat with an AI-powered assistant for help and nostalgia.
 
@@ -81,25 +77,25 @@ What exists now is the natural result of that growth—still playful and nostalg
 Windows 98 Web Edition includes a growing collection of built-in applications. These range from games and media players to productivity tools and system utilities.
 
 ### Games & Entertainment
-* **Classic DOS Games**: Doom, Quake, Diablo, Prince of Persia, SimCity 2000, Commander Keen (via emulation).
-* **Windows Games**: Solitaire, FreeCell, Minesweeper, Pinball, Spider Solitaire.
+* **Windows Games**: Solitaire, FreeCell, Minesweeper, Spider Solitaire, remade from scratch. There's also Pinball Emscripten port available.
+* **Classic DOS Games**: Doom, Quake, Diablo, Prince of Persia, SimCity 2000, Commander Keen (via emulation). Yes, it can play Doom.
 * **Media Players**: Winamp (via Webamp), Media Player, Flash Player.
 
 ### Productivity & Accessories
 * **Text Editors**: Notepad, WordPad.
-* **Graphics**: Paint, Image Viewer, Image Resizer.
+* **Graphics**: Paint, Image Viewer.
 * **Utilities**: Calculator, PDF Viewer.
 
 ### System Tools
 * **File Explorer** with full file management and virtual drive support.
 * **Task Manager** for monitoring running applications.
-* **Command Prompt** with common DOS commands (DIR, CD, MD, DEL, COPY, etc.).
-* **Display Properties** for theme and appearance customization.
-* **Disk Defragmenter** (visual simulation).
-* **Help and Support Center**.
+* **MS-DOS Command Prompt** with common DOS commands (DIR, CD, MD, DEL, COPY, etc.).
+* **Display Properties & Desktop Themes** for theme and appearance customization.
+* **Disk Defragmenter** (visual simulation, not real defragmentation).
+* **Help & Report A Bug**.
 
 ### Special Features
-* **AI-Powered Assistant**: An intelligent assistant that can answer questions and help navigate the system.
+* **Assistant (Clippy)**: An intelligent assistant that can answer questions and help navigate the system.
 
 A complete and up-to-date list of applications, including development notes and how to create your own apps, is available here:
 
@@ -208,30 +204,25 @@ npm install
 npm run dev
 ```
 
-## Contributing
-
-Contributions are welcome! Please follow the existing code style and architecture. Found a bug or have a suggestion? Open an issue or submit a Pull Request.
-
 ## Future Roadmap
 
-* [ ] **Network Neighborhood**: Enhanced simulated network browsing.
-* [ ] **Multi-language Support**: Internationalization for UI elements.
-* [ ] **Performance Monitoring**: Real-time indicators in Task Manager.
-* [ ] **Application Templates**: Tools to scaffold new applications quickly.
+* [ ] **Theme Installation**: Allow users to install custom themes (.theme/.themepack/.reg).
+* [ ] **More Screensavers**: Recreate more Windows 98 Plus! screensavers.
+* [ ] **Virtual Floppy**: Implement virtual floppy disk image support (create & mount).
+* [ ] **WinZip**: Add WinZip to extract zip files with ZenFS Archive.
+* [ ] **Migration and Backup**: Implement migrating C: drive to local folder and creating backup.
 * [ ] **Testing Framework**: Expanded E2E and unit tests.
 * [ ] **TypeScript Migration**: Gradual introduction of type safety.
 
 ## Assets and Credits
 
-This project is for educational and nostalgic purposes. All rights to original Windows artwork, icons, and sounds belong to **Microsoft Corporation**.
+This project is for educational purposes. All rights to original Windows artwork, icons, and sounds belong to **Microsoft Corporation**.
 
 For a full list of third-party libraries and resources, see **[CREDITS.md](./CREDITS.md)**.
 
 ---
 
 <div align="center">
-
-Made with nostalgia and curiosity 💾
 
 [Live Demo](https://azayrahmad.github.io/win98-web/) • [Report Bug](https://github.com/azayrahmad/win98-web/issues)
 
