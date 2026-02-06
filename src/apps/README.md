@@ -33,33 +33,11 @@ This guide provides instructions on how to add new applications to azOS Second E
 | [Clippy](./clippy/README.md) | An interactive AI assistant. | |
 | [Flash Player](./flashplayer/README.md) | Play classic Adobe Flash (.swf) files. | |
 | [Image Resizer](./image-resizer/README.md) | A utility to enlarge images using nearest-neighbor scaling. | |
-| [Image Viewer](./imageviewer/README.md) | A simple application for viewing and editing image files. | |
-| [Notepad](./notepad/README.md) | A powerful text editor with syntax highlighting and Markdown preview. | |
+| [Image Viewer](./image-viewer/README.md) | A simple application for viewing and editing image files. | |
+| [Notepad](./notepad/README.md) | A powerful text editor with syntax highlighting, code formatting, and Markdown preview. | |
 | [Paint](./paint/README.md) | A classic drawing and image editing application. | |
-| [PDF Viewer](./pdfviewer/README.md) | A simple application for viewing PDF documents. | |
-| [WordPad](./wordpad/README.md) | A rich text editor for creating and editing documents. | |
-
-### System Utilities
-*Tools for managing, configuring, and exploring the OS.*
-| Application | Description | Source |
-| :--- | :--- | :--- |
-| [About](./about/README.md) | Essential information about azOS Second Edition. | |
-| [Command Prompt](./command-prompt/README.md) | A CLI for interacting with the virtual file system. | |
-| [Cursor Explorer](./cursorexplorer/README.md) | Explore and preview cursor schemes. | |
-| [Disk Defragmenter](./defrag/README.md) | A nostalgic simulation of the Windows 98 defrag utility. | |
-| [Desktop Themes](./desktopthemes/README.md) | Manage and preview desktop visual themes. | |
-| [Display Properties](./displayproperties/README.md) | Customize wallpaper, screen savers, and display settings. | |
-| [Explorer](./zenexplorer/README.md) | The primary file and folder navigation tool (ZenExplorer). | |
-| [Help](./help/README.md) | Central documentation viewer for the system. | |
-| [Sound Scheme Explorer](./soundschemeexplorer/README.md) | Browse and preview system sound schemes. | |
-| [Task Manager](./taskmanager/README.md) | View and close running applications. | |
-| [Tip of the Day](./tipOfTheDay/README.md) | Helpful hints and tricks displayed upon startup. | |
-
-### Developer Tools
-*Utilities specifically for developers and system customization.*
-| Application | Description | Source |
-| :--- | :--- | :--- |
-| [Theme to CSS](./themetocss/README.md) | Convert .theme INI files into CSS. | |
+| [PDF Viewer](./pdf-viewer/README.md) | A simple application for viewing PDF documents. | |
+| [Theme to CSS](./theme-to-css/README.md) | A developer utility to convert `.theme` INI files into CSS. | |
 
 ### Community & Support
 *Support the project and report issues.*
