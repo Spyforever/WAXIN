@@ -7,16 +7,15 @@ Experience the original cinematic platformer, **Prince of Persia**, directly wit
 ## Key Features
 
 - **Classic Gameplay**: A faithful recreation of the original game mechanics and levels.
-- **Difficulty Settings**: Choose between Easy, Normal, and Hard difficulties via the application menu.
-- **Cheats & Level Selection**: Skip to any level or increase your maximum health through the built-in "Cheats" menu.
+- **Customizable Starts**: Use the start dialog to set your Level, Max Health, Time Limit, and Difficulty before beginning.
 - **Save/Resume**: Automatically manages game state and parameters.
 - **Gamepad Support**: Supports standard gamepads for a more authentic console-like experience.
 
 ## How to Use
 
 1.  Launch **Prince of Persia** from the desktop.
-2.  Use the `Game` menu to start a **New Game** or **Restart Level**.
-3.  Adjust the **Difficulty** or use **Cheats** from the menu bar if desired.
+2.  Configure your game settings in the dialog that appears at start and click **Start**.
+3.  Use the `Game` menu to start a **New Game** (re-opens the dialog), **Restart Level**, or **Exit**.
 4.  **Controls**:
     -   **Arrow Keys**: Move, climb, and crouch.
     -   **Shift**: Drink potions, grab edges, and strike with your sword.
