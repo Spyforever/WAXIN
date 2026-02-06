@@ -44,23 +44,25 @@ Experience Windows 98 Web Edition live: **[Windows 98 Web Edition](https://azayr
 
 For a full list of applications and instructions on how to create your own, refer to the [Application Development Guide](./src/apps/README.md).
 
+## Architecture Overview
+
+Windows 98 Web Edition is built with a modular architecture that separates system logic, shell components, and applications. It aims to mirror the structure of a real operating system while remaining entirely web-based.
+
+- **System Core** (`src/system/`): Handles the fundamental "OS" logic, including the boot process (`os-init.js`), window management (`window-manager.js`), application lifecycle (`app-manager.js`), and a persistent virtual file system powered by **ZenFS**.
+- **Shell** (`src/shell/`): Contains the desktop environment components like the Desktop icon view, Taskbar, Start Menu, and the File Explorer.
+- **Applications** (`src/apps/`): Individual applications are decoupled from the core system. They extend a base `Application` class and are dynamically registered via a centralized configuration.
+- **Global API** (`window.System`): A global object that exposes system-level utilities (like `launchApp`) to allow communication between different modules and applications.
+- **Virtual File System**: Uses ZenFS to provide a Unix-like file system in the browser, with an IndexedDB backend on the `C:` drive for persistent user data, shortcuts, and settings.
+
 ## Technologies Used
 
-- **Frontend Framework**: Vanilla JavaScript, HTML, and CSS.
-- **Development Server**: [Vite](https://vitejs.dev/) for a fast and modern development experience.
+- **Frontend Framework**: Vanilla JavaScript (ES6+), HTML5, and CSS3.
+- **Development & Build**: [Vite](https://vitejs.dev/) for fast development and optimized production bundling.
+- **Virtual File System**: [ZenFS](https://zenfs.dev/) for providing a robust, persistent file system in the browser.
 - **UI Libraries**:
-  - [98.css](https://jdan.github.io/98.css/): A CSS library for recreating the Windows 98 GUI.
-  - [os-gui](https://os-gui.js.org/): A library for building retro desktop GUI components.
-    Note that both libraries have been heavily modified to combine their features and fit the needs of this project.
-- **AI Assistant**:
-  - [Clippy.js](https://github.com/pi0/clippyjs): The frontend library for the Clippy agent. This also has been heavily modified with TTS and Ask functionality.
-  - **Resume Chat API**: A custom API for processing natural language questions. This has its own repository at [resume-chat-api](https://github.com/azayrahmad/resume-chat-api). I made this specifically to manage LLM feature for the assistant.
-- **External Libraries**:
-  - [Webamp](https://webamp.org/): The web-based Winamp player.
-  - [highlight.js](https://highlightjs.org/): For syntax highlighting in Notepad.
-  - [Prettier](https://prettier.io/): For code formatting.
-  - [Marked.js](https://marked.js.org/): For Markdown to HTML conversion.
-  - and many more.
+  - [98.css](https://jdan.github.io/98.css/): For authentic Windows 98 styling.
+  - [os-gui](https://os-gui.js.org/): For core desktop GUI components like windows and menus (locally modified and extended).
+- **External Libraries**: For a full list of third-party libraries used in this project, see [CREDITS.md](./CREDITS.md).
 
 ## Getting Started
 
