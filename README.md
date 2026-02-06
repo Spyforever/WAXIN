@@ -17,7 +17,7 @@ Instead, it is an experiment in UI systems, interaction design, and playful web 
 * [What You Can Do Here](#what-you-can-do-here)
 * [Applications Included](#applications-included)
 * [For Developers and Tinkerers](#for-developers-and-tinkerers)
-* [Architecture Overview](#architecture-overview-placeholder)
+* [Architecture Overview](#architecture-overview)
 * [AI Assistant](#ai-assistant)
 * [Technologies Used](#technologies-used)
 * [Running Locally](#running-locally)
