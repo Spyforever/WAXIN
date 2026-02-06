@@ -7,6 +7,7 @@ A web-based recreation of the classic Windows 98 desktop experience, built using
 Windows 98 Web Edition is a personal project inspired by curiosity, nostalgia, and an interest in how far modern browsers can be pushed to recreate complex desktop-style interfaces. It aims to feel familiar to anyone who once used Windows 98, while remaining approachable for developers who want to explore, learn from, or extend the system.
 
 This project is not intended as a perfect emulator or a commercial product. Instead, it is an experiment in UI systems, interaction design, and playful web engineering.
+Instead, it is an experiment in UI systems, interaction design, and playful web engineering.
 
 ---
 
@@ -23,7 +24,7 @@ This project is not intended as a perfect emulator or a commercial product. Inst
 * [Future Plans](#future-plans)
 * [Assets and Credits](#assets-and-credits)
 
---- Instead, it is an experiment in UI systems, interaction design, and playful web engineering.
+--- 
 
 ## Live Demo
 
@@ -32,16 +33,6 @@ Experience it directly in your browser:
 👉 **[Windows 98 Web Edition](https://azayrahmad.github.io/win98-web/)**
 
 *(Desktop browser recommended for the best experience.)*
-
-## What You Can Do Here
-
-* Explore a browser-based desktop that behaves like a classic operating system
-* Launch, move, resize, and manage multiple windows
-* Change themes, colors, wallpapers, and sound schemes
-* Run classic games and utilities in a nostalgic environment
-* Install the project as a Progressive Web App
-
-For casual users, this is a fun retro playground. For developers, it is an open system that can be modified and extended.
 
 ## What You Can Do Here
 
