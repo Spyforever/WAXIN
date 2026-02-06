@@ -80,20 +80,15 @@ This project is designed to be forked, studied, and experimented with.
 
 If you are interested in creating your own apps, modifying existing ones, or building your own variant of the system, start with the Application Development Guide linked above.
 
-## Architecture Overview (Placeholder)
+## Architecture Overview
 
-> This section is intentionally reserved for deeper technical documentation.
-> It will be expanded as the internal systems stabilize and mature.
+Windows 98 Web Edition is built with a modular architecture that separates system logic, shell components, and applications. It aims to mirror the structure of a real operating system while remaining entirely web-based.
 
-This section will describe the internal structure of the system, including:
-
-* Desktop and window management
-* Application lifecycle and registration
-* Event handling and focus management
-* Theming and runtime style generation
-* File system abstractions
-
-*(Detailed documentation to be added.)*
+- **System Core** (`src/system/`): Handles the fundamental "OS" logic, including the boot process (`os-init.js`), window management (`window-manager.js`), application lifecycle (`app-manager.js`), and a persistent virtual file system powered by **ZenFS**.
+- **Shell** (`src/shell/`): Contains the desktop environment components like the Desktop icon view, Taskbar, Start Menu, and the File Explorer.
+- **Applications** (`src/apps/`): Individual applications are decoupled from the core system. They extend a base `Application` class and are dynamically registered via a centralized configuration.
+- **Global API** (`window.System`): A global object that exposes system-level utilities (like `launchApp`) to allow communication between different modules and applications.
+- **Virtual File System**: Uses ZenFS to provide a Unix-like file system in the browser, with an IndexedDB backend on the `C:` drive for persistent user data, shortcuts, and settings.
 
 ## AI Assistant
 
@@ -108,10 +103,13 @@ The backend service lives in its own repository:
 
 ## Technologies Used
 
-* **HTML, CSS, JavaScript** (no frontend frameworks)
-* **Vite** for development and bundling
-* **98.css** and **os-gui**, both heavily modified to fit the needs of this project
-* Various open-source libraries used by individual applications (Webamp, highlight.js, Marked.js, etc.)
+- **Frontend Framework**: Vanilla JavaScript (ES6+), HTML5, and CSS3.
+- **Development & Build**: [Vite](https://vitejs.dev/) for fast development and optimized production bundling.
+- **Virtual File System**: [ZenFS](https://zenfs.dev/) for providing a robust, persistent file system in the browser.
+- **UI Libraries**:
+  - [98.css](https://jdan.github.io/98.css/): For authentic Windows 98 styling.
+  - [os-gui](https://os-gui.js.org/): For core desktop GUI components like windows and menus (locally modified and extended).
+- **External Libraries**: For a full list of third-party libraries used in this project, see [CREDITS.md](./CREDITS.md).
 
 ## Running Locally
 
