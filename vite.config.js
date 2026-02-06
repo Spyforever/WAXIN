@@ -23,7 +23,13 @@ export default defineConfig({
   plugins: [
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.ico", "apple-touch-icon.png", "masked-icon.svg"],
+      includeAssets: [
+        "favicon.ico",
+        "apple-touch-icon.png",
+        "masked-icon.svg",
+        "sitemap.xml",
+        "robots.txt",
+      ],
       manifest: {
         name: "Windows 98 Web Edition",
         short_name: "Win98Web",
