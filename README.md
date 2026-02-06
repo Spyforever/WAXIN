@@ -11,7 +11,7 @@ A web-based recreation of the classic Windows 98 desktop experience, built using
 
 * [Live Demo](#live-demo)
 * [Quick Start Guide](#quick-start-guide)
-* [Background & Origin](#background--origin)
+* [Background](#background)
 * [What You Can Do Here](#what-you-can-do-here)
 * [Applications Included](#applications-included)
 * [For Developers and Tinkerers](#for-developers-and-tinkerers)
