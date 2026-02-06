@@ -9,7 +9,7 @@ This guide provides instructions on how to add new applications to azOS Second E
 | Application | Description | Source |
 | :--- | :--- | :--- |
 | [3D Pinball](./pinball/README.md) | A classic "Space Cadet" pinball game. | |
-| [Buggy Program](./buggyprogram/README.md) | An intentionally buggy program that leaves trails. | |
+| [Buggy Program](./buggy-program/README.md) | An intentionally buggy program that leaves trails. | |
 | [Commander Keen](./keen/README.md) | Play the classic game Commander Keen. | |
 | [Diablo](./diablo/README.md) | Play the classic game Diablo. | |
 | [Doom](./doom/README.md) | Play the legendary first-person shooter Doom. | |
@@ -17,21 +17,21 @@ This guide provides instructions on how to add new applications to azOS Second E
 | [FreeCell](./freecell/README.md) | Play the classic game of FreeCell solitaire. | |
 | [Media Player](./media-player/README.md) | Play audio and video files. | |
 | [Minesweeper](./minesweeper/README.md) | Play the classic game of Minesweeper. | |
-| [Prince of Persia](./princeofpersia/README.md) | Play the classic cinematic platformer Prince of Persia. | |
+| [Prince of Persia](./prince-of-persia/README.md) | Play the classic cinematic platformer Prince of Persia. | |
 | [Quake](./quake/README.md) | Play the classic 3D shooter Quake. | |
-| [SimCity 2000](./simcity2000/README.md) | Play the SimCity 2000 demo. | |
+| [SimCity 2000](./sim-city-2000/README.md) | Play the SimCity 2000 demo. | |
 | [Solitaire](./solitaire/README.md) | Play the classic Klondike solitaire. | |
-| [Spider Solitaire](./spidersolitaire/README.md) | Play the challenging Spider solitaire. | |
+| [Spider Solitaire](./spider-solitaire/README.md) | Play the challenging Spider solitaire. | |
 | [Webamp](./webamp/README.md) | A faithful recreation of the classic Winamp music player. | |
 
 ### Accessories & Tools
 *General-purpose productivity and creative tools.*
 | Application | Description | Source |
 | :--- | :--- | :--- |
-| [App Maker](./appmaker/README.md) | A tool to create custom, windowed applications using HTML. | |
+| [App Maker](./app-maker/README.md) | A tool to create custom, windowed applications using HTML. | |
 | [Calculator](./calculator/README.md) | A fully functional Standard and Scientific calculator. | |
 | [Clippy](./clippy/README.md) | An interactive AI assistant. | |
-| [Flash Player](./flashplayer/README.md) | Play classic Adobe Flash (.swf) files. | |
+| [Flash Player](./flash-player/README.md) | Play classic Adobe Flash (.swf) files. | |
 | [Image Resizer](./image-resizer/README.md) | A utility to enlarge images using nearest-neighbor scaling. | |
 | [Image Viewer](./image-viewer/README.md) | A simple application for viewing and editing image files. | |
 | [Notepad](./notepad/README.md) | A powerful text editor with syntax highlighting, code formatting, and Markdown preview. | |
@@ -44,7 +44,7 @@ This guide provides instructions on how to add new applications to azOS Second E
 | Application | Description | Source |
 | :--- | :--- | :--- |
 | [Buy me a coffee](./buy-me-a-coffee/README.md) | Support the developer. | |
-| [Report a Bug](./reportabug/README.md) | Report issues encountered while using the system. | |
+| [Report a Bug](./report-a-bug/README.md) | Report issues encountered while using the system. | |
 
 ## Adding New Applications
 
