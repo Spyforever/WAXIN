@@ -130,10 +130,16 @@ export class DragDropManager {
         const sourcePaths = draggedItems.map(item => item.path);
         const offsets = draggedItems.map(item => ({ x: offsetX - item.offsetX, y: offsetY - item.offsetY }));
         let dropX = null, dropY = null;
-        if (targetApp && targetApp.iconContainer) {
-            const rect = targetApp.iconContainer.getBoundingClientRect();
-            dropX = e.clientX - rect.left + targetApp.iconContainer.scrollLeft - offsetX;
-            dropY = e.clientY - rect.top + targetApp.iconContainer.scrollTop - offsetY;
+
+        let container = (targetApp && targetApp.iconContainer);
+        if (!container && dropTarget) {
+            container = dropTarget.closest('.explorer-icon-view') || dropTarget.closest('.desktop');
+        }
+
+        if (container) {
+            const rect = container.getBoundingClientRect();
+            dropX = e.clientX - rect.left + (container.scrollLeft || 0) - offsetX;
+            dropY = e.clientY - rect.top + (container.scrollTop || 0) - offsetY;
         }
         const sourceDir = sourcePaths[0].substring(0, sourcePaths[0].lastIndexOf('/')) || '/';
         if (!isCopy && destinationPath === sourceDir) {
