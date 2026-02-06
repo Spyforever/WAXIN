@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.1](https://github.com/azayrahmad/win98-web/compare/win98-web-v0.3.0...win98-web-v0.3.1) (2026-02-06)
+
+
+### Bug Fixes
+
+* refactor kebab-case issues ([af66fca](https://github.com/azayrahmad/win98-web/commit/af66fcae89d751ed8388f68d89a09416955da61d))
+* resolve desktop icon dragging to (0,0) when Auto Arrange is off ([ce5cc52](https://github.com/azayrahmad/win98-web/commit/ce5cc5244f6d79d7bbbab917357f5142be16c544))
+
 ## [0.3.0](https://github.com/azayrahmad/win98-web/compare/win98-web-v0.2.0...win98-web-v0.3.0) (2026-02-05)
 
 
