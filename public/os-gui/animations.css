@@ -2,12 +2,10 @@
     position: absolute;
     overflow: hidden;
     display: none;
-    transition: display 0.15s allow-discrete;
-    /* Ensure the wrapper doesn't capture clicks when closed */
+    /* No transition on display for the wrapper to avoid interference */
     pointer-events: none;
     width: fit-content;
     height: fit-content;
-    z-index: 10000;
 }
 
 .menu-popup-wrapper.open {
@@ -19,23 +17,25 @@
     display: block !important;
     visibility: hidden !important;
     pointer-events: none !important;
-    transition: none !important;
-}
-
-.menu-popup-wrapper.measuring .menu-popup {
-    transition: none !important;
 }
 
 .menu-popup-wrapper .menu-popup {
-    transition: transform 0.15s ease-out;
     /* We must use relative to ensure the wrapper gets size from the menu */
     position: relative !important;
     display: block;
-    /* Ensure no margin/padding interferes with clipping */
     margin: 0 !important;
+    transform: translate(0, 0);
+    opacity: 1;
+}
+
+.menu-popup-wrapper.open .menu-popup {
+    transition: transform 130ms linear, opacity 130ms linear;
 }
 
 @starting-style {
+    .menu-popup-wrapper.open .menu-popup {
+        opacity: 0;
+    }
     .menu-popup-wrapper.open.to-right .menu-popup {
         transform: translateX(-100%);
     }
@@ -49,15 +49,15 @@
         transform: translateY(100%);
     }
     .menu-popup-wrapper.open.to-diag-left-top .menu-popup {
-        transform: translate(-100%, -100%);
+        transform: translate(100%, 100%);
     }
     .menu-popup-wrapper.open.to-diag-right-top .menu-popup {
-        transform: translate(100%, -100%);
-    }
-    .menu-popup-wrapper.open.to-diag-left-bottom .menu-popup {
         transform: translate(-100%, 100%);
     }
+    .menu-popup-wrapper.open.to-diag-left-bottom .menu-popup {
+        transform: translate(100%, -100%);
+    }
     .menu-popup-wrapper.open.to-diag-right-bottom .menu-popup {
-        transform: translate(100%, 100%);
+        transform: translate(-100%, -100%);
     }
 }

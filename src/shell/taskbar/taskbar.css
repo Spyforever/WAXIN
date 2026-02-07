@@ -251,16 +251,20 @@ button:not(:disabled):active img {
     overflow: hidden;
     z-index: 9999;
     display: none;
-    transition: display 130ms allow-discrete;
 }
 
 .start-menu-wrapper.open {
     display: block;
 }
 
+.start-menu-wrapper.open .start-menu {
+    transition: transform 130ms linear, opacity 130ms linear;
+}
+
 @starting-style {
     .start-menu-wrapper.open .start-menu {
         transform: translateY(100%);
+        opacity: 0;
     }
 }
 
@@ -272,9 +276,6 @@ button:not(:disabled):active img {
     margin: 0 3px;
 }
 
-.start-menu.is-animating {
-    pointer-events: none;
-}
 
 .system-tray {
     height: 22px;

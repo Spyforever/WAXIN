@@ -204,10 +204,8 @@ class StartMenu {
       menuWrapper.style.left = `${finalX}px`;
       menuWrapper.style.top = `${finalY}px`;
 
-      setTimeout(() => {
-        menuWrapper.classList.add("to-right");
-        menuWrapper.classList.add("open");
-      }, 0);
+      menuWrapper.classList.add("to-right");
+      menuWrapper.classList.add("open");
 
       if (typeof window.playSound === "function") window.playSound("MenuPopup");
       this.openSubmenus.push(activeMenu);
@@ -303,10 +301,8 @@ class StartMenu {
       menuWrapper.style.left = `${finalX}px`;
       menuWrapper.style.top = `${finalY}px`;
 
-      setTimeout(() => {
-        menuWrapper.classList.add("to-right");
-        menuWrapper.classList.add("open");
-      }, 0);
+      menuWrapper.classList.add("to-right");
+      menuWrapper.classList.add("open");
 
       if (typeof window.playSound === "function") window.playSound("MenuPopup");
       this.openSubmenus.push(activeMenu);
