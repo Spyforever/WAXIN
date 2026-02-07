@@ -1,19 +1,20 @@
 .menu-popup-wrapper {
     position: absolute;
-    overflow: hidden;
+    /* overflow: hidden; */ /* Removing this to ensure visibility if size calculation is tricky */
     display: none;
     transition: display 0.15s allow-discrete;
 }
 
 .menu-popup-wrapper.open {
     display: block;
-    width: max-content;
-    height: max-content;
+    width: fit-content;
+    height: fit-content;
 }
 
-.menu-popup {
+.menu-popup-wrapper .menu-popup {
     transition: transform 0.15s ease-out;
-    position: relative; /* Ensure it contributes to .menu-popup-wrapper size */
+    position: relative !important; /* Force relative to ensure it contributes to wrapper size */
+    display: block;
 }
 
 @starting-style {
