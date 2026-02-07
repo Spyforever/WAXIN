@@ -55,6 +55,14 @@ export async function initFileSystem(onProgress) {
       await fs.promises.mkdir("/C:/WINDOWS");
     }
 
+    // Ensure WINDOWS/Web/Wallpaper directory exists
+    if (!(await existsAsync("/C:/WINDOWS/Web"))) {
+      await fs.promises.mkdir("/C:/WINDOWS/Web");
+    }
+    if (!(await existsAsync("/C:/WINDOWS/Web/Wallpaper"))) {
+      await fs.promises.mkdir("/C:/WINDOWS/Web/Wallpaper");
+    }
+
     // Ensure Program Files/Doom exists
     if (!(await existsAsync("/C:/Program Files"))) {
       await fs.promises.mkdir("/C:/Program Files");
