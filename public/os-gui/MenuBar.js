@@ -372,22 +372,30 @@
 
       const update_position = () => {
         const rect = menu_button_el.getBoundingClientRect();
+
+        // Measure without showing
+        const originalVisibility = menu_popup_el.style.visibility;
+        menu_popup_el.classList.add("open");
+        menu_popup_el.style.visibility = "hidden";
         const popup_rect = menu_popup_el.getBoundingClientRect();
+        menu_popup_el.classList.remove("open");
+        menu_popup_el.style.visibility = originalVisibility;
+
         menu_popup_el.style.position = "absolute";
         menu_popup_el.style.left = `${(get_direction() === "rtl" ? rect.right - popup_rect.width : rect.left) + window.scrollX}px`;
         menu_popup_el.style.top = `${rect.bottom + window.scrollY}px`;
-        const uncorrected_rect = menu_popup_el.getBoundingClientRect();
-        if (Math.floor(uncorrected_rect.right) > innerWidth) {
-          menu_popup_el.style.left = `${innerWidth - uncorrected_rect.width}px`;
+
+        const final_left = parseFloat(menu_popup_el.style.left);
+        if (final_left + popup_rect.width > innerWidth + window.scrollX) {
+          menu_popup_el.style.left = `${innerWidth + window.scrollX - popup_rect.width}px`;
         }
-        if (Math.ceil(uncorrected_rect.left) < 0) {
-          menu_popup_el.style.left = "0px";
+        if (final_left < window.scrollX) {
+          menu_popup_el.style.left = `${window.scrollX}px`;
         }
       };
       window.addEventListener("resize", update_position);
       menu_popup_el.addEventListener("update", update_position);
 
-      menu_popup_el.style.display = "none";
       menu_button_el.innerHTML = `<span>${AccessKeys.toHTML(menus_key)}</span>`;
       menu_button_el.tabIndex = -1;
 
@@ -423,26 +431,11 @@
         close_menus();
         menu_button_el.classList.add("active");
         menu_button_el.setAttribute("aria-expanded", "true");
-        menu_popup_el.style.display = "";
-        menu_popup_el.style.zIndex = `${get_new_menu_z_index()}`;
-        // Make visible off-screen to measure
-        menu_popup_el.style.left = "-9999px";
-        menu_popup_el.style.top = "-9999px";
-        const rect = menu_popup_el
-          .querySelector(".menu-popup")
-          .getBoundingClientRect();
 
-        // Position and animate
         update_position();
-        menu_popup_el.style.width = "0px";
-        menu_popup_el.style.height = "0px";
+        menu_popup_el.classList.add("open");
+        menu_popup_el.style.zIndex = `${get_new_menu_z_index()}`;
 
-        setTimeout(() => {
-          menu_popup_el.style.setProperty("--width", `${rect.width}px`);
-          menu_popup_el.style.setProperty("--height", `${rect.height}px`);
-          menu_popup_el.style.width = "var(--width)";
-          menu_popup_el.style.height = "var(--height)";
-        }, 0);
         menu_popup_el.setAttribute("dir", get_direction());
         if (window.inheritTheme) window.inheritTheme(menu_popup_el, menus_el);
         if (!menu_popup_el.parentElement)
@@ -466,7 +459,7 @@
         if (!window.debugKeepMenusOpen) {
           menu_popup.close(true);
           menu_button_el.setAttribute("aria-expanded", "false");
-          menu_popup_el.style.display = "none"; // Explicitly hide the wrapper
+          menu_popup_el.classList.remove("open");
         }
         menus_el.dispatchEvent(new CustomEvent("default-info", {}));
       });
