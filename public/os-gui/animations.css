@@ -49,15 +49,15 @@
         transform: translateY(100%);
     }
     .menu-popup-wrapper.open.to-diag-left-top .menu-popup {
-        transform: translate(100%, 100%);
+        transform: translate(-100%, -100%);
     }
     .menu-popup-wrapper.open.to-diag-right-top .menu-popup {
-        transform: translate(-100%, 100%);
-    }
-    .menu-popup-wrapper.open.to-diag-left-bottom .menu-popup {
         transform: translate(100%, -100%);
     }
+    .menu-popup-wrapper.open.to-diag-left-bottom .menu-popup {
+        transform: translate(-100%, 100%);
+    }
     .menu-popup-wrapper.open.to-diag-right-bottom .menu-popup {
-        transform: translate(-100%, -100%);
+        transform: translate(100%, 100%);
     }
 }
