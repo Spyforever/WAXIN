@@ -36,7 +36,7 @@
 
     menu_popup_el.addEventListener("pointerleave", () => {
       for (const submenu of submenus) {
-        if (submenu.submenu_popup_el.style.display !== "none") {
+        if (submenu.submenu_popup_el.classList.contains("open")) {
           this.highlight(submenu.item_el);
           return;
         }
@@ -178,7 +178,7 @@
         });
         item_el.addEventListener("pointerleave", (event) => {
           if (
-            menu_popup_el.style.display !== "none" &&
+            (this.wrapperElement || menu_popup_el).classList.contains("open") &&
             event.pointerType !== "touch"
           ) {
             options.send_info_event();
@@ -207,7 +207,7 @@
           submenu_popup_el.appendChild(submenu_popup_el_actual);
 
           document.body?.appendChild(submenu_popup_el);
-          submenu_popup_el.style.display = "none";
+          // submenu_popup_el.style.display = "none"; // Managed by .open class
           item_el.setAttribute("aria-haspopup", "true");
           item_el.setAttribute("aria-expanded", "false");
           item_el.setAttribute("aria-controls", submenu_popup_el.id);
@@ -245,11 +245,9 @@
             const rect = item_el.getBoundingClientRect();
 
             // Measure without showing
-            submenu_popup_el.classList.add("open");
-            submenu_popup_el.style.visibility = "hidden";
+            submenu_popup_el.classList.add("measuring");
             const submenu_popup_rect = submenu_popup_el.getBoundingClientRect();
-            submenu_popup_el.classList.remove("open");
-            submenu_popup_el.style.visibility = "";
+            submenu_popup_el.classList.remove("measuring");
 
             let final_x =
               (get_direction() === "rtl"
@@ -346,7 +344,7 @@
               return;
             }
             if (!close_tid) {
-              if (submenu_popup_el.style.display !== "none") {
+              if (submenu_popup_el.classList.contains("open")) {
                 close_tid = setTimeout(() => {
                   if (!window.debugKeepMenusOpen) {
                     close_submenus_at_this_level();

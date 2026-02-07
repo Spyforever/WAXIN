@@ -53,7 +53,7 @@
     const screen = document.getElementById("screen");
     screen.appendChild(wrap);
 
-    menuPopup.element.style.display = "block";
+    // menuPopup.element.style.display = "block"; // Managed by .open class
     menuPopup.element.style.position = "absolute";
     menuPopup.element.style.left = "0";
     menuPopup.element.style.top = "0";
@@ -70,11 +70,9 @@
       wrap.style.position = "absolute";
 
       // Measure without showing
-      wrap.classList.add("open");
-      wrap.style.visibility = "hidden";
+      wrap.classList.add("measuring");
       const menuRect = menuPopup.element.getBoundingClientRect();
-      wrap.classList.remove("open");
-      wrap.style.visibility = "";
+      wrap.classList.remove("measuring");
 
       const screenRect = screen.getBoundingClientRect();
       const relX = x - screenRect.left;
@@ -103,15 +101,15 @@
       wrap.style.left = `${finalX}px`;
       wrap.style.top = `${finalY}px`;
 
-      wrap.classList.remove("to-diag-100-100", "to-diag100-100", "to-diag-100100", "to-diag100100");
+      wrap.classList.remove("to-diag-left-top", "to-diag-right-top", "to-diag-left-bottom", "to-diag-right-bottom");
       if (fromX === -100 && fromY === -100) {
-        wrap.classList.add("to-diag-100-100");
+        wrap.classList.add("to-diag-left-top");
       } else if (fromX === 100 && fromY === -100) {
-        wrap.classList.add("to-diag100-100");
+        wrap.classList.add("to-diag-right-top");
       } else if (fromX === -100 && fromY === 100) {
-        wrap.classList.add("to-diag-100100");
+        wrap.classList.add("to-diag-left-bottom");
       } else {
-        wrap.classList.add("to-diag100100");
+        wrap.classList.add("to-diag-right-bottom");
       }
 
       wrap.classList.add("open");

@@ -148,8 +148,7 @@
     menus_el.addEventListener("pointerleave", () => {
       if (
         top_level_menu_index !== -1 &&
-        top_level_menus[top_level_menu_index].menu_popup_el.style.display ===
-          "none"
+        !top_level_menus[top_level_menu_index].menu_popup_el.classList.contains("open")
       ) {
         top_level_highlight(-1);
       }
@@ -215,7 +214,7 @@
             !active_menu_popup.parentMenuPopup
           ) {
             const menu_was_open =
-              menu_popup_el && menu_popup_el.style.display !== "none";
+              menu_popup_el && menu_popup_el.classList.contains("open");
             const cycle_dir = (get_direction() === "ltr") === right ? 1 : -1;
             let new_index =
               top_level_menu_index === -1
@@ -374,12 +373,9 @@
         const rect = menu_button_el.getBoundingClientRect();
 
         // Measure without showing
-        const originalVisibility = menu_popup_el.style.visibility;
-        menu_popup_el.classList.add("open");
-        menu_popup_el.style.visibility = "hidden";
+        menu_popup_el.classList.add("measuring");
         const popup_rect = menu_popup_el.getBoundingClientRect();
-        menu_popup_el.classList.remove("open");
-        menu_popup_el.style.visibility = originalVisibility;
+        menu_popup_el.classList.remove("measuring");
 
         menu_popup_el.style.position = "absolute";
         menu_popup_el.style.left = `${(get_direction() === "rtl" ? rect.right - popup_rect.width : rect.left) + window.scrollX}px`;

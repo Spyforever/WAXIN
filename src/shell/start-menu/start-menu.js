@@ -189,11 +189,9 @@ class StartMenu {
       const screenRect = screen.getBoundingClientRect();
 
       // Measure without showing
-      menuWrapper.classList.add("open");
-      menuWrapper.style.visibility = "hidden";
+      menuWrapper.classList.add("measuring");
       const menuRect = activeMenu.element.getBoundingClientRect();
-      menuWrapper.classList.remove("open");
-      menuWrapper.style.visibility = "";
+      menuWrapper.classList.remove("measuring");
 
       let finalX = rect.right - screenRect.left;
       let finalY = rect.top - screenRect.top;
@@ -290,11 +288,9 @@ class StartMenu {
       const screenRect = screen.getBoundingClientRect();
 
       // Measure without showing
-      menuWrapper.classList.add("open");
-      menuWrapper.style.visibility = "hidden";
+      menuWrapper.classList.add("measuring");
       const menuRect = activeMenu.element.getBoundingClientRect();
-      menuWrapper.classList.remove("open");
-      menuWrapper.style.visibility = "";
+      menuWrapper.classList.remove("measuring");
 
       let finalX = rect.right - screenRect.left;
       let finalY = rect.top - screenRect.top;

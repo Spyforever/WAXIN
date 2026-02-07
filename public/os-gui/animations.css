@@ -1,20 +1,38 @@
 .menu-popup-wrapper {
     position: absolute;
-    /* overflow: hidden; */ /* Removing this to ensure visibility if size calculation is tricky */
+    overflow: hidden;
     display: none;
     transition: display 0.15s allow-discrete;
+    /* Ensure the wrapper doesn't capture clicks when closed */
+    pointer-events: none;
+    width: fit-content;
+    height: fit-content;
+    z-index: 10000;
 }
 
 .menu-popup-wrapper.open {
     display: block;
-    width: fit-content;
-    height: fit-content;
+    pointer-events: auto;
+}
+
+.menu-popup-wrapper.measuring {
+    display: block !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    transition: none !important;
+}
+
+.menu-popup-wrapper.measuring .menu-popup {
+    transition: none !important;
 }
 
 .menu-popup-wrapper .menu-popup {
     transition: transform 0.15s ease-out;
-    position: relative !important; /* Force relative to ensure it contributes to wrapper size */
+    /* We must use relative to ensure the wrapper gets size from the menu */
+    position: relative !important;
     display: block;
+    /* Ensure no margin/padding interferes with clipping */
+    margin: 0 !important;
 }
 
 @starting-style {
@@ -30,16 +48,16 @@
     .menu-popup-wrapper.open.to-up .menu-popup {
         transform: translateY(100%);
     }
-    .menu-popup-wrapper.open.to-diag-100-100 .menu-popup {
+    .menu-popup-wrapper.open.to-diag-left-top .menu-popup {
         transform: translate(-100%, -100%);
     }
-    .menu-popup-wrapper.open.to-diag100-100 .menu-popup {
+    .menu-popup-wrapper.open.to-diag-right-top .menu-popup {
         transform: translate(100%, -100%);
     }
-    .menu-popup-wrapper.open.to-diag-100100 .menu-popup {
+    .menu-popup-wrapper.open.to-diag-left-bottom .menu-popup {
         transform: translate(-100%, 100%);
     }
-    .menu-popup-wrapper.open.to-diag100100 .menu-popup {
+    .menu-popup-wrapper.open.to-diag-right-bottom .menu-popup {
         transform: translate(100%, 100%);
     }
 }
