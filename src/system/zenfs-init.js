@@ -109,6 +109,7 @@ export async function initFileSystem(onProgress) {
       { name: "Diablo.lnk.json", appId: "diablo" },
       { name: "Quake.lnk.json", appId: "quake" },
       { name: "Prince of Persia.lnk.json", appId: "prince-of-persia" },
+      { name: "Wolfenstein 3D.lnk.json", appId: "wolf3d" },
     ];
 
     for (const game of games) {
@@ -131,6 +132,31 @@ export async function initFileSystem(onProgress) {
     // Ensure My Documents directory exists
     if (!(await existsAsync("/C:/My Documents"))) {
       await fs.promises.mkdir("/C:/My Documents");
+    }
+
+    // Ensure Games directory exists on C:
+    if (!(await existsAsync("/C:/Games"))) {
+      await fs.promises.mkdir("/C:/Games");
+    }
+
+    // Install Wolfenstein 3D to C:\Games\WOLF3D if it doesn't exist
+    if (!(await existsAsync("/C:/Games/WOLF3D"))) {
+      if (onProgress) onProgress("Installing Wolfenstein 3D...");
+      await fs.promises.mkdir("/C:/Games/WOLF3D", { recursive: true });
+      const wolfFiles = [
+        "AUDIOHED.WL6", "AUDIOT.WL6", "CONFIG.WL6", "GAMEMAPS.WL6",
+        "MAPHEAD.WL6", "VGADICT.WL6", "VGAGRAPH.WL6", "VGAHEAD.WL6",
+        "VSWAP.WL6", "WOLF3D.EXE"
+      ];
+      for (const file of wolfFiles) {
+        try {
+          const response = await fetch(`games/dos/wolf3d/${file}`);
+          const buffer = await response.arrayBuffer();
+          await fs.promises.writeFile(`/C:/Games/WOLF3D/${file}`, new Uint8Array(buffer));
+        } catch (e) {
+          console.error(`Failed to install ${file}:`, e);
+        }
+      }
     }
 
     if (onProgress) onProgress("Initializing Start Menu...");
@@ -208,6 +234,7 @@ export async function initFileSystem(onProgress) {
     }
 
     isInitialized = true;
+    window.fs = fs; // Expose for debugging
     console.log("ZenFS initialized successfully.");
   } catch (error) {
     console.error("Failed to initialize ZenFS:", error);

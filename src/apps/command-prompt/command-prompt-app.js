@@ -166,6 +166,7 @@ export class CommandPromptApp extends Application {
         this.terminal.write("  CLS               - Clears the screen\r\n");
         this.terminal.write("  HELP              - Displays this help message\r\n");
         this.terminal.write("  <app-id>          - Launches an application\r\n");
+        this.terminal.write("  DOSBOX [path]     - Launches DOSBox emulator\r\n");
         break;
 
       case "dir":
@@ -329,6 +330,11 @@ export class CommandPromptApp extends Application {
         this.terminal.clear();
         break;
 
+      case "dosbox":
+        const dosPath = args.length > 0 ? this.resolvePath(args[0]) : null;
+        launchApp("dos-box", dosPath);
+        break;
+
       default:
         const app = apps.find(
           (app) =>
@@ -345,7 +351,11 @@ export class CommandPromptApp extends Application {
             if (stats.isFile()) {
               const association = getAssociation(cmd);
               if (association && association.appId) {
-                launchApp(association.appId, filePath);
+                if (association.appId === "dos-box") {
+                    launchApp("dos-box", { path: filePath, args: args });
+                } else {
+                    launchApp(association.appId, filePath);
+                }
               } else {
                 this.terminal.write(`No association found for file: ${cmd}\r\n`);
               }

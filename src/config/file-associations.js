@@ -203,6 +203,17 @@ export const fileAssociations = {
     appId: "flashplayer",
     icon: ICONS.swfFile,
   },
+  // DOS Executables
+  exe: {
+    name: "Application",
+    appId: "dos-box",
+    icon: ICONS.shell,
+  },
+  com: {
+    name: "MS-DOS Application",
+    appId: "dos-box",
+    icon: ICONS.msdos,
+  },
   // Default
   default: {
     name: "File",
