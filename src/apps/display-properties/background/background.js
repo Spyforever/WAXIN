@@ -2,6 +2,7 @@ import { setItem, LOCAL_STORAGE_KEYS } from '../../../system/local-storage.js';
 import { ShowFilePicker } from '../../../shared/utils/file-picker.js';
 import { getZenFSFileAsBlob, isZenFSPath, getZenFSFileUrl } from '../../../system/zenfs-utils.js';
 import { fs } from "@zenfs/core";
+import { getIconObjForFile } from '../../../shell/explorer/interface/file-icon-renderer.js';
 
 function formatWallpaperName(filename) {
   let name = filename.replace(/\.[^/.]+$/, ""); // Remove extension
@@ -16,7 +17,7 @@ let currentPreviewBlobUrl = null;
 
 async function populateWallpaperList(win, app) {
   const $wallpaperList = win.$content.find(".wallpaper-list");
-  const wallpaperDir = "/C:/WINDOWS/Web/Wallpaper";
+  const wallpaperDir = "/C:/WINDOWS";
 
   let files = [];
   try {
@@ -33,15 +34,23 @@ async function populateWallpaperList(win, app) {
 
   const wallpapersToDisplay = wallpaperFiles.map((filename) => {
     const path = `${wallpaperDir}/${filename}`;
-    return { name: formatWallpaperName(filename), path };
+    const iconObj = getIconObjForFile(filename, false);
+    return { name: formatWallpaperName(filename), path, icon16: iconObj[16] };
   });
 
   const tableBody = $("<tbody></tbody>");
   const noneRow = $('<tr data-path="none"><td>(None)</td></tr>');
   tableBody.append(noneRow);
 
-  wallpapersToDisplay.forEach(({ name, path }) => {
-    const tableRow = $(`<tr data-path=\"${path}\"><td>${name}</td></tr>`);
+  wallpapersToDisplay.forEach(({ name, path, icon16 }) => {
+    const tableRow = $(`
+      <tr data-path="${path}">
+        <td style="display: flex; align-items: center; gap: 4px;">
+          <img src="${icon16}" width="16" height="16" draggable="false" />
+          <span>${name}</span>
+        </td>
+      </tr>
+    `);
     tableBody.append(tableRow);
   });
 
@@ -130,7 +139,7 @@ async function browseForWallpaper(win, app) {
   const path = await ShowFilePicker({
     title: "Browse for Wallpaper",
     mode: "open",
-    initialPath: "/C:/WINDOWS/Web/Wallpaper",
+    initialPath: "/C:/WINDOWS",
     fileTypes: [
       {
         label: "Image Files",

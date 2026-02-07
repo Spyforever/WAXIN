@@ -164,7 +164,7 @@ export async function initializeOS() {
     });
 
     await executeBootStep(async () => {
-      const wallpaperDir = "/C:/WINDOWS/Web/Wallpaper";
+      const wallpaperDir = "/C:/WINDOWS";
       let needed = false;
       for (const w of wallpapers.default) {
         if (!(await existsAsync(`${wallpaperDir}/${w.filename}`))) {
