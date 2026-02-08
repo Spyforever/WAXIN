@@ -191,7 +191,7 @@ button:not(:disabled):active img {
     transition: transform 130ms linear;
 }
 
-.start-menu ul {
+.start-menu menu {
     list-style: none;
     padding: 0;
     margin: 1px;

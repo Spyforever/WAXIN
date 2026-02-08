@@ -84,6 +84,8 @@ html {
     gap: 0;
     align-content: start;
     padding: 5px;
+    list-style: none;
+    margin: 0;
 }
 
 /* When dragging, disable grid so icons stay put */

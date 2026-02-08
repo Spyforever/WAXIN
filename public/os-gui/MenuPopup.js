@@ -15,7 +15,7 @@
     this.menuItems = menu_items;
     this.itemElements = [];
 
-    const menu_popup_el = E("div", {
+    const menu_popup_el = E("menu", {
       class: "menu-popup",
       id: `menu-popup-${uid()}`,
       tabIndex: "-1",

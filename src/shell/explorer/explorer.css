@@ -54,6 +54,8 @@
     padding: 10px;
     align-content: start;
     position: relative;
+    list-style: none;
+    margin: 0;
 }
 
 .explorer-icon-view.small-icons {

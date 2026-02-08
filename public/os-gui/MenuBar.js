@@ -95,7 +95,7 @@
       return new MenuBar(menus);
     }
 
-    const menus_el = E("div", {
+    const menus_el = E("menu", {
       class: "menus",
       role: "menubar",
       "aria-label": "Application Menu",
@@ -339,7 +339,7 @@
     menus_el.addEventListener("keydown", handleKeyDown);
 
     const make_menu_button = (menus_key, menu_items) => {
-      const menu_button_el = E("div", {
+      const menu_button_el = E("li", {
         class: "menu-button",
         "aria-expanded": "false",
         "aria-haspopup": "true",
