@@ -708,8 +708,7 @@ so I think I'll imitate that. (I might change it later) */
     background: currentColor;
 }
 .menu-item-icon-area {
-    padding-right: 4px;
-    padding-left: 2px;
+    padding: 2px 4px !important;
 }
 .menu-item-icon-wrapper {
     width: 16px;
@@ -718,8 +717,14 @@ so I think I'll imitate that. (I might change it later) */
 }
 .menu-item.highlight .menu-item-icon-wrapper {
     background-image:
-        linear-gradient(oklch(from var(--HilightText) l c h), oklch(from var(--HilightText) l c h)),
-        linear-gradient(oklch(from var(--HilightText) l c h), oklch(from var(--HilightText) l c h)),
+        linear-gradient(
+            oklch(from var(--Hilight) l c h),
+            oklch(from var(--Hilight) l c h)
+        ),
+        linear-gradient(
+            oklch(from var(--Hilight) l c h),
+            oklch(from var(--Hilight) l c h)
+        ),
         var(--icon-url);
     background-blend-mode: color, saturation, normal;
     background-size: contain;
