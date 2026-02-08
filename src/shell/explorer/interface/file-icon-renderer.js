@@ -229,6 +229,23 @@ export async function renderFileIcon(fileName, fullPath, isDir, options = {}) {
 
   iconInner.appendChild(iconWrapper);
 
+  // Set CSS variables for icon and overlay URLs to support advanced highlighting
+  iconDiv.style.setProperty("--icon-url-32", `url("${iconObj[32]}")`);
+  iconDiv.style.setProperty("--icon-url-16", `url("${iconObj[16]}")`);
+  if (isShortcut) {
+    iconDiv.style.setProperty(
+      "--overlay-url-32",
+      `url("${SHORTCUT_OVERLAY[32]}")`,
+    );
+    iconDiv.style.setProperty(
+      "--overlay-url-16",
+      `url("${SHORTCUT_OVERLAY[16]}")`,
+    );
+  } else {
+    iconDiv.style.setProperty("--overlay-url-32", "none");
+    iconDiv.style.setProperty("--overlay-url-16", "none");
+  }
+
   const label = document.createElement("div");
   label.className = "icon-label";
   label.textContent = displayName;

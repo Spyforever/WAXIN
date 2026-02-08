@@ -92,8 +92,10 @@ class StartMenu {
       .map((item) => {
         const hasSubmenu = (item.submenu && item.submenu.length >= 0) || item.isDynamic;
         return `
-        <li class="start-menu-item ${hasSubmenu ? "has-submenu" : ""}" role="menuitem" tabindex="0" data-id="${this.escapeHtml(item.label)}">
-          <img src="${item.icon}" alt="${this.escapeHtml(item.label)}">
+        <li class="start-menu-item ${hasSubmenu ? "has-submenu" : ""}" role="menuitem" tabindex="0" data-id="${this.escapeHtml(item.label)}" style="--icon-url: url('${item.icon}')">
+          <div class="start-menu-icon-wrapper">
+            <img src="${item.icon}" alt="${this.escapeHtml(item.label)}">
+          </div>
           <span>${this.escapeHtml(item.label)}</span>
           ${hasSubmenu ? '<span class="submenu-arrow"></span>' : ""}
         </li>
@@ -111,12 +113,16 @@ class StartMenu {
           <div class="start-menu-divider" role="separator"></div>
           ${dynamicItemsHTML}
           <div class="start-menu-divider" role="separator"></div>
-          <li class="logoff-menu-item" role="menuitem" tabindex="0">
-            <img src="${ICONS.logoff[32]}" alt="Log off" loading="lazy">
+          <li class="logoff-menu-item" role="menuitem" tabindex="0" style="--icon-url: url('${ICONS.logoff[32]}')">
+            <div class="start-menu-icon-wrapper">
+              <img src="${ICONS.logoff[32]}" alt="Log off" loading="lazy">
+            </div>
             <span id="logofftext">Log Off Guest...</span>
           </li>
-          <li role="menuitem" tabindex="0" data-action="shutdown">
-            <img src="${ICONS.shutdown[32]}" alt="Shutdown" loading="lazy">
+          <li role="menuitem" tabindex="0" data-action="shutdown" style="--icon-url: url('${ICONS.shutdown[32]}')">
+            <div class="start-menu-icon-wrapper">
+              <img src="${ICONS.shutdown[32]}" alt="Shutdown" loading="lazy">
+            </div>
             <span>Shut Down...</span>
           </li>
         </ul>
@@ -422,8 +428,10 @@ class StartMenu {
       const pinnedItems = await getPinnedItemsFromZenFS(PINNED_PATH);
       pinnedContainer.innerHTML = pinnedItems
         .map((item) => `
-          <li class="start-menu-item pinned-item" role="menuitem" tabindex="0">
-            <img src="${item.icon}" alt="${this.escapeHtml(item.label)}">
+          <li class="start-menu-item pinned-item" role="menuitem" tabindex="0" style="--icon-url: url('${item.icon}')">
+            <div class="start-menu-icon-wrapper">
+              <img src="${item.icon}" alt="${this.escapeHtml(item.label)}">
+            </div>
             <span>${this.escapeHtml(item.label)}</span>
           </li>
         `)
