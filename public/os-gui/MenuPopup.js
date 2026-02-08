@@ -133,13 +133,17 @@
         const submenu_area_el = E("td", { class: "menu-item-submenu-area" });
 
         if (item.icon) {
+          const icon_area_el = E("td", { class: "menu-item-icon-area" });
+          const icon_wrapper = E("div", { class: "menu-item-icon-wrapper" });
           const icon_el = E("img", {
             src: item.icon,
             width: 16,
             height: 16,
-            style: "margin-right: 4px; margin-left: 2px;",
           });
-          item_el.appendChild(icon_el);
+          icon_wrapper.appendChild(icon_el);
+          icon_area_el.appendChild(icon_wrapper);
+          item_el.appendChild(icon_area_el);
+          item_el.style.setProperty("--icon-url", `url("${item.icon}")`);
         } else {
           item_el.appendChild(checkbox_area_el);
         }
