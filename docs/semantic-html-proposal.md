@@ -160,9 +160,9 @@ Dialog windows are often modal and represent a specific interaction.
 
 ---
 
-## 8. Menus and Popups (`public/os-gui/MenuPopup.js`, `public/os-gui/MenuBar.js`)
+## 8. Menus and Popups (`public/os-gui/MenuPopup.js`, `public/os-gui/MenuBar.js`, `public/os-gui/ContextMenu.js`)
 
-Menus currently use a mix of `div`, `table`, `tr`, and `td` with ARIA roles.
+Menus and context menus currently use a mix of `div`, `table`, `tr`, and `td` with ARIA roles.
 
 ### Proposed Changes:
 - Replace the outer menu `div` with `<menu>`. This is more appropriate than `<ul>` as it explicitly indicates a list of commands.
