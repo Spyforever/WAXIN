@@ -53,10 +53,11 @@ The taskbar contains navigation and status information.
 
 ## 3. Start Menu (`src/shell/start-menu/start-menu.js`)
 
-The Start Menu is a primary navigation element for the entire OS.
+The Start Menu serves as both a primary navigation landmark and a list of commands.
 
 ### Proposed Changes:
-- Use `<nav aria-label="Start Menu">` as the container for the start menu.
+- Use `<nav aria-label="Start Menu">` as the outer container to define it as a navigation landmark.
+- Use `<menu>` instead of `<ul>` for the internal list of items, as it semantically represents a list of interactive commands.
 
 ### Example:
 **Before:**
@@ -71,11 +72,13 @@ The Start Menu is a primary navigation element for the entire OS.
 **Proposed:**
 ```html
 <nav id="start-menu" class="start-menu hidden" aria-label="Start Menu">
-  <ul class="start-menu-list">
+  <menu class="start-menu-list">
     <!-- ... -->
-  </ul>
+  </menu>
 </nav>
 ```
+
+> **Note on `<menu>` vs `<nav>`:** While `<nav>` is used to identify a section that contains navigation links, `<menu>` is intended specifically for an unordered list of interactive items (commands). Using `<nav>` as a wrapper provides the accessibility benefit of a landmark role, while `<menu>` correctly describes the nature of the interactive items within the Start Menu.
 
 ---
 
@@ -162,13 +165,13 @@ Dialog windows are often modal and represent a specific interaction.
 Menus currently use a mix of `div`, `table`, `tr`, and `td` with ARIA roles.
 
 ### Proposed Changes:
-- Replace the outer menu `div` with `<ul>`.
+- Replace the outer menu `div` with `<menu>`. This is more appropriate than `<ul>` as it explicitly indicates a list of commands.
 - Replace menu rows (`tr`) with `<li>`.
-- While the `table` layout provides excellent alignment, a CSS Grid or Flexbox approach using `<ul>` and `<li>` would be more semantically correct for a list of actions.
+- While the `table` layout provides excellent alignment, a CSS Grid or Flexbox approach using `<menu>` and `<li>` would be more semantically correct for a list of actions.
 
 | Component | Current Tag | Proposed Tag |
 |-----------|-------------|--------------|
-| Menu Popup| `div`       | `ul`         |
+| Menu Popup| `div`       | `menu`       |
 | Menu Item | `tr`        | `li`         |
 
 ---
