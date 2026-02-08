@@ -108,6 +108,7 @@ export async function initializeOS() {
     }
 
     await executeBootStep(() => {
+      playSound("Default"); // POST Beep
       document.body.classList.add("booting");
       document.getElementById("screen").classList.add("boot-mode");
       document.getElementById("initial-boot-message").style.display = "none";
@@ -314,12 +315,7 @@ export async function initializeOS() {
     });
 
     await executeBootStep(async () => {
-      const bootLogEl = document.getElementById("boot-log");
-      if (bootLogEl) {
-        const finalMessage = document.createElement("div");
-        finalMessage.textContent = "azOS Ready!";
-        bootLogEl.appendChild(finalMessage);
-      }
+      startBootProcessStep("azOS Ready!");
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
 

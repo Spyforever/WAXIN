@@ -139,9 +139,6 @@
                 overflow: hidden;
                 position: relative;
             }
-            #boot-log div {
-                white-space: pre-wrap;
-            }
             #boot-screen {
                 display: flex;
                 justify-content: space-between;
@@ -156,9 +153,9 @@
                 font-family: "IBM BIOS", Courier, monospace;
                 font-size: 13px;
                 line-height: 1.5;
-                padding: 2em;
+                padding: 1em 2em;
                 box-sizing: border-box;
-                overflow-y: auto;
+                overflow: hidden;
                 z-index: 9999;
             }
             #boot-screen-left {
@@ -215,6 +212,15 @@
                 flex-grow: 1;
                 display: flex;
                 flex-direction: column;
+                height: 100%;
+                overflow: hidden;
+            }
+            #boot-terminal {
+                width: 100%;
+                height: 100%;
+            }
+            #boot-terminal .xterm-viewport {
+                overflow-y: hidden !important;
             }
             #bios-logo-column {
                 width: 20px;
@@ -263,14 +269,14 @@
                             <!-- Browser Info (will be updated by main.js) -->
                             <!--<div id="browser-info" style="margin-top: 10px"></div>-->
                             <!-- Boot Log (will be updated by main.js) -->
-                            <div id="boot-log" style="flex-grow: 1"></div>
-                            <div id="boot-screen-footer">
+                            <div id="boot-terminal" style="flex-grow: 1; margin-top: 10px;"></div>
+                            <div id="boot-screen-footer" style="font-family: 'IBM BIOS', monospace;">
                                 Press [DEL] to enter SETUP.
                             </div>
                         </div>
 
                         <!-- Right Column for Energy Star logo -->
-                        <div id="boot-screen-right-column">
+                        <div id="boot-screen-right-column" style="margin-left: 20px;">
                             <img src="/img/energystar.png" alt="Energy Star" />
                         </div>
                     </div>
