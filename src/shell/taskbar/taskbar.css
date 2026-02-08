@@ -188,9 +188,7 @@ button:not(:disabled):active img {
     pointer-events: auto;
     width: -moz-fit-content;
     width: fit-content;
-    animation-duration: 130ms;
-    animation-timing-function: linear;
-    animation-fill-mode: forwards;
+    transition: transform 130ms linear;
 }
 
 .start-menu ul {
@@ -248,10 +246,26 @@ button:not(:disabled):active img {
     position: absolute;
     bottom: 25px;
     left: 2px;
-    width: 0px;
-    height: 0px;
+    width: fit-content;
+    height: fit-content;
     overflow: hidden;
     z-index: 9999;
+    display: none;
+}
+
+.start-menu-wrapper.open {
+    display: block;
+}
+
+.start-menu-wrapper.open .start-menu {
+    transition: transform 130ms linear, opacity 130ms linear;
+}
+
+@starting-style {
+    .start-menu-wrapper.open .start-menu {
+        transform: translateY(100%);
+        opacity: 0;
+    }
 }
 
 .start-menu-divider {
@@ -262,27 +276,6 @@ button:not(:disabled):active img {
     margin: 0 3px;
 }
 
-@keyframes scrollUp {
-    from {
-        transform: translateY(100%);
-    }
-    to {
-        transform: translateY(0);
-    }
-}
-
-.start-menu.is-animating {
-    pointer-events: none;
-}
-
-@keyframes scrollDown {
-    from {
-        transform: translateY(0);
-    }
-    to {
-        transform: translateY(100%);
-    }
-}
 
 .system-tray {
     height: 22px;
