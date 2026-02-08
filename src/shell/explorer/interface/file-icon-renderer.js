@@ -96,7 +96,7 @@ export async function renderFileIcon(fileName, fullPath, isDir, options = {}) {
   const fileStat =
     options.stat || (await ShellManager.stat(fullPath).catch(() => ({})));
 
-  const iconDiv = document.createElement("div");
+  const iconDiv = document.createElement("li");
   iconDiv.className = "explorer-icon";
   iconDiv.setAttribute("tabindex", "0");
   iconDiv.setAttribute("data-path", fullPath);

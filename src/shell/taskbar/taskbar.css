@@ -193,7 +193,7 @@ button:not(:disabled):active img {
     animation-fill-mode: forwards;
 }
 
-.start-menu ul {
+.start-menu menu {
     list-style: none;
     padding: 0;
     margin: 1px;

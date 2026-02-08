@@ -107,11 +107,11 @@ class StartMenu {
       .join("");
 
     return `
-      <div id="start-menu" class="start-menu ${CLASSES.HIDDEN}">
+      <nav id="start-menu" class="start-menu ${CLASSES.HIDDEN}" aria-label="Start Menu">
         <div class="blue-rectangle">
           <img src="${windowsStartMenuBar}" alt="Start Menu Bar" loading="lazy" />
         </div>
-        <ul class="start-menu-list">
+        <menu class="start-menu-list">
           <li class="pinned-items-container" style="display: contents;"></li>
           <div class="start-menu-divider" role="separator"></div>
           ${dynamicItemsHTML}
@@ -124,8 +124,8 @@ class StartMenu {
             <img src="${ICONS.shutdown[32]}" alt="Shutdown" loading="lazy">
             <span>Shut Down...</span>
           </li>
-        </ul>
-      </div>`;
+        </menu>
+      </nav>`;
   }
 
   bindEvents() {
