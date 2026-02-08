@@ -10,10 +10,10 @@ The core UI currently uses several `<div>` elements to define the main applicati
 - Replace `#app-container` with `<main>` to indicate the primary content area of the application.
 - Replace `.taskbar` with `<footer>` to reflect its position and role as a persistent utility bar at the bottom of the screen.
 
-| Element Selector | Current Tag | Proposed Tag |
-|------------------|-------------|--------------|
-| `#app-container` | `div`       | `main`       |
-| `.taskbar`       | `div`       | `footer`     |
+| Element Selector | Current Tag | Proposed Tag | Notes |
+|------------------|-------------|--------------|-------|
+| `#app-container` | `div`       | `main`       | |
+| `.taskbar`       | `div`       | `footer`     | Add `aria-label="Taskbar"` |
 
 ### Example:
 **Before:**
@@ -30,6 +30,7 @@ const appContainer = document.createElement('main');
 appContainer.id = 'app-container';
 const taskbar = document.createElement('footer');
 taskbar.className = 'taskbar';
+taskbar.setAttribute('aria-label', 'Taskbar');
 ```
 
 ---
@@ -122,13 +123,15 @@ The desktop area is where icons are placed and windows are rendered.
 The windowing system is responsible for creating and managing application windows and dialogs.
 
 ### Proposed Changes:
-- Replace the outer window `<div>` with `<article role="window">`. While `role="window"` is not a standard ARIA role (it's often `role="dialog"` or just a landmark), `<article>` is appropriate for self-contained components like windows. For modal dialogs, `<dialog>` should be considered.
+- Replace the outer window `<div>` with `<article role="window">` for standard windows.
+- For modal dialogs, use the native `<dialog>` element.
 - Replace `.window-titlebar` with `<header>`.
 - Replace `.window-content` with `<section>`.
 
 | Element Selector | Current Tag | Proposed Tag |
 |------------------|-------------|--------------|
-| `.window`        | `div`       | `article` or `dialog` |
+| `.window` (standard) | `div`    | `article`    |
+| `.window` (modal)    | `div`    | `dialog`     |
 | `.window-titlebar`| `div`      | `header`     |
 | `.window-content` | `div`      | `section`    |
 
@@ -156,7 +159,7 @@ The windowing system is responsible for creating and managing application window
 Dialog windows are often modal and represent a specific interaction.
 
 ### Proposed Changes:
-- For modal dialogs, use the native `<dialog>` element. This provides built-in accessibility features and a proper top-layer rendering (though `z-index` management is already handled by the system).
+- Use the native `<dialog>` element for all dialogs created through `ShowDialogWindow`.
 
 ---
 
@@ -165,14 +168,12 @@ Dialog windows are often modal and represent a specific interaction.
 Menus and context menus currently use a mix of `div`, `table`, `tr`, and `td` with ARIA roles.
 
 ### Proposed Changes:
-- Replace the outer menu `div` with `<menu>`. This is more appropriate than `<ul>` as it explicitly indicates a list of commands.
-- Replace menu rows (`tr`) with `<li>`.
-- While the `table` layout provides excellent alignment, a CSS Grid or Flexbox approach using `<menu>` and `<li>` would be more semantically correct for a list of actions.
+- Replace the outer menu `div` with `<menu>`.
+- Keep the internal `<table>` structure for layout consistency, but explore moving to semantic items in the future.
 
 | Component | Current Tag | Proposed Tag |
 |-----------|-------------|--------------|
 | Menu Popup| `div`       | `menu`       |
-| Menu Item | `tr`        | `li`         |
 
 ---
 
@@ -196,7 +197,7 @@ Toolbars and Address Bars provide specialized navigation and command grouping.
 The desktop is essentially a grid of shortcuts and files.
 
 ### Proposed Changes:
-- Use a `<ul>` or `<menu>` to contain all desktop icons, with each icon wrapped in an `<li>`. This provides a clear list structure for screen readers.
+- Use a `<ul>` to contain all desktop icons, with each icon wrapped in an `<li>`. This provides a clear list structure for screen readers.
 
 ---
 
@@ -215,7 +216,8 @@ These dialogs contain specific forms and option sets.
 Status bars provide information about the current state of an application or window.
 
 ### Proposed Changes:
-- Use `<footer>` for the status bar within a window. Since the taskbar is also a `<footer>`, it's important to differentiate them via nesting (the window is an `<article>`).
+- Use `<footer>` for the status bar within a window.
+- Add `aria-label="Status Bar"` to distinguish it from the taskbar.
 
 ---
 
