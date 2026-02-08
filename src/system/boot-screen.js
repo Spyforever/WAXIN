@@ -25,6 +25,10 @@ function initTerminal() {
     });
 
     terminal.open(container);
+
+    // Ensure cursor is visible and blinking
+    terminal.write("\x1b[?25h");
+
     terminal.focus();
 
     terminal.onKey(({ domEvent }) => {
@@ -38,6 +42,14 @@ function initTerminal() {
             window.dispatchEvent(event);
         }
     });
+
+    // Refocus terminal on click anywhere on the boot screen
+    const bootScreen = document.getElementById("boot-screen");
+    if (bootScreen) {
+        bootScreen.addEventListener("click", () => {
+            if (terminal) terminal.focus();
+        });
+    }
 
     return terminal;
 }
@@ -63,6 +75,7 @@ function hideBootScreen() {
 function startBootProcessStep(message) {
     const term = initTerminal();
     if (term) {
+        term.write("\x1b[?25h"); // Show cursor
         term.write(message);
         return {
             get firstChild() {
@@ -84,6 +97,7 @@ function finalizeBootProcessStep(stepInfo, status) {
         } else {
             terminal.write(` ${status}\r\n`);
         }
+        terminal.write("\x1b[?25h"); // Ensure cursor is visible
     }
 }
 
@@ -123,11 +137,14 @@ function promptToContinue() {
             }
         }, 1000);
 
+        let termDisposable = null;
+
         const cleanup = () => {
             clearInterval(timer);
             term.write("\r\n");
             window.removeEventListener("keydown", continueHandler);
             window.removeEventListener("touchstart", continueHandler);
+            if (termDisposable) termDisposable.dispose();
         };
 
         const continueHandler = () => {
@@ -135,6 +152,7 @@ function promptToContinue() {
             resolve();
         };
 
+        termDisposable = term.onKey(continueHandler);
         window.addEventListener("keydown", continueHandler, { once: true });
         window.addEventListener("touchstart", continueHandler, { once: true });
     });
@@ -152,8 +170,7 @@ function showSetupScreen() {
     if (footer) footer.style.display = "none";
 
     if (term) {
-        term.clear();
-        term.reset();
+        term.write("\x1b[2J\x1b[H"); // Clear screen and home cursor
         runSetupTUI(term);
     }
 }
@@ -224,17 +241,17 @@ async function runSetupTUI(term) {
             if (!(await confirmExit(term, "QUIT WITHOUT SAVING"))) {
                 draw();
             }
-        } else if (key === "\u001b[A") { // Up
+        } else if (key === "\x1b[A" || key === "\u001b[A") { // Up
             selectedIndex = (selectedIndex - 2 + options.length) % options.length;
             draw();
-        } else if (key === "\u001b[B") { // Down
+        } else if (key === "\x1b[B" || key === "\u001b[B") { // Down
             selectedIndex = (selectedIndex + 2) % options.length;
             draw();
-        } else if (key === "\u001b[D") { // Left
+        } else if (key === "\x1b[D" || key === "\u001b[D") { // Left
             selectedIndex = (selectedIndex % 2 === 0) ? selectedIndex + 1 : selectedIndex - 1;
             if (selectedIndex >= options.length) selectedIndex = options.length - 1;
             draw();
-        } else if (key === "\u001b[C") { // Right
+        } else if (key === "\x1b[C" || key === "\u001b[C") { // Right
             selectedIndex = (selectedIndex % 2 === 0) ? selectedIndex + 1 : selectedIndex - 1;
             if (selectedIndex >= options.length) selectedIndex = options.length - 1;
             draw();
