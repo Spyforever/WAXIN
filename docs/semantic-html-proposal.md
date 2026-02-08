@@ -114,7 +114,66 @@ The desktop area is where icons are placed and windows are rendered.
 
 ---
 
+## 6. Windowing System (`public/os-gui/$Window.js`)
+
+The windowing system is responsible for creating and managing application windows and dialogs.
+
+### Proposed Changes:
+- Replace the outer window `<div>` with `<article role="window">`. While `role="window"` is not a standard ARIA role (it's often `role="dialog"` or just a landmark), `<article>` is appropriate for self-contained components like windows. For modal dialogs, `<dialog>` should be considered.
+- Replace `.window-titlebar` with `<header>`.
+- Replace `.window-content` with `<section>`.
+
+| Element Selector | Current Tag | Proposed Tag |
+|------------------|-------------|--------------|
+| `.window`        | `div`       | `article` or `dialog` |
+| `.window-titlebar`| `div`      | `header`     |
+| `.window-content` | `div`      | `section`    |
+
+### Example (Standard Window):
+**Before:**
+```html
+<div class="window os-window">
+    <div class="window-titlebar">...</div>
+    <div class="window-content">...</div>
+</div>
+```
+
+**Proposed:**
+```html
+<article class="window os-window">
+    <header class="window-titlebar">...</header>
+    <section class="window-content">...</section>
+</article>
+```
+
+---
+
+## 7. Dialog Windows (`src/shared/components/dialog-window.js`)
+
+Dialog windows are often modal and represent a specific interaction.
+
+### Proposed Changes:
+- For modal dialogs, use the native `<dialog>` element. This provides built-in accessibility features and a proper top-layer rendering (though `z-index` management is already handled by the system).
+
+---
+
+## 8. Menus and Popups (`public/os-gui/MenuPopup.js`, `public/os-gui/MenuBar.js`)
+
+Menus currently use a mix of `div`, `table`, `tr`, and `td` with ARIA roles.
+
+### Proposed Changes:
+- Replace the outer menu `div` with `<ul>`.
+- Replace menu rows (`tr`) with `<li>`.
+- While the `table` layout provides excellent alignment, a CSS Grid or Flexbox approach using `<ul>` and `<li>` would be more semantically correct for a list of actions.
+
+| Component | Current Tag | Proposed Tag |
+|-----------|-------------|--------------|
+| Menu Popup| `div`       | `ul`         |
+| Menu Item | `tr`        | `li`         |
+
+---
+
 ## Summary of Benefits
-1. **Accessibility**: Screen readers can better navigate the application using landmark roles (main, footer, nav).
-2. **SEO/Maintainability**: Using standard tags makes the structure more predictable for developers.
-3. **Standards Alignment**: Better alignment with modern web development best practices.
+1. **Accessibility**: Landmark tags like `<header>` and `<nav>` provide better navigation for assistive technologies.
+2. **Code Clarity**: Semantic tags clearly define the purpose of each structural element, making the code easier to understand and maintain.
+3. **Future Proofing**: Moving towards standard HTML5 and ARIA patterns ensures better compatibility with future browser features.
