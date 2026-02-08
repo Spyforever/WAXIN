@@ -176,6 +176,49 @@ Menus currently use a mix of `div`, `table`, `tr`, and `td` with ARIA roles.
 
 ---
 
+## 9. Toolbars and Address Bars (`public/os-gui/Toolbar.js`, `public/os-gui/AddressBar.js`)
+
+Toolbars and Address Bars provide specialized navigation and command grouping.
+
+### Proposed Changes:
+- For Toolbars, use `<nav role="toolbar">` to identify them as navigation landmarks with a specific role.
+- For Address Bars, use `<nav role="combobox" aria-label="Address Bar">` to indicate its role in navigation and selection.
+
+| Component   | Proposed Tag | Role |
+|-------------|--------------|------|
+| Toolbar     | `nav`        | `toolbar` |
+| Address Bar | `nav`        | `combobox`|
+
+---
+
+## 10. Desktop Icons (`src/shell/desktop/desktop.js`, `src/shell/desktop/icon-manager.js`)
+
+The desktop is essentially a grid of shortcuts and files.
+
+### Proposed Changes:
+- Use a `<ul>` or `<menu>` to contain all desktop icons, with each icon wrapped in an `<li>`. This provides a clear list structure for screen readers.
+
+---
+
+## 11. Specialized Dialogs (`src/shell/run-dialog.js`, `src/shell/shutdown-dialog.js`)
+
+These dialogs contain specific forms and option sets.
+
+### Proposed Changes:
+- Use `<form>` for the Run dialog (inherited from `$FormWindow`).
+- Use `<fieldset>` and `<legend>` for the radio button options in the Shutdown dialog to group related controls semantically.
+
+---
+
+## 12. Status Bars (`src/shared/components/status-bar.js`)
+
+Status bars provide information about the current state of an application or window.
+
+### Proposed Changes:
+- Use `<footer>` for the status bar within a window. Since the taskbar is also a `<footer>`, it's important to differentiate them via nesting (the window is an `<article>`).
+
+---
+
 ## Summary of Benefits
 1. **Accessibility**: Landmark tags like `<header>` and `<nav>` provide better navigation for assistive technologies.
 2. **Code Clarity**: Semantic tags clearly define the purpose of each structural element, making the code easier to understand and maintain.
