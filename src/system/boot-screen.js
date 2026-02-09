@@ -1,5 +1,6 @@
 import { Terminal } from "@xterm/xterm";
 import { ImageAddon } from "@xterm/addon-image";
+import { FitAddon } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
 import { runSetupTUI } from "./setup-utility.js";
 
@@ -40,6 +41,7 @@ async function preloadLogos() {
 
 function drawBIOSHeader() {
     if (!terminal) return;
+    const cols = terminal.cols;
 
     // Award Logo at (1,1)
     if (awardLogo) {
@@ -51,17 +53,18 @@ function drawBIOSHeader() {
     terminal.write("\x1b[2;5HCopyright (C) 1984-85, Award Software, Inc.");
 
     // Energy Star Logo at top right
-    // Terminal is 80 cols. Energy Star is 135px wide.
-    // Assuming ~8px per cell, it's ~17 columns. 80 - 17 = 63.
-    if (energyStarLogo) {
-        terminal.write(`\x1b[1;63H\x1b]1337;File=inline=1;size=${energyStarLogo.size}:${energyStarLogo.base64}\x07`);
+    // Terminal is cols wide. Energy Star is 135px wide.
+    // Assuming ~8px per cell, it's ~17 columns.
+    const energyStarCols = 17;
+    if (energyStarLogo && cols >= energyStarCols + 46) {
+        terminal.write(`\x1b[1;${cols - energyStarCols + 1}H\x1b]1337;File=inline=1;size=${energyStarLogo.size}:${energyStarLogo.base64}\x07`);
     }
 }
 
 function drawBIOSFooter() {
     if (!terminal) return;
-    // Standard boot footer
-    terminal.write("\x1b[25;1H\x1b[0mPress F8 for Startup Menu.");
+    // Standard boot footer at the last row
+    terminal.write(`\x1b[${terminal.rows};1H\x1b[0mPress F8 for Startup Menu.`);
 }
 
 export async function prepareBootScreen() {
@@ -73,8 +76,8 @@ export async function prepareBootScreen() {
     drawBIOSHeader();
     drawBIOSFooter();
 
-    // Set scrolling region for the log: Rows 7 to 24
-    term.write("\x1b[7;24r");
+    // Set scrolling region for the log: Rows 7 to last-1
+    term.write(`\x1b[7;${term.rows - 1}r`);
     // Move cursor to the start of the log area
     term.write("\x1b[7;1H");
 }
@@ -94,15 +97,23 @@ function initTerminal() {
         },
         fontFamily: '"IBM BIOS", Courier, monospace',
         fontSize: 13,
-        rows: 25,
-        cols: 80,
         allowTransparency: true,
     });
 
     const imageAddon = new ImageAddon();
     terminal.loadAddon(imageAddon);
 
+    const fitAddon = new FitAddon();
+    terminal.loadAddon(fitAddon);
+
     terminal.open(container);
+    fitAddon.fit();
+
+    window.addEventListener("resize", () => {
+        if (terminal) {
+            fitAddon.fit();
+        }
+    });
 
     // Ensure cursor is visible and blinking
     terminal.write("\x1b[?25h");

@@ -17,13 +17,14 @@ export async function runSetupTUI(term, onExit) {
         // Choice
         term.write(`Enter a choice: ${selectedOption}`);
 
-        // Footer at the bottom of 80x25 terminal
-        term.write("\x1b[25;1H\x1b[0mF5=Safe mode   Shift+F5=Command prompt   Shift+F8=Step-by-step confirmation [N]");
+        // Footer at the bottom of the terminal
+        term.write(`\x1b[${term.rows};1H\x1b[0mF5=Safe mode   Shift+F5=Command prompt   Shift+F8=Step-by-step confirmation [N]`);
     };
 
     const drawTimer = () => {
-        // Move cursor to row 6, column 30
-        term.write(`\x1b[6;30HTime remaining: ${timeLeft.toString().padStart(2, ' ')}`);
+        // Position timer on row 6, after the choice prompt if possible
+        const timerCol = Math.max(30, Math.min(term.cols - 20, 30));
+        term.write(`\x1b[6;${timerCol}HTime remaining: ${timeLeft.toString().padStart(2, ' ')}`);
         // Move cursor back to just after the choice for the underline cursor
         term.write("\x1b[6;17H");
     };
