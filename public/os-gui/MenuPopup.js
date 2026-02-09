@@ -16,7 +16,7 @@
     this.itemElements = [];
 
     const menu_popup_el = E("menu", {
-      class: "menu-popup",
+      class: `menu-popup ${options.className || ""}`,
       id: `menu-popup-${uid()}`,
       tabIndex: "-1",
       role: "menu",
@@ -201,7 +201,7 @@
             "point-right",
             get_direction() === "rtl",
           );
-          submenu_popup_el = E("div", { class: "menu-popup-wrapper" });
+          submenu_popup_el = E("div", { class: `menu-popup-wrapper ${options.className || ""}` });
           const submenu_popup = new MenuPopup(item.submenu, {
             ...options,
             parentMenuPopup: this,
