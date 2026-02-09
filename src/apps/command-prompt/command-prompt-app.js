@@ -1,9 +1,9 @@
-import { Application } from '../../system/application.js';
+import { Application } from "../../system/application.js";
 import { Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import "./command-prompt.css";
-import { ICONS } from '../../config/icons.js';
-import { DOSShell } from '../../system/dos-shell.js';
+import { ICONS } from "../../config/icons.js";
+import { DOSShell } from "../../system/dos-shell.js";
 
 export class CommandPromptApp extends Application {
   static config = {
@@ -64,8 +64,8 @@ export class CommandPromptApp extends Application {
     this.terminal.open(terminalContainer);
 
     this.shell = new DOSShell(this.terminal, {
-        onExit: () => this.win.close(),
-        isMSDOSMode: false
+      onExit: () => this.win.close(),
+      isMSDOSMode: false,
     });
 
     this.terminal.write("Microsoft(R) Windows 98\r\n");

@@ -1,7 +1,7 @@
 import { fs, mounts } from "@zenfs/core";
-import { apps } from '../config/apps.js';
-import { getAssociation } from './directory.js';
-import { launchApp } from './app-manager.js';
+import { apps } from "../config/apps.js";
+import { getAssociation } from "./directory.js";
+import { launchApp } from "./app-manager.js";
 
 export class DOSShell {
   constructor(terminal, options = {}) {
@@ -18,8 +18,8 @@ export class DOSShell {
   init() {
     this.terminal.onData((data) => this.handleData(data));
     if (this.isMSDOSMode) {
-        this.terminal.write("Microsoft(R) Windows 98\r\n");
-        this.terminal.write("   (C)Copyright Microsoft Corp 1981-1999.\r\n\r\n");
+      this.terminal.write("Microsoft(R) Windows 98\r\n");
+      this.terminal.write("   (C)Copyright Microsoft Corp 1981-1999.\r\n\r\n");
     }
     this.prompt();
   }
@@ -99,26 +99,42 @@ export class DOSShell {
     switch (cmd.toLowerCase()) {
       case "help":
         this.terminal.write("Available commands:\r\n");
-        this.terminal.write("  DIR [path]        - Lists files and directories\r\n");
-        this.terminal.write("  CD [path]         - Changes the current directory\r\n");
-        this.terminal.write("  CHDIR [path]      - Changes the current directory\r\n");
+        this.terminal.write(
+          "  DIR [path]        - Lists files and directories\r\n",
+        );
+        this.terminal.write(
+          "  CD [path]         - Changes the current directory\r\n",
+        );
+        this.terminal.write(
+          "  CHDIR [path]      - Changes the current directory\r\n",
+        );
         this.terminal.write("  MD <path>         - Creates a directory\r\n");
         this.terminal.write("  MKDIR <path>      - Creates a directory\r\n");
         this.terminal.write("  RD <path>         - Removes a directory\r\n");
         this.terminal.write("  RMDIR <path>      - Removes a directory\r\n");
         this.terminal.write("  DEL <file>        - Deletes a file\r\n");
-        this.terminal.write("  REN <old> <new>   - Renames a file or directory\r\n");
-        this.terminal.write("  TYPE <file>       - Displays the contents of a text file\r\n");
+        this.terminal.write(
+          "  REN <old> <new>   - Renames a file or directory\r\n",
+        );
+        this.terminal.write(
+          "  TYPE <file>       - Displays the contents of a text file\r\n",
+        );
         this.terminal.write("  COPY <src> <dest> - Copies a file\r\n");
         this.terminal.write("  CLS               - Clears the screen\r\n");
-        this.terminal.write("  HELP              - Displays this help message\r\n");
-        this.terminal.write("  EXIT              - Exits the MS-DOS prompt\r\n");
-        this.terminal.write("  WIN               - Returns to Windows GUI\r\n");
-        this.terminal.write("  <app-id>          - Launches an application\r\n");
+        this.terminal.write(
+          "  HELP              - Displays this help message\r\n",
+        );
+        this.terminal.write(
+          "  <app-id>          - Launches an application\r\n",
+        );
+        this.terminal.write(
+          "  DOSBOX [path]     - Launches DOSBox emulator\r\n",
+        );
         break;
 
       case "dir":
-        const dirPath = args.length > 0 ? this.resolvePath(args[0]) : this.currentDirectory;
+        const dirPath =
+          args.length > 0 ? this.resolvePath(args[0]) : this.currentDirectory;
         if (dirPath === null) {
           this.terminal.write("Invalid directory\r\n");
           break;
@@ -129,17 +145,22 @@ export class DOSShell {
         if (dirDriveMatch) {
           const drive = dirDriveMatch[1].toUpperCase();
           if (drive !== "C:" && !mounts.has("/" + drive)) {
-            this.terminal.write("General failure reading drive " + drive + "\r\n");
+            this.terminal.write(
+              "General failure reading drive " + drive + "\r\n",
+            );
             break;
           }
         }
 
         try {
           const files = await fs.promises.readdir(dirPath);
-          this.terminal.write(` Directory of ${this._getDisplayPath(dirPath)}\r\n\r\n`);
+          this.terminal.write(
+            ` Directory of ${this._getDisplayPath(dirPath)}\r\n\r\n`,
+          );
           for (const file of files) {
             try {
-              const fullPath = dirPath + (dirPath.endsWith("/") ? "" : "/") + file;
+              const fullPath =
+                dirPath + (dirPath.endsWith("/") ? "" : "/") + file;
               const stats = await fs.promises.stat(fullPath);
               this.terminal.write(this._formatDirEntry(file, stats));
             } catch (e) {
@@ -154,7 +175,9 @@ export class DOSShell {
       case "chdir":
       case "cd":
         if (args.length === 0) {
-          this.terminal.write(`${this.currentDirectory.replace(/\//g, "\\")}\r\n`);
+          this.terminal.write(
+            `${this.currentDirectory.replace(/\//g, "\\")}\r\n`,
+          );
           break;
         }
 
@@ -172,7 +195,9 @@ export class DOSShell {
             if (driveMatch) {
               const drive = driveMatch[1].toUpperCase();
               if (drive !== "C:" && !mounts.has("/" + drive)) {
-                this.terminal.write("General failure reading drive " + drive + "\r\n");
+                this.terminal.write(
+                  "General failure reading drive " + drive + "\r\n",
+                );
                 break;
               }
             }
@@ -229,7 +254,10 @@ export class DOSShell {
           break;
         }
         try {
-          await fs.promises.rename(this.resolvePath(args[0]), this.resolvePath(args[1]));
+          await fs.promises.rename(
+            this.resolvePath(args[0]),
+            this.resolvePath(args[1]),
+          );
         } catch (e) {
           this.terminal.write(`Error renaming file: ${e.message}\r\n`);
         }
@@ -241,7 +269,10 @@ export class DOSShell {
           break;
         }
         try {
-          const content = await fs.promises.readFile(this.resolvePath(args[0]), "utf8");
+          const content = await fs.promises.readFile(
+            this.resolvePath(args[0]),
+            "utf8",
+          );
           this.terminal.write(content.replace(/\n/g, "\r\n") + "\r\n");
         } catch (e) {
           this.terminal.write(`Error reading file: ${e.message}\r\n`);
@@ -284,11 +315,16 @@ export class DOSShell {
 
       case "win":
         if (this.isMSDOSMode) {
-            window.location.hash = "";
-            window.location.reload();
+          window.location.hash = "";
+          window.location.reload();
         } else {
-            this.terminal.write("Already in Windows.\r\n");
+          this.terminal.write("Already in Windows.\r\n");
         }
+        break;
+
+      case "dosbox":
+        const dosPath = args.length > 0 ? this.resolvePath(args[0]) : null;
+        launchApp("dos-box", dosPath);
         break;
 
       default:
@@ -307,9 +343,15 @@ export class DOSShell {
             if (stats.isFile()) {
               const association = getAssociation(cmd);
               if (association && association.appId) {
-                this.launchApp(association.appId, filePath);
+                if (association.appId === "dos-box") {
+                  this.launchApp("dos-box", { path: filePath, args: args });
+                } else {
+                  this.launchApp(association.appId, filePath);
+                }
               } else {
-                this.terminal.write(`No association found for file: ${cmd}\r\n`);
+                this.terminal.write(
+                  `No association found for file: ${cmd}\r\n`,
+                );
               }
             } else {
               this.terminal.write(
@@ -328,76 +370,87 @@ export class DOSShell {
   }
 
   launchApp(appId, data) {
-      if (this.isMSDOSMode) {
-          // Check if it's a DOS app or Windows app
-          const appConfig = apps.find(a => a.id === appId);
-          // For now, let's assume if it has a gameUrl or is a known game, it's DOS.
-          // Or if it's NOT in a predefined list of Windows apps.
-          const windowsApps = ['explorer', 'notepad', 'paint', 'wordpad', 'calculator', 'display-properties', 'task-manager'];
-          if (windowsApps.includes(appId)) {
-              this.terminal.write("This program requires Microsoft Windows.\r\n");
-              return;
-          }
-
-          // Full-screen launch logic for DOS apps
-          this._launchFullScreen(appId, data);
-      } else {
-          launchApp(appId, data);
+    if (this.isMSDOSMode) {
+      // Check if it's a DOS app or Windows app
+      const appConfig = apps.find((a) => a.id === appId);
+      // For now, let's assume if it has a gameUrl or is a known game, it's DOS.
+      // Or if it's NOT in a predefined list of Windows apps.
+      const windowsApps = [
+        "explorer",
+        "notepad",
+        "paint",
+        "wordpad",
+        "calculator",
+        "display-properties",
+        "task-manager",
+      ];
+      if (windowsApps.includes(appId)) {
+        this.terminal.write("This program requires Microsoft Windows.\r\n");
+        return;
       }
+
+      // Full-screen launch logic for DOS apps
+      this._launchFullScreen(appId, data);
+    } else {
+      launchApp(appId, data);
+    }
   }
 
   _launchFullScreen(appId, data) {
-      const appConfig = apps.find(a => a.id === appId);
-      const gameUrls = {
-        'doom': 'games/doom/index.html',
-        'keen': 'games/keen/index.html',
-        'prince-of-persia': 'https://princejs.com/',
-        'quake': 'https://www.netquake.io/quake',
-        'sim-city-2000': 'games/dos/simcity2000/index.html',
-        'diablo': 'https://d07riv.github.io/diabloweb/',
-        'minesweeper': null, // Windows app
-        'solitaire': null, // Windows app
-      };
+    const appConfig = apps.find((a) => a.id === appId);
+    const gameUrls = {
+      doom: "games/doom/index.html",
+      keen: "games/keen/index.html",
+      "prince-of-persia": "https://princejs.com/",
+      quake: "https://www.netquake.io/quake",
+      "sim-city-2000": "games/dos/simcity2000/index.html",
+      diablo: "https://d07riv.github.io/diabloweb/",
+      minesweeper: null, // Windows app
+      solitaire: null, // Windows app
+    };
 
-      let src = appConfig.gameUrl || (appConfig.config && appConfig.config.gameUrl) || gameUrls[appId];
+    let src =
+      appConfig.gameUrl ||
+      (appConfig.config && appConfig.config.gameUrl) ||
+      gameUrls[appId];
 
-      if (!src) {
-          this.terminal.write("Cannot launch this application in MS-DOS mode.\r\n");
-          return;
-      }
+    if (!src) {
+      this.terminal.write("Cannot launch this application in MS-DOS mode.\r\n");
+      return;
+    }
 
-      const screen = document.getElementById('screen');
-      const container = document.createElement('div');
-      container.id = 'msdos-app-container';
-      container.style.position = 'absolute';
-      container.style.top = '0';
-      container.style.left = '0';
-      container.style.width = '100%';
-      container.style.height = '100%';
-      container.style.backgroundColor = 'black';
-      container.style.zIndex = '10000';
+    const screen = document.getElementById("screen");
+    const container = document.createElement("div");
+    container.id = "msdos-app-container";
+    container.style.position = "absolute";
+    container.style.top = "0";
+    container.style.left = "0";
+    container.style.width = "100%";
+    container.style.height = "100%";
+    container.style.backgroundColor = "black";
+    container.style.zIndex = "10000";
 
-      const iframe = document.createElement('iframe');
-      iframe.src = src;
-      iframe.style.width = '100%';
-      iframe.style.height = '100%';
-      iframe.style.border = 'none';
+    const iframe = document.createElement("iframe");
+    iframe.src = src;
+    iframe.style.width = "100%";
+    iframe.style.height = "100%";
+    iframe.style.border = "none";
 
-      const closeButton = document.createElement('button');
-      closeButton.textContent = 'EXIT';
-      closeButton.style.position = 'absolute';
-      closeButton.style.top = '10px';
-      closeButton.style.right = '10px';
-      closeButton.style.zIndex = '10001';
-      closeButton.style.opacity = '0.5';
-      closeButton.onclick = () => {
-          container.remove();
-          this.terminal.focus();
-      };
+    const closeButton = document.createElement("button");
+    closeButton.textContent = "EXIT";
+    closeButton.style.position = "absolute";
+    closeButton.style.top = "10px";
+    closeButton.style.right = "10px";
+    closeButton.style.zIndex = "10001";
+    closeButton.style.opacity = "0.5";
+    closeButton.onclick = () => {
+      container.remove();
+      this.terminal.focus();
+    };
 
-      container.appendChild(iframe);
-      container.appendChild(closeButton);
-      screen.appendChild(container);
+    container.appendChild(iframe);
+    container.appendChild(closeButton);
+    screen.appendChild(container);
   }
 
   _getDisplayPath(path) {
@@ -474,7 +527,9 @@ export class DOSShell {
 
     const dosName = base.toUpperCase().substring(0, 8).padEnd(8);
     const dosExt = isDirectory ? "<DIR>   " : ext.padEnd(8);
-    const sizeStr = isDirectory ? "        " : stats.size.toLocaleString().padStart(8);
+    const sizeStr = isDirectory
+      ? "        "
+      : stats.size.toLocaleString().padStart(8);
 
     return `${dosName} ${dosExt} ${sizeStr}  ${dateStr}  ${timeStr}  ${name}\r\n`;
   }
