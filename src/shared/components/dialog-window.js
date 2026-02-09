@@ -1,4 +1,4 @@
-import { playSound } from '../../system/sound-manager.js';
+import { playSound } from "../../system/sound-manager.js";
 
 /**
  * @typedef {object} DialogButton
@@ -39,6 +39,8 @@ function ShowDialogWindow(options) {
 
   const winOptions = {
     title: title || "Dialog",
+    tagName: "dialog",
+    modal: modal,
     toolWindow: false,
     resizable: false,
     minimizeButton: false,
@@ -59,7 +61,7 @@ function ShowDialogWindow(options) {
   const win = new $Window(winOptions);
 
   // Create dialog content
-  const contentContainer = document.createElement("div");
+  const contentContainer = document.createElement("section");
   contentContainer.className = "dialog-content";
 
   if (content) {
@@ -81,7 +83,7 @@ function ShowDialogWindow(options) {
   }
 
   // Create buttons
-  const buttonContainer = document.createElement("div");
+  const buttonContainer = document.createElement("footer");
   buttonContainer.className = "dialog-buttons";
 
   buttons.forEach((btnDef) => {
@@ -104,8 +106,10 @@ function ShowDialogWindow(options) {
     }
     buttonContainer.appendChild(button);
   });
-
-  win.$content.append(contentContainer, buttonContainer);
+  win.$content.append(contentContainer);
+  if (buttons && buttons.length > 0) {
+    win.$content.append(buttonContainer);
+  }
   win.center();
 
   // Handle modality

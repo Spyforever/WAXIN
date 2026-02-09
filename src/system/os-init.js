@@ -13,6 +13,7 @@ import {
   finalizeBootProcessStep,
   promptToContinue,
   showSetupScreen,
+  prepareBootScreen,
 } from './boot-screen.js';
 import { preloadThemeAssets } from './asset-preloader.js';
 import { launchApp } from './app-manager.js';
@@ -22,6 +23,8 @@ import screensaver from './screensaver-utils.js';
 import { initScreenManager } from './screen-manager.js';
 import { fs, mounts } from "@zenfs/core";
 import { initFileSystem } from './zenfs-init.js';
+import { wallpapers } from '../config/wallpapers.js';
+import { existsAsync } from './zenfs-utils.js';
 import { RecycleBinManager } from '../shell/explorer/file-operations/recycle-bin-manager.js';
 import { appManager } from './app-manager.js';
 import { WindowManager } from './window-manager.js';
@@ -45,7 +48,7 @@ export async function initializeOS() {
   let setupEntered = false;
 
   const handleKeyDown = (e) => {
-    if (e.key === "Delete") {
+    if (e.key === "F8" || e.key === "Delete") {
       setupEntered = true;
       showSetupScreen();
       window.removeEventListener("keydown", handleKeyDown);
@@ -105,21 +108,14 @@ export async function initializeOS() {
       }
     }
 
-    await executeBootStep(() => {
+    await executeBootStep(async () => {
+      playSound("Default"); // POST Beep
       document.body.classList.add("booting");
       document.getElementById("screen").classList.add("boot-mode");
       document.getElementById("initial-boot-message").style.display = "none";
       document.getElementById("boot-screen-content").style.display = "flex";
 
-      const biosTextColumn = document.getElementById("bios-text-column");
-      if (biosTextColumn) {
-        biosTextColumn.innerHTML = `Award Modular BIOS v4.51PG, An Energy Star Ally<br/>Copyright (C) 1984-85, Award Software, Inc.`;
-      }
-
-      const browserInfoEl = document.getElementById("browser-info");
-      if (browserInfoEl) {
-        // browserInfoEl.textContent = `Client: ${navigator.userAgent}`;
-      }
+      await prepareBootScreen();
     });
 
     function loadCustomApps() {
@@ -159,6 +155,37 @@ export async function initializeOS() {
       let logElement = startBootProcessStep("Initializing Recycle Bin...");
       await RecycleBinManager.init();
       finalizeBootProcessStep(logElement, "OK");
+    });
+
+    await executeBootStep(async () => {
+      const wallpaperDir = "/C:/WINDOWS";
+      let needed = false;
+      for (const w of wallpapers.default) {
+        if (!(await existsAsync(`${wallpaperDir}/${w.filename}`))) {
+          needed = true;
+          break;
+        }
+      }
+
+      if (needed) {
+        let logElement = startBootProcessStep("Loading wallpapers...");
+        for (const w of wallpapers.default) {
+          const path = `${wallpaperDir}/${w.filename}`;
+          if (!(await existsAsync(path))) {
+            if (logElement && logElement.firstChild) {
+              logElement.firstChild.nodeValue = `Loading wallpaper: ${w.filename}...`;
+            }
+            try {
+              const response = await fetch(w.src);
+              const buffer = await response.arrayBuffer();
+              await fs.promises.writeFile(path, new Uint8Array(buffer));
+            } catch (e) {
+              console.error(`Failed to load wallpaper ${w.filename}:`, e);
+            }
+          }
+        }
+        finalizeBootProcessStep(logElement, "OK");
+      }
     });
 
     const createAssetLogCallbacks = (logElement, baseMessage) => {
@@ -281,12 +308,7 @@ export async function initializeOS() {
     });
 
     await executeBootStep(async () => {
-      const bootLogEl = document.getElementById("boot-log");
-      if (bootLogEl) {
-        const finalMessage = document.createElement("div");
-        finalMessage.textContent = "azOS Ready!";
-        bootLogEl.appendChild(finalMessage);
-      }
+      startBootProcessStep("azOS Ready!");
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
