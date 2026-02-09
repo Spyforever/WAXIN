@@ -562,6 +562,12 @@
                     stopShowingAsFocused();
                   }
                 });
+                iframe.contentWindow.addEventListener("keydown", (e) => {
+                  if (e.altKey && (e.key === "Enter" || e.keyCode === 13)) {
+                    e.preventDefault();
+                    $w.toggleFullscreen();
+                  }
+                });
                 observeIframes(iframe.contentDocument);
               });
             } catch (error) {
@@ -1051,6 +1057,26 @@
         $w.maximize(); // toggles maximization
       }
     };
+
+    $w.toggleFullscreen = () => {
+      if (document.fullscreenElement !== $w[0]) {
+        $w[0].requestFullscreen().catch((err) => {
+          console.error(
+            `Error attempting to enable full-screen mode: ${err.message} (${err.name})`,
+          );
+        });
+      } else {
+        document.exitFullscreen();
+      }
+    };
+
+    $w[0].addEventListener("fullscreenchange", () => {
+      if (document.fullscreenElement === $w[0]) {
+        $w.addClass("is-fullscreen");
+      } else {
+        $w.removeClass("is-fullscreen");
+      }
+    });
     // must not pass event to functions by accident; also methods may not be defined yet
     $w.$minimize?.on("click", (e) => {
       $w.minimize();
@@ -1456,6 +1482,11 @@ You can also disable this warning by passing {iframes: {ignoreCrossOrigin: true}
 
     $w.on("keydown", (e) => {
       if (e.isDefaultPrevented()) {
+        return;
+      }
+      if (e.altKey && (e.key === "Enter" || e.keyCode === 13)) {
+        e.preventDefault();
+        $w.toggleFullscreen();
         return;
       }
       if (e.ctrlKey || e.altKey || e.metaKey) {

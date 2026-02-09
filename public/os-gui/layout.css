@@ -148,4 +148,48 @@ dialog.os-window {
     display: flex;
     flex-direction: column;
 }
+
+/* Fullscreen mode */
+.os-window.is-fullscreen {
+    width: 100vw !important;
+    height: 100vh !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    left: 0 !important;
+    top: 0 !important;
+    z-index: 10000 !important;
+}
+
+.os-window.is-fullscreen .window-titlebar {
+    display: none !important;
+}
+
+.os-window.is-fullscreen .window-content {
+    border: none !important;
+    padding: 0 !important;
+}
+
+/* Ensure :fullscreen pseudo-class also triggers these styles for better browser integration */
+.os-window:fullscreen {
+    width: 100vw !important;
+    height: 100vh !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    left: 0 !important;
+    top: 0 !important;
+}
+
+.os-window:fullscreen .window-titlebar {
+    display: none !important;
+}
+
+.os-window:fullscreen .window-content {
+    border: none !important;
+    padding: 0 !important;
+}
+
 /*# sourceMappingURL=layout.css.map */
