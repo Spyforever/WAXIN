@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DX-Ball</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        canvas {
+            display: block;
+            image-rendering: pixelated;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="dx-ball" width="640" height="480"></canvas>
+    <script src="game/game_src.js"></script>
+    <script>
+        window.onload = function() {
+            if (typeof dx_ball === 'function') {
+                dx_ball(true, true);
+            } else {
+                console.error("dx_ball function not found");
+            }
+
+            // Handle resizing
+            function resize() {
+                const canvas = document.getElementById('dx-ball');
+                if (!canvas) return;
+                const ratio = 640 / 480;
+                let w = window.innerWidth;
+                let h = window.innerHeight;
+
+                if (w / h > ratio) {
+                    w = h * ratio;
+                } else {
+                    h = w / ratio;
+                }
+
+                canvas.style.width = Math.floor(w) + 'px';
+                canvas.style.height = Math.floor(h) + 'px';
+            }
+
+            window.addEventListener('resize', resize);
+            resize();
+        };
+    </script>
+</body>
+</html>
