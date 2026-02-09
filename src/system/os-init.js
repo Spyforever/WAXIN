@@ -30,6 +30,8 @@ import { appManager } from './app-manager.js';
 import { WindowManager } from './window-manager.js';
 
 export async function initializeOS() {
+  const isMSDOSMode = window.location.hash === "#msdos";
+
   // Initialize Window Management System
   window.System = new WindowManager();
 
@@ -72,6 +74,7 @@ export async function initializeOS() {
     }
 
     function showSplashScreen() {
+      if (isMSDOSMode) return;
       if (splashScreen) {
         splashScreen.style.display = "block";
         splashScreenVisible = true;
@@ -251,14 +254,16 @@ export async function initializeOS() {
       await promptToContinue();
     });
 
-    await executeBootStep(async () => {
-      let logElement = startBootProcessStep("Creating main UI...");
-      showSplashScreen();
-      await new Promise((resolve) => setTimeout(resolve, 50));
-      createMainUI();
-      initColorModeManager(document.body);
-      finalizeBootProcessStep(logElement, "OK");
-    });
+    if (!isMSDOSMode) {
+      await executeBootStep(async () => {
+        let logElement = startBootProcessStep("Creating main UI...");
+        showSplashScreen();
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        createMainUI();
+        initColorModeManager(document.body);
+        finalizeBootProcessStep(logElement, "OK");
+      });
+    }
 
     await executeBootStep(async () => {
       const doomFiles = ["doom1.wad", "default.cfg"];
@@ -292,20 +297,22 @@ export async function initializeOS() {
       }
     });
 
-    await executeBootStep(async () => {
-      let logElement = startBootProcessStep("Initializing taskbar...");
-      await new Promise((resolve) => setTimeout(resolve, 50));
-      taskbar.init();
-      finalizeBootProcessStep(logElement, "OK");
-    });
+    if (!isMSDOSMode) {
+      await executeBootStep(async () => {
+        let logElement = startBootProcessStep("Initializing taskbar...");
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        taskbar.init();
+        finalizeBootProcessStep(logElement, "OK");
+      });
 
-    await executeBootStep(async () => {
-      let logElement = startBootProcessStep("Setting up desktop...");
-      await new Promise((resolve) => setTimeout(resolve, 50));
-      await initDesktop(window.activeProfile);
-      document.dispatchEvent(new CustomEvent("desktop-refresh"));
-      finalizeBootProcessStep(logElement, "OK");
-    });
+      await executeBootStep(async () => {
+        let logElement = startBootProcessStep("Setting up desktop...");
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        await initDesktop(window.activeProfile);
+        document.dispatchEvent(new CustomEvent("desktop-refresh"));
+        finalizeBootProcessStep(logElement, "OK");
+      });
+    }
 
     await executeBootStep(async () => {
       startBootProcessStep("azOS Ready!");
@@ -313,6 +320,22 @@ export async function initializeOS() {
     });
 
     window.removeEventListener("keydown", handleKeyDown);
+
+    if (isMSDOSMode) {
+      const { DOSShell } = await import("./dos-shell.js");
+      const { getTerminal } = await import("./boot-screen.js");
+      const term = getTerminal();
+      if (term) {
+        term.write("\x1b[r"); // Reset scrolling region
+        term.write("\x1b[2J\x1b[H"); // Clear screen and home
+        const shell = new DOSShell(term, { isMSDOSMode: true });
+        shell.init();
+      }
+      window.fs = fs;
+      window.mounts = mounts;
+      return;
+    }
+
     await handleBootCompletion();
 
     window.ShowDialogWindow = ShowDialogWindow;

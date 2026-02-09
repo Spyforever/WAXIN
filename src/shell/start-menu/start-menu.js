@@ -549,6 +549,12 @@ class StartMenu {
                     } else if (selectedOption === 'restart') {
                         showShutdownScreen(true);
                         setTimeout(() => location.reload(), 2000);
+                    } else if (selectedOption === 'restart-msdos') {
+                        showShutdownScreen(true);
+                        setTimeout(() => {
+                            window.location.hash = "#msdos";
+                            location.reload();
+                        }, 2000);
                     } else {
                         setTimeout(() => location.reload(), 500);
                     }
