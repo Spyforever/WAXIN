@@ -186,7 +186,9 @@ game = function(){
 	window.cl =  false;
 
 	user = new Object();
+	window.user = user;
 	user.name   = '';
+	window.loadScore = loadScore;
 	user.startTime = 0;
 	paused = paus = false;
 
@@ -952,11 +954,44 @@ file = file_get_contents('game/default.bds');
 	function loadScore(type){
 		highscore.loading = true;
 		if(type<1)type=0;
-		if(type=='f')url = 'http://dx-ball.ru/record.php?sign='+calcMD5(user.name+user.score+user.timeGame+'17')+'&name='+user.name+'&score='+user.score+'&tg='+user.timeGame;
-		else url = 'http://dx-ball.ru/record.php?firstID='+type;
-		//alert(url);
-		rec = file_get_contents(url);
-		//alert(rec);
+
+		let localRecords = window.dxBallHighScores || [];
+		if(type=='f') {
+			localRecords.push({name: user.name, score: user.score});
+			localRecords.sort((a, b) => b.score - a.score);
+			localRecords = localRecords.slice(0, 100);
+			window.dxBallHighScores = localRecords;
+
+			window.parent.postMessage({
+				type: 'DXBALL_SAVE_SCORE',
+				name: user.name,
+				score: user.score
+			}, '*');
+
+			let rank = -1;
+			for(let i=0; i<localRecords.length; i++) {
+				if(localRecords[i].name === user.name && localRecords[i].score === user.score) {
+					rank = i;
+					break;
+				}
+			}
+			if (rank === -1) rank = 0;
+
+			let response = "";
+			for(let i=0; i<localRecords.length; i++) {
+				response += i + "&" + localRecords[i].name + "&" + localRecords[i].score + "\r";
+			}
+			response += rank;
+			rec = response;
+		} else {
+			let response = "";
+			for(let i=0; i<localRecords.length; i++) {
+				response += i + "&" + localRecords[i].name + "&" + localRecords[i].score + "\r";
+			}
+			response += "0";
+			rec = response;
+		}
+
 		rec = rec.split("\r");
 		for(i=0;i<rec.length-1;i++){
 			str = rec[i];

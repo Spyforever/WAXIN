@@ -24,7 +24,18 @@
     <canvas id="dx-ball" width="640" height="480"></canvas>
     <script src="game/game_src.js"></script>
     <script>
+        window.dxBallHighScores = [];
         window.onload = function() {
+            window.addEventListener('message', function(event) {
+                if (event.data && event.data.type === 'DXBALL_SCORES') {
+                    window.dxBallHighScores = event.data.scores;
+                    console.log('DX-Ball scores received:', window.dxBallHighScores);
+                }
+            });
+
+            // Signal ready to parent
+            window.parent.postMessage({ type: 'DXBALL_READY' }, '*');
+
             if (typeof dx_ball === 'function') {
                 dx_ball(true, true);
             } else {
