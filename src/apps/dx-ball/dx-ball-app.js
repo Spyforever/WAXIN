@@ -7,7 +7,7 @@ export class DXBallApp extends Application {
     id: "dx-ball",
     title: "DX-Ball",
     description: "The classic Breakout game.",
-    icon: ICONS.dxball,
+    icon: ICONS.dxball, category: ["Accessories/Games", ""],
     width: 654, // Adjusted for typical window borders to avoid scrollbars at 640x480
     height: 520,
     resizable: true,

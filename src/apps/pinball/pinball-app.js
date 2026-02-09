@@ -7,7 +7,7 @@ export class PinballApp extends IFrameApplication {
     id: "pinball",
     title: "Space Cadet Pinball",
     description: "Play a classic game of pinball.",
-    icon: ICONS.pinball,
+    icon: ICONS.pinball, category: "Accessories/Games",
     width: 600,
     height: 400,
     resizable: false,

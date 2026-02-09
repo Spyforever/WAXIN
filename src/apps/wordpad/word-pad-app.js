@@ -11,7 +11,7 @@ export class WordPadApp extends Application {
     id: "wordpad",
     title: "WordPad",
     description: "A simple rich text editor.",
-    icon: ICONS.wordpad,
+    icon: ICONS.wordpad, category: "Accessories",
     width: 600,
     height: 400,
     resizable: true,

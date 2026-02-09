@@ -9,7 +9,7 @@ export class DefragApp extends Application {
     id: "defrag",
     title: "Disk Defragmenter",
     description: "Defragments your disk for optimal performance.",
-    icon: ICONS.defrag,
+    icon: ICONS.defrag, category: "Accessories/System Tools",
     width: 400,
     height: 300,
     resizable: true,

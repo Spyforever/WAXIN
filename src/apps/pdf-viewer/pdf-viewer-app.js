@@ -8,7 +8,7 @@ export class PdfViewerApp extends Application {
     id: "pdf-viewer",
     title: "PDF Viewer",
     description: "View PDF documents.",
-    icon: ICONS.pdf,
+    icon: ICONS.pdf, category: "",
     width: 800,
     height: 600,
     resizable: true,

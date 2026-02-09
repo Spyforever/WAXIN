@@ -8,7 +8,7 @@ export class FlashPlayerApp extends Application {
   static config = {
     id: "flash-player",
     title: "Flash Player",
-    icon: ICONS.flashPlayer,
+    icon: ICONS.flashPlayer, category: "Accessories/Entertainment",
     width: 550,
     height: 400,
     resizable: true,

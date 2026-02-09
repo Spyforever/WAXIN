@@ -10,7 +10,7 @@ export class TipOfTheDayApp extends Application {
         id: "tip-of-the-day",
         title: "Tip of the Day",
         description: "Provides useful tips about using the system.",
-        icon: ICONS.tip,
+        icon: ICONS.tip, category: "",
         width: 400,
         height: 300,
         resizable: false,

@@ -6,7 +6,7 @@ export class QuakeApp extends Application {
     static config = {
         id: 'quake',
         title: 'Quake',
-        icon: ICONS.quake,
+        icon: ICONS.quake, category: "",
         width: 640,
         height: 480,
         resizable: true,

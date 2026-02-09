@@ -13,7 +13,7 @@ export class CalculatorApp extends Application {
     id: "calculator",
     title: "Calculator",
     description: "Perform calculations.",
-    icon: ICONS.calculator,
+    icon: ICONS.calculator, category: "Accessories",
     width: 260,
     height: 280,
     resizable: false,

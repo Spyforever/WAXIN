@@ -10,6 +10,7 @@ export class DosBoxApp extends Application {
       title: "DOSBox",
       description: "DOSBox-X Emulator",
       icon: ICONS.msdos,
+      category: "",
       width: 640,
       height: 480,
       resizable: true,
@@ -21,6 +22,7 @@ export class DosBoxApp extends Application {
       title: "Wolfenstein 3D",
       description: "Play Wolfenstein 3D",
       icon: ICONS.msdos,
+      category: "Accessories/Games",
       width: 640,
       height: 480,
     }

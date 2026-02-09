@@ -197,6 +197,25 @@ class Taskbar {
     this.addTrackedEventListener(startButton, "click", () => {
       this.startMenu.toggle();
     });
+
+    this.addTrackedEventListener(startButton, "contextmenu", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const contextMenuItems = [
+        {
+          label: "Refresh Start Menu items",
+          action: async () => {
+            const { refreshPrograms } = await import(
+              "../start-menu/start-menu-utils.js"
+            );
+            await refreshPrograms();
+          },
+        },
+      ];
+
+      new window.ContextMenu(contextMenuItems, e);
+    });
   }
 
   /**

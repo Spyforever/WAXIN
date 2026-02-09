@@ -8,7 +8,7 @@ export class ClippyApp extends Application {
         id: "clippy",
         title: "Assistant",
         description: "Your friendly assistant.",
-        icon: ICONS.clippy,
+        icon: ICONS.clippy, category: "Accessories",
         hasTray: true,
         isSingleton: true,
         tray: {

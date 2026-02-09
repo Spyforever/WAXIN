@@ -18,7 +18,7 @@ export class FreeCellApp extends Application {
     width: 632,
     height: 446,
     resizable: false,
-    icon: ICONS.freecell,
+    icon: ICONS.freecell, category: "Accessories/Games",
   };
 
   async _createWindow() {

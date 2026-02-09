@@ -1,47 +1,7 @@
-import { apps } from './apps.js';
 import { launchApp } from '../system/app-manager.js';
 import { ShowRunDialog } from '../shell/run-dialog.js';
 import { ICONS } from './icons.js';
 import { START_MENU_PATH, FAVORITES_PATH } from '../shell/start-menu/start-menu-utils.js';
-
-const startMenuAppIds = [
-  "explorer",
-  "webamp",
-  "tip-of-the-day",
-  "internet-explorer",
-  "keen",
-  "command-prompt",
-  "buy-me-a-coffee",
-  "pdf-viewer",
-  "doom",
-  "sim-city-2000",
-  "diablo",
-  "esheep",
-  "quake",
-  "prince-of-persia",
-  "dx-ball",
-];
-const accessoriesAppIds = [
-  "notepad",
-  "clippy",
-  "paint",
-  "image-viewer",
-  "wordpad",
-  "calculator",
-];
-
-function getAppList(appListIds) {
-  return appListIds
-    .map((id) => apps.find((app) => app.id === id))
-    .filter((app) => app)
-    .sort((a, b) => a.title.localeCompare(b.title))
-    .map((app) => ({
-      label: app.title,
-      icon: app.icon[16],
-      appId: app.id,
-      action: () => launchApp(app.id),
-    }));
-}
 
 const startMenuConfig = [
   {
@@ -56,29 +16,6 @@ const startMenuConfig = [
         icon: ICONS.programs[16],
         submenu: [],
       },
-      {
-        label: "Accessories",
-        icon: ICONS.programs[16],
-        submenu: [
-          {
-            label: "Games",
-            icon: ICONS.programs[16],
-            submenu: getAppList(["pinball", "minesweeper", "solitaire", "spider-solitaire", "freecell", "dx-ball"]),
-          },
-          {
-            label: "Entertainment",
-            icon: ICONS.programs[16],
-            submenu: getAppList(["media-player", "flash-player"]),
-          },
-          {
-            label: "System Tools",
-            icon: ICONS.programs[16],
-            submenu: getAppList(["defrag"]),
-          },
-          ...getAppList(accessoriesAppIds),
-        ],
-      },
-      ...getAppList(startMenuAppIds),
     ],
   },
   {
