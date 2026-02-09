@@ -127,6 +127,21 @@ body > .window-titlebar {
     flex-direction: column;
 }
 
+/* Reset <dialog> defaults that interfere with positioning and styling */
+dialog.os-window {
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: none;
+    color: inherit;
+    left: auto;
+    right: auto;
+    top: auto;
+    bottom: auto;
+    max-width: none;
+    max-height: none;
+}
+
 .window-content {
     flex: 1;
     min-height: 0; /* prevent flexbox overflow issues */
