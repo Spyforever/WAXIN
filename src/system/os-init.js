@@ -47,7 +47,7 @@ export async function initializeOS() {
   let setupEntered = false;
 
   const handleKeyDown = (e) => {
-    if (e.key === "Delete") {
+    if (e.key === "F8" || e.key === "Delete") {
       setupEntered = true;
       showSetupScreen();
       window.removeEventListener("keydown", handleKeyDown);

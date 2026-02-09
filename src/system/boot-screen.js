@@ -33,11 +33,11 @@ function initTerminal() {
     terminal.focus();
 
     terminal.onKey(({ domEvent }) => {
-        if (!setupMode && domEvent.key === "Delete") {
+        if (!setupMode && (domEvent.key === "F8" || domEvent.key === "Delete")) {
             const event = new KeyboardEvent("keydown", {
-                key: "Delete",
-                code: "Delete",
-                keyCode: 46,
+                key: domEvent.key,
+                code: domEvent.code,
+                keyCode: domEvent.keyCode,
                 bubbles: true,
             });
             window.dispatchEvent(event);
