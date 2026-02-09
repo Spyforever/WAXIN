@@ -13,6 +13,7 @@ import {
   finalizeBootProcessStep,
   promptToContinue,
   showSetupScreen,
+  prepareBootScreen,
 } from './boot-screen.js';
 import { preloadThemeAssets } from './asset-preloader.js';
 import { launchApp } from './app-manager.js';
@@ -107,22 +108,14 @@ export async function initializeOS() {
       }
     }
 
-    await executeBootStep(() => {
+    await executeBootStep(async () => {
       playSound("Default"); // POST Beep
       document.body.classList.add("booting");
       document.getElementById("screen").classList.add("boot-mode");
       document.getElementById("initial-boot-message").style.display = "none";
       document.getElementById("boot-screen-content").style.display = "flex";
 
-      const biosTextColumn = document.getElementById("bios-text-column");
-      if (biosTextColumn) {
-        biosTextColumn.innerHTML = `Award Modular BIOS v4.51PG, An Energy Star Ally<br/>Copyright (C) 1984-85, Award Software, Inc.`;
-      }
-
-      const browserInfoEl = document.getElementById("browser-info");
-      if (browserInfoEl) {
-        // browserInfoEl.textContent = `Client: ${navigator.userAgent}`;
-      }
+      await prepareBootScreen();
     });
 
     function loadCustomApps() {

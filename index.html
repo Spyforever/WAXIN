@@ -158,39 +158,6 @@
                 overflow: hidden;
                 z-index: 9999;
             }
-            #boot-screen-left {
-                flex-grow: 1;
-                margin-right: 20px; /* Some spacing between columns */
-            }
-            #boot-screen-right {
-                width: 130px; /* Approximate width of the Energy Star logo */
-                flex-shrink: 0;
-                display: flex;
-                align-items: flex-end;
-                justify-content: flex-end;
-            }
-            #boot-screen-right img {
-                width: 130px; /* Specific width for the Energy Star logo */
-                height: 130px; /* Specific height for the Energy Star logo */
-            }
-            #bios-info-row {
-                display: flex;
-                align-items: flex-start;
-                margin-bottom: 20px;
-                flex-direction: row;
-            }
-            .bios-text-content {
-                display: flex;
-                flex-direction: column;
-                white-space: pre-wrap;
-                line-height: 1.2;
-            }
-            #bios-text-column {
-                /* Adjusting this from .bios-text-content for more specificity if needed */
-                flex-grow: 1;
-                white-space: pre-wrap;
-                line-height: 1.2;
-            }
             #initial-boot-message {
                 position: absolute;
                 color: inherit;
@@ -201,31 +168,15 @@
                 display: none;
                 height: 100%;
                 width: 100%;
-            }
-            #boot-screen-main-flex-container {
-                display: flex;
-                height: 100%;
-                width: 100%;
-                justify-content: space-between;
-            }
-            #boot-screen-left-column {
-                flex-grow: 1;
-                display: flex;
-                flex-direction: column;
-                height: 100%;
-                overflow: hidden;
+                align-items: center;
+                justify-content: center;
             }
             #boot-terminal {
-                width: 100%;
-                height: 100%;
+                width: 640px;
+                height: 400px;
             }
             #boot-terminal .xterm-viewport {
                 overflow-y: hidden !important;
-            }
-            #bios-logo-column {
-                width: 20px;
-                flex-shrink: 0;
-                margin-right: 10px;
             }
             .blinking-cursor {
                 animation: blink 1s step-end infinite;
@@ -249,37 +200,7 @@
                     <div class="loading-banner"></div>
                 </div>
                 <div id="boot-screen-content">
-                    <div id="boot-screen-main-flex-container">
-                        <!-- Left Column for boot text -->
-                        <div id="boot-screen-left-column">
-                            <!-- Award BIOS info row -->
-                            <div id="bios-info-row">
-                                <div id="bios-logo-column">
-                                    <img
-                                        src="/img/award.png"
-                                        alt="Award BIOS Logo"
-                                    />
-                                </div>
-                                <div id="bios-text-column">
-                                    Award Modular BIOS v4.51PG, An Energy Star
-                                    Ally<br />
-                                    Copyright (C) 1984-85, Award Software, Inc.
-                                </div>
-                            </div>
-                            <!-- Browser Info (will be updated by main.js) -->
-                            <!--<div id="browser-info" style="margin-top: 10px"></div>-->
-                            <!-- Boot Log (will be updated by main.js) -->
-                            <div id="boot-terminal" style="flex-grow: 1; margin-top: 10px;"></div>
-                            <div id="boot-screen-footer" style="font-family: 'IBM BIOS', monospace;">
-                                Press F8 for Startup Menu.
-                            </div>
-                        </div>
-
-                        <!-- Right Column for Energy Star logo -->
-                        <div id="boot-screen-right-column" style="margin-left: 20px;">
-                            <img src="/img/energystar.png" alt="Energy Star" />
-                        </div>
-                    </div>
+                    <div id="boot-terminal"></div>
                 </div>
             </div>
             <svg style="position: absolute; pointer-events: none; bottom: 100%">
