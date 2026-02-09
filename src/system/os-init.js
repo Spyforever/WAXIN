@@ -41,10 +41,17 @@ export async function initializeOS() {
     : '';
 
   window.activeProfile = null;
-  if (profileName && profiles[profileName]) {
-    window.activeProfile = profiles[profileName];
-    await setTheme(window.activeProfile.theme);
-    await setColorScheme(window.activeProfile.colorScheme);
+  const ignoredProfiles = ["", "index.html", "404.html"];
+  if (profileName && !ignoredProfiles.includes(profileName)) {
+    if (profiles[profileName]) {
+      window.activeProfile = profiles[profileName];
+      await setTheme(window.activeProfile.theme);
+      await setColorScheme(window.activeProfile.colorScheme);
+    } else {
+      window.location.href =
+        (import.meta.env.BASE_URL || "/win98-web/") + "404.html";
+      return;
+    }
   }
 
   let setupEntered = false;
