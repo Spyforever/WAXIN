@@ -5,7 +5,6 @@ import {
   PINNED_PATH,
   START_MENU_PATH,
   FAVORITES_PATH,
-  refreshPrograms,
 } from "../shell/start-menu/start-menu-utils.js";
 import { migrateShortcuts } from "./migrate-shortcuts.js";
 import startMenuConfig from "../config/start-menu.js";
@@ -182,10 +181,9 @@ export async function initFileSystem(onProgress) {
       );
     }
 
-    const startMenuPathExists = await existsAsync(START_MENU_PATH);
-    await refreshPrograms();
+    if (!(await existsAsync(START_MENU_PATH))) {
+      await fs.promises.mkdir(START_MENU_PATH, { recursive: true });
 
-    if (!startMenuPathExists) {
       // Migrate startup apps from localStorage to ZenFS
       const startupApps = await getStartupApps();
       if (startupApps.length > 0) {
