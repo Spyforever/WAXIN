@@ -581,12 +581,13 @@ export async function initDesktop(profile = null) {
 
   desktopController.iconManager = new IconManager(desktop, {
     iconSelector: ".explorer-icon",
-    onDragStart: (e, icon, selectedIcons) => {
+    onDragStart: (e, icon, selectedIcons, x, y, isTouch) => {
       DragDropManager.startDrag(
         selectedIcons,
         desktopController,
-        e.clientX,
-        e.clientY,
+        x !== undefined ? x : e.clientX,
+        y !== undefined ? y : e.clientY,
+        isTouch
       );
     },
     onItemContext: (e, icon) => {

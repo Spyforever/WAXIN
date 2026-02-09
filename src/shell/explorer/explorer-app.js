@@ -399,8 +399,14 @@ export class ZenExplorerApp extends Application {
   _setupIconManager() {
     this.iconManager = new IconManager(this.iconContainer, {
       iconSelector: ".explorer-icon",
-      onDragStart: (e, icon, selectedIcons) => {
-        DragDropManager.startDrag(selectedIcons, this, e.clientX, e.clientY);
+      onDragStart: (e, icon, selectedIcons, x, y, isTouch) => {
+        DragDropManager.startDrag(
+          selectedIcons,
+          this,
+          x !== undefined ? x : e.clientX,
+          y !== undefined ? y : e.clientY,
+          isTouch
+        );
       },
       onItemContext: (e, icon) => {
         const menuItems = this.contextMenuBuilder.buildItemMenu(e, icon);
