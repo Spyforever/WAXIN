@@ -18,7 +18,7 @@ export async function runSetupTUI(term, onExit) {
         term.write(`Enter a choice: ${selectedOption}`);
 
         // Footer at the bottom of 80x25 terminal
-        term.write("\x1b[25;1HF5=Safe mode   Shift+F5=Command prompt   Shift+F8=Step-by-step confirmation [N]");
+        term.write("\x1b[25;1H\x1b[0mF5=Safe mode   Shift+F5=Command prompt   Shift+F8=Step-by-step confirmation [N]");
     };
 
     const drawTimer = () => {
