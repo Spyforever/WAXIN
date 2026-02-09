@@ -214,9 +214,56 @@ export class IconManager {
       this.handleIconMouseDown(e, icon),
     );
     icon.addEventListener("click", (e) => this.handleIconClick(e, icon));
+    icon.addEventListener("touchstart", (e) => this.handleTouchStart(e, icon), { passive: false });
+    icon.addEventListener("touchmove", (e) => this.handleTouchMove(e, icon), { passive: false });
+    icon.addEventListener("touchend", (e) => this.handleTouchEnd(e, icon));
 
     // Allow context menu events to propagate to the container for onItemContext handling
     // icon.addEventListener("contextmenu", e => e.stopPropagation());
+  }
+
+  handleTouchStart(e, icon) {
+    if (e.touches.length !== 1) return;
+    this.touchStartX = e.touches[0].clientX;
+    this.touchStartY = e.touches[0].clientY;
+    this.touchIcon = icon;
+    this.isTouchDragging = false;
+
+    // Select the icon on touch start if it's not already selected
+    if (!this.selectedIcons.has(icon)) {
+      this.setSelection(new Set([icon]));
+    }
+  }
+
+  handleTouchMove(e, icon) {
+    if (this.isTouchDragging) return;
+    if (e.touches.length !== 1) return;
+
+    const touchX = e.touches[0].clientX;
+    const touchY = e.touches[0].clientY;
+    const dist = Math.sqrt(
+      Math.pow(touchX - this.touchStartX, 2) +
+        Math.pow(touchY - this.touchStartY, 2),
+    );
+
+    if (dist > 10) {
+      this.isTouchDragging = true;
+      this.wasDragged = true;
+      e.stopPropagation();
+
+      // Dismiss context menu
+      const existingMenus = document.querySelectorAll(".menu-popup-wrapper");
+      existingMenus.forEach((menu) => menu.remove());
+
+      if (this.options.onDragStart) {
+        this.options.onDragStart(e, icon, [...this.selectedIcons], this.touchStartX, this.touchStartY, true);
+      }
+    }
+  }
+
+  handleTouchEnd(e, icon) {
+    this.isTouchDragging = false;
+    this.touchIcon = null;
   }
 
   handleIconMouseDown(e, icon) {
@@ -239,7 +286,7 @@ export class IconManager {
         document.removeEventListener("mousemove", onMouseMove);
         this.wasDragged = true;
         if (this.options.onDragStart) {
-          this.options.onDragStart(e, icon, [...this.selectedIcons]);
+          this.options.onDragStart(e, icon, [...this.selectedIcons], startX, startY, false);
         }
       }
     };

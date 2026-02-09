@@ -15,9 +15,10 @@ export class DragDropManager {
         this.offsetY = 0;
     }
 
-    startDrag(iconElements, sourceApp, x, y) {
+    startDrag(iconElements, sourceApp, x, y, isTouch = false) {
         if (this.isDragging) return;
         this.isDragging = true;
+        this.isTouchDrag = isTouch;
         this.draggedItems = iconElements.map(el => {
             const rect = el.getBoundingClientRect();
             return {
@@ -38,8 +39,15 @@ export class DragDropManager {
         this._createGhost(iconElements, x, y);
         this._boundMouseMove = this._handleMouseMove.bind(this);
         this._boundMouseUp = this._handleMouseUp.bind(this);
-        document.addEventListener('mousemove', this._boundMouseMove);
-        document.addEventListener('mouseup', this._boundMouseUp);
+
+        if (this.isTouchDrag) {
+            document.addEventListener('touchmove', this._boundMouseMove, { passive: false });
+            document.addEventListener('touchend', this._boundMouseUp);
+            document.addEventListener('touchcancel', this._boundMouseUp);
+        } else {
+            document.addEventListener('mousemove', this._boundMouseMove);
+            document.addEventListener('mouseup', this._boundMouseUp);
+        }
         document.body.classList.add('dragging');
     }
 
@@ -69,15 +77,22 @@ export class DragDropManager {
 
     _handleMouseMove(e) {
         if (!this.isDragging) return;
-        if (this.ghostElement) {
-            this.ghostElement.style.left = `${e.clientX - this.offsetX}px`;
-            this.ghostElement.style.top = `${e.clientY - this.offsetY}px`;
+        const x = e.touches ? e.touches[0].clientX : e.clientX;
+        const y = e.touches ? e.touches[0].clientY : e.clientY;
+
+        if (this.isTouchDrag && e.cancelable) {
+            e.preventDefault();
         }
-        this._updateDropTarget(e);
+
+        if (this.ghostElement) {
+            this.ghostElement.style.left = `${x - this.offsetX}px`;
+            this.ghostElement.style.top = `${y - this.offsetY}px`;
+        }
+        this._updateDropTarget(x, y);
     }
 
-    _updateDropTarget(e) {
-        const elements = document.elementsFromPoint(e.clientX, e.clientY);
+    _updateDropTarget(x, y) {
+        const elements = document.elementsFromPoint(x, y);
         let newTarget = null;
         for (const el of elements) {
             const icon = el.closest('.explorer-icon');
@@ -114,11 +129,16 @@ export class DragDropManager {
             offsetX: this.offsetX,
             offsetY: this.offsetY
         };
-        this._performDrop(e, e.ctrlKey, dragData);
+
+        const isCopy = e.ctrlKey;
+        const x = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0].clientX : e.clientX;
+        const y = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0].clientY : e.clientY;
+
+        this._performDrop(x, y, isCopy, dragData);
         this._cleanup();
     }
 
-    async _performDrop(e, isCopy, dragData) {
+    async _performDrop(x, y, isCopy, dragData) {
         const { sourceApp, draggedItems, dropTarget, offsetX, offsetY } = dragData;
         if (!dropTarget || !sourceApp) return;
         let destinationPath = null;
@@ -138,8 +158,8 @@ export class DragDropManager {
 
         if (container) {
             const rect = container.getBoundingClientRect();
-            dropX = e.clientX - rect.left + (container.scrollLeft || 0) - offsetX;
-            dropY = e.clientY - rect.top + (container.scrollTop || 0) - offsetY;
+            dropX = x - rect.left + (container.scrollLeft || 0) - offsetX;
+            dropY = y - rect.top + (container.scrollTop || 0) - offsetY;
         }
         const sourceDir = sourcePaths[0].substring(0, sourcePaths[0].lastIndexOf('/')) || '/';
         if (!isCopy && destinationPath === sourceDir) {
@@ -197,11 +217,20 @@ export class DragDropManager {
         this.ghostElement = null;
         if (this.dropTarget) this.dropTarget.classList.remove('drop-target-highlight');
         this.dropTarget = null;
-        document.removeEventListener('mousemove', this._boundMouseMove);
-        document.removeEventListener('mouseup', this._boundMouseUp);
+
+        if (this.isTouchDrag) {
+            document.removeEventListener('touchmove', this._boundMouseMove);
+            document.removeEventListener('touchend', this._boundMouseUp);
+            document.removeEventListener('touchcancel', this._boundMouseUp);
+        } else {
+            document.removeEventListener('mousemove', this._boundMouseMove);
+            document.removeEventListener('mouseup', this._boundMouseUp);
+        }
+
         document.body.classList.remove('dragging');
         this.draggedItems = [];
         this.sourceApp = null;
+        this.isTouchDrag = false;
     }
 }
 export default new DragDropManager();
