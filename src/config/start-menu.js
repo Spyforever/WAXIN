@@ -19,6 +19,7 @@ const startMenuAppIds = [
   "esheep",
   "quake",
   "prince-of-persia",
+  "dx-ball",
 ];
 const accessoriesAppIds = [
   "notepad",
@@ -62,7 +63,7 @@ const startMenuConfig = [
           {
             label: "Games",
             icon: ICONS.programs[16],
-            submenu: getAppList(["pinball", "minesweeper", "solitaire", "spider-solitaire", "freecell"]),
+            submenu: getAppList(["pinball", "minesweeper", "solitaire", "spider-solitaire", "freecell", "dx-ball"]),
           },
           {
             label: "Entertainment",
