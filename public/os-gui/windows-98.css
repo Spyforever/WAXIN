@@ -1175,4 +1175,8 @@ so I think I'll imitate that. (I might change it later) */
     display: none;
 }
 
+.explorer-icon.selected .icon-label {
+    border: 1px dotted white;
+}
+
 /*# sourceMappingURL=windows-98.css.map */

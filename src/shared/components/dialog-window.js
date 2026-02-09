@@ -1,4 +1,4 @@
-import { playSound } from '../../system/sound-manager.js';
+import { playSound } from "../../system/sound-manager.js";
 
 /**
  * @typedef {object} DialogButton
@@ -106,8 +106,10 @@ function ShowDialogWindow(options) {
     }
     buttonContainer.appendChild(button);
   });
-
-  win.$content.append(contentContainer, buttonContainer);
+  win.$content.append(contentContainer);
+  if (buttons && buttons.length > 0) {
+    win.$content.append(buttonContainer);
+  }
   win.center();
 
   // Handle modality
