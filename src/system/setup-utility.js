@@ -2,31 +2,34 @@ export async function runSetupTUI(term, onExit) {
     let timeLeft = 30;
     const selectedOption = "1";
 
-    const draw = () => {
+    const drawStatic = () => {
         // Clear screen and reset cursor
         term.write("\x1b[2J\x1b[H");
-        term.write("\x1b[0;37;40m"); // Light gray on black
+        term.write("\x1b[0m"); // Reset to theme defaults (light gray on black)
 
         term.write("Microsoft Windows 98 Startup Menu\r\n");
-        term.write("=================================\r\n\r\n");
+        // Double underline using ANSI double-line character
+        term.write("\u2550".repeat(33) + "\r\n\r\n");
 
-        // Option 1 - Highlighted (Inverted)
-        term.write("   \x1b[7m1. Reboot\x1b[0m\r\n\r\n");
+        // Option 1 - Black background as requested
+        term.write("    1. Reboot\r\n\r\n");
 
-        // Choice and Time remaining
+        // Choice
         term.write(`Enter a choice: ${selectedOption}`);
-
-        // Move cursor to column 30 on the same line (row 6)
-        term.write(`\x1b[6;30HTime remaining: ${timeLeft.toString().padStart(2, ' ')}`);
 
         // Footer at the bottom of 80x25 terminal
         term.write("\x1b[25;1HF5=Safe mode   Shift+F5=Command prompt   Shift+F8=Step-by-step confirmation [N]");
+    };
 
-        // Move cursor to just after the choice for effect
+    const drawTimer = () => {
+        // Move cursor to row 6, column 30
+        term.write(`\x1b[6;30HTime remaining: ${timeLeft.toString().padStart(2, ' ')}`);
+        // Move cursor back to just after the choice for the underline cursor
         term.write("\x1b[6;17H");
     };
 
-    draw();
+    drawStatic();
+    drawTimer();
 
     const reboot = () => {
         clearInterval(timer);
@@ -40,7 +43,7 @@ export async function runSetupTUI(term, onExit) {
         if (timeLeft <= 0) {
             reboot();
         } else {
-            draw();
+            drawTimer();
         }
     }, 1000);
 

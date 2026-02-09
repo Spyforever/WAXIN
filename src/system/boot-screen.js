@@ -92,7 +92,7 @@ function startBootProcessStep(message) {
 }
 
 function finalizeBootProcessStep(stepInfo, status) {
-    if (terminal && stepInfo) {
+    if (terminal && stepInfo && !setupMode) {
         if (status === undefined || status === null) {
             terminal.write('\r\n');
         } else {
