@@ -171,12 +171,16 @@ class StartMenu {
       }
 
       const menuWrapper = document.createElement("div");
-      menuWrapper.className = "menu-popup-wrapper";
+      menuWrapper.className = "menu-popup-wrapper start-menu-popup";
 
       activeMenu = new window.MenuPopup(submenuItems, {
+        className: "start-menu-popup",
         parentMenuPopup: null,
         handleKeyDown: (e) => e.key === "Escape" && closeAndCleanup(),
-        closeMenus: closeAndCleanup,
+        closeMenus: () => {
+          closeAndCleanup();
+          this.hide();
+        },
         setActiveMenuPopup: (menu) => {
           activeMenu = menu;
         },
@@ -268,12 +272,16 @@ class StartMenu {
       }
 
       const menuWrapper = document.createElement("div");
-      menuWrapper.className = "menu-popup-wrapper";
+      menuWrapper.className = "menu-popup-wrapper start-menu-popup";
 
       activeMenu = new window.MenuPopup(submenuItems, {
+        className: "start-menu-popup",
         parentMenuPopup: null,
         handleKeyDown: (e) => e.key === "Escape" && closeAndCleanup(),
-        closeMenus: closeAndCleanup,
+        closeMenus: () => {
+          closeAndCleanup();
+          this.hide();
+        },
         setActiveMenuPopup: (menu) => {
           activeMenu = menu;
         },
@@ -595,7 +603,8 @@ class StartMenu {
     if (
       this.isVisible &&
       !startMenu.contains(event.target) &&
-      !startButton.contains(event.target)
+      !startButton.contains(event.target) &&
+      !event.target.closest(".start-menu-popup")
     ) {
       this.hide();
     }
