@@ -978,15 +978,19 @@ file = file_get_contents('game/default.bds');
 			if (rank === -1) rank = 0;
 
 			let response = "";
-			for(let i=0; i<localRecords.length; i++) {
-				response += i + "&" + localRecords[i].name + "&" + localRecords[i].score + "\r";
+			for(let i=0; i<Math.max(15, localRecords.length); i++) {
+				let name = localRecords[i] ? localRecords[i].name : "---";
+				let score = localRecords[i] ? localRecords[i].score : "0";
+				response += i + "&" + name + "&" + score + "\r";
 			}
 			response += rank;
 			rec = response;
 		} else {
 			let response = "";
-			for(let i=0; i<localRecords.length; i++) {
-				response += i + "&" + localRecords[i].name + "&" + localRecords[i].score + "\r";
+			for(let i=0; i<Math.max(15, localRecords.length); i++) {
+				let name = localRecords[i] ? localRecords[i].name : "---";
+				let score = localRecords[i] ? localRecords[i].score : "0";
+				response += i + "&" + name + "&" + score + "\r";
 			}
 			response += "0";
 			rec = response;
