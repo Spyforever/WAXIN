@@ -13,7 +13,7 @@ export class MinesweeperApp extends Application {
     id: "minesweeper",
     title: "Minesweeper",
     description: "Play the classic game of Minesweeper.",
-    icon: ICONS.minesweeper,
+    icon: ICONS.minesweeper, category: "Accessories/Games",
     width: 200,
     height: 280,
     resizable: false,

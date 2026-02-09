@@ -7,7 +7,7 @@ export class ESheepApp extends Application {
         id: "esheep",
         title: "eSheep",
         description: "A classic desktop pet.",
-        icon: ICONS.esheep,
+        icon: ICONS.esheep, category: "",
         hasTray: true,
         isSingleton: true,
         tray: {

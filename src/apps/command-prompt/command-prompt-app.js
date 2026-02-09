@@ -10,7 +10,7 @@ export class CommandPromptApp extends Application {
     id: "command-prompt",
     title: "MS-DOS Prompt",
     description: "Starts a new MS-DOS prompt.",
-    icon: ICONS.msdos,
+    icon: ICONS.msdos, category: "",
     width: 640,
     height: 480,
     resizable: true,

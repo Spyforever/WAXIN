@@ -6,7 +6,7 @@ export class PaintApp extends Application {
         id: "paint",
         title: "Paint",
         description: "Create and edit images.",
-        icon: ICONS.paint,
+        icon: ICONS.paint, category: "Accessories",
         width: 800,
         height: 600,
         resizable: true,

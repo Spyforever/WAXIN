@@ -75,7 +75,7 @@ export class ZenExplorerApp extends Application {
     id: "explorer",
     title: "Windows Explorer",
     description: "Browse files and folders.",
-    icon: ICONS.windowsExplorer,
+    icon: ICONS.windowsExplorer, category: "",
     width: 640,
     height: 480,
     resizable: true,

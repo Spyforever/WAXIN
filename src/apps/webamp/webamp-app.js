@@ -19,7 +19,7 @@ export class WebampApp extends Application {
     id: "webamp",
     title: "Winamp",
     description: "A classic music player.",
-    icon: ICONS.webamp,
+    icon: ICONS.webamp, category: "",
     hasTaskbarButton: true,
     isSingleton: true,
     tray: {

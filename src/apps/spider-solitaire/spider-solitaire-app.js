@@ -19,7 +19,7 @@ export class SpiderSolitaireApp extends Application {
     width: 880,
     height: 550,
     resizable: true,
-    icon: ICONS.spidersolitaire,
+    icon: ICONS.spidersolitaire, category: "Accessories/Games",
   };
 
   async _createWindow() {

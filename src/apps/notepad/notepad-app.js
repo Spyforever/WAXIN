@@ -18,7 +18,7 @@ export class NotepadApp extends Application {
         id: "notepad",
         title: "Notepad",
         description: "A simple text editor.",
-        icon: ICONS.notepad,
+        icon: ICONS.notepad, category: "Accessories",
         width: 600,
         height: 400,
         resizable: true,

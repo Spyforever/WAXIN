@@ -24,7 +24,7 @@ export class DoomApp extends Application {
     id: "doom",
     title: "Doom",
     description: "Play the classic game Doom.",
-    icon: ICONS.doom,
+    icon: ICONS.doom, category: "",
     width: 640,
     height: 400,
     resizable: true,

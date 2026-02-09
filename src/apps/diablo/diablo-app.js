@@ -7,7 +7,7 @@ export class DiabloApp extends Application {
         id: "diablo",
         title: "Diablo",
         description: "Play the classic game Diablo.",
-        icon: ICONS.diablo,
+        icon: ICONS.diablo, category: "",
         width: 800,
         height: 600,
         resizable: true,

@@ -134,6 +134,42 @@ export async function getPinnedItemsFromZenFS(path = PINNED_PATH) {
 }
 
 /**
+ * Refreshes the Programs menu by ensuring shortcuts exist for all apps with a category.
+ */
+export async function refreshPrograms() {
+  if (!(await existsAsync(START_MENU_PATH))) {
+    await fs.promises.mkdir(START_MENU_PATH, { recursive: true });
+  }
+
+  for (const app of apps) {
+    if (app.category !== undefined) {
+      const categories = Array.isArray(app.category) ? app.category : [app.category];
+
+      for (const category of categories) {
+        let targetDir = START_MENU_PATH;
+        if (category) {
+          targetDir += `/${category}`;
+        }
+
+        if (!(await existsAsync(targetDir))) {
+          await fs.promises.mkdir(targetDir, { recursive: true });
+        }
+
+        const lnkPath = `${targetDir}/${app.title}.lnk.json`;
+        if (!(await existsAsync(lnkPath))) {
+          const lnkData = {
+            type: "shortcut",
+            appId: app.id,
+            args: app.args || null,
+          };
+          await fs.promises.writeFile(lnkPath, JSON.stringify(lnkData, null, 2));
+        }
+      }
+    }
+  }
+}
+
+/**
  * Recursively builds a menu structure from a ZenFS directory
  * @param {string} path - The ZenFS directory path
  * @returns {Promise<Array>} Array of menu items

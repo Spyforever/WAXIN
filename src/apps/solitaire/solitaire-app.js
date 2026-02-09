@@ -29,7 +29,7 @@ export class SolitaireApp extends Application {
     width: 700,
     height: 600,
     resizable: true,
-    icon: ICONS.solitaire,
+    icon: ICONS.solitaire, category: "Accessories/Games",
   };
 
   async _createWindow() {

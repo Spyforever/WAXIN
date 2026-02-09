@@ -6,7 +6,7 @@ export class KeenApp extends IFrameApplication {
     id: "keen",
     title: "Commander Keen",
     description: "Play the classic game Commander Keen.",
-    icon: ICONS.keen,
+    icon: ICONS.keen, category: "",
     width: 640,
     height: 480,
     resizable: false,

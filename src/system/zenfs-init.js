@@ -182,12 +182,7 @@ export async function initFileSystem(onProgress) {
     }
 
     if (!(await existsAsync(START_MENU_PATH))) {
-      const programsConfig = startMenuConfig.find(
-        (item) => item.label === "Programs",
-      );
-      if (programsConfig && programsConfig.submenu) {
-        await migrateToZenFS(programsConfig.submenu, START_MENU_PATH);
-      }
+      await fs.promises.mkdir(START_MENU_PATH, { recursive: true });
 
       // Migrate startup apps from localStorage to ZenFS
       const startupApps = await getStartupApps();

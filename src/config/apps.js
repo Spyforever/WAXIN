@@ -70,7 +70,7 @@ const systemApps = [
   {
     id: "internet-explorer",
     title: "Internet Explorer",
-    description: "Browse the web.",
+    description: "Browse the web.", category: "",
     get icon() {
       return getIcon("internet-explorer");
     },
