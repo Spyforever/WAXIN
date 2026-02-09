@@ -24,10 +24,17 @@
             #terminal {
                 width: 100%;
                 height: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background-color: #0000aa;
             }
-            /* Hide xterm scrollbar */
             .xterm-viewport {
                 overflow: hidden !important;
+            }
+            /* Ensure the xterm terminal itself has the correct background */
+            .xterm-screen {
+                background-color: #0000aa !important;
             }
         </style>
     </head>
@@ -43,46 +50,46 @@
                 theme: {
                     background: "#0000aa",
                     foreground: "#ffffff",
+                    blue: "#0000aa", // Map ANSI blue to our BSOD blue
                 },
                 fontFamily: '"IBM BIOS", Courier, monospace',
                 fontSize: 18,
                 rows: 25,
                 cols: 80,
-                allowTransparency: false,
+                allowTransparency: true,
             });
 
             const container = document.getElementById("terminal");
             term.open(container);
 
             // Initial clear
-            term.write("\x1b[2J\x1b[H");
+            term.write("\x1b[H\x1b[2J");
+
+            // Draw centered "Windows" header in white block
+            // Use ANSI 47 for white background, 34 for blue text
+            const headerPadding = " ".repeat(35);
+            term.write("\x1b[1;1H" + headerPadding + "\x1b[47m\x1b[34m Windows \x1b[0m\r\n\r\n");
 
             const lines = [
                 "",
+                "      A fatal exception 0E has occurred at 0028:C001F32F in VXD VMM(01) +",
+                "      0001F32F. The current application will be terminated.",
+                "",
+                "      *  Press any key to restart your computer.",
+                "      *  Press CTRL+ALT+DEL again to restart your computer. You will lose",
+                "         any unsaved information in all applications.",
                 "",
                 "",
-                "      A problem has been detected and Windows has been shut down to prevent",
-                "      damage to your computer.",
-                "",
-                "      The error was: NOT_FOUND (404)",
-                "",
-                "      If this is the first time you've seen this stop error screen,",
-                "      restart your computer. If this screen appears again, follow",
-                "      these steps:",
-                "",
-                "      Check to make sure any new hardware or software is properly installed.",
-                "      If this is a new installation, ask your hardware or software manufacturer",
-                "      for any Windows updates you might need.",
-                "",
-                "      Technical information:",
-                "",
-                "      *** STOP: 0x00000404 (0x00000000, 0x00000000, 0x00000000, 0x00000000)",
                 "",
                 "",
-                "      Press any key to return to the main page."
+                "",
+                "",
+                "",
+                "",
+                "                           Press any key to continue "
             ];
 
-            term.write(lines.join("\r\n"));
+            term.write("\x1b[37m" + lines.join("\r\n"));
 
             const goToMain = () => {
                 const baseUrl = import.meta.env.BASE_URL || "/win98-web/";
@@ -90,19 +97,11 @@
             };
 
             term.onKey(goToMain);
-            window.addEventListener("keydown", (e) => {
-                // Prevent F12 etc from redirecting if possible, but user said "any key"
-                goToMain();
-            });
+            window.addEventListener("keydown", goToMain);
             window.addEventListener("click", goToMain);
+            window.addEventListener("touchstart", goToMain);
 
             term.focus();
-
-            // Handle resize
-            window.addEventListener("resize", () => {
-                // term.fit() would be better but we don't have the addon loaded here
-                // for simplicity we just keep it as is
-            });
         </script>
     </body>
 </html>
