@@ -257,6 +257,10 @@ function showSetupScreen() {
     }
 }
 
+export function getTerminal() {
+    return terminal;
+}
+
 export {
     hideBootScreen,
     startBootProcessStep,

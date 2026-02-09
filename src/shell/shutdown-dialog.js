@@ -90,7 +90,7 @@ function createShutdownDialogContent() {
         { id: 'standby', label: 'Stand &by', checked: false, disabled: true },
         { id: 'shutdown', label: 'Shut &down', checked: true },
         { id: 'restart', label: '&Restart', checked: false },
-        { id: 'restart-msdos', label: 'Restart in MS-&DOS mode', checked: false, disabled: true }
+        { id: 'restart-msdos', label: 'Restart in MS-&DOS mode', checked: false }
     ];
 
     options.forEach(opt => {
