@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.5.0](https://github.com/azayrahmad/win98-web/compare/win98-web-v0.4.0...win98-web-v0.5.0) (2026-02-09)
+
+
+### Features
+
+* Change setup menu to Windows 98 Startup Menu style ([ef7d9e2](https://github.com/azayrahmad/win98-web/commit/ef7d9e21e963c5612fac6d09ca1547a03a9e8dae))
+* implement advanced icon selection highlight using background-blend-mode ([5d3c4ff](https://github.com/azayrahmad/win98-web/commit/5d3c4ff2fa6a8679cc9c5cb859ac37fe8b3a8e42))
+* implement advanced icon selection highlight using background-blend-mode ([9bf5051](https://github.com/azayrahmad/win98-web/commit/9bf5051619b95dd57b51489b6243409731aa45ba))
+* implement MS-DOS mode and refactor command prompt ([ee5d019](https://github.com/azayrahmad/win98-web/commit/ee5d019280e606fa9a4125bb0332e4d787abd2ab))
+* implement semantic HTML improvements across the system ([ff493fe](https://github.com/azayrahmad/win98-web/commit/ff493fe0312323c0a7467583c2f0a77180ee7204))
+* migrate boot screen to xterm.js with addon-image ([54ea0fd](https://github.com/azayrahmad/win98-web/commit/54ea0fdca3e8c43ff5002122fcc802b62ba7e7cf))
+* move default wallpapers to C:\WINDOWS and add icons to list ([9d23dce](https://github.com/azayrahmad/win98-web/commit/9d23dce710d02c5f68ca16655f459a3027977794))
+* move default wallpapers to C:\WINDOWS\Web\Wallpaper and read dynamically ([f996de8](https://github.com/azayrahmad/win98-web/commit/f996de8bdf1ab7d995c8037d7d89cafbc4b69f43))
+* Reimplement boot log sequence and Setup Utility with xterm.js ([e966bf6](https://github.com/azayrahmad/win98-web/commit/e966bf682bbac990ea3db3fc14eccd7bc8d6f341))
+
+
+### Bug Fixes
+
+* correct dialog window positioning and dragging speed ([6bbf9b4](https://github.com/azayrahmad/win98-web/commit/6bbf9b4726a08462c987048c82cb76040ce96383))
+* icon highlight filter fix for menus ([6f37e6b](https://github.com/azayrahmad/win98-web/commit/6f37e6b18fe4dbbf01b6b1dde63e8722929f3e2e))
+* prevent add button container to dialog window if no button ([cd09050](https://github.com/azayrahmad/win98-web/commit/cd09050241fc9fdb0a57b7af092f74a43cd05f84))
+* return icon label dotted border selected style ([67660c0](https://github.com/azayrahmad/win98-web/commit/67660c0628b23cb707a583ebb74f0e2fb227a532))
+
 ## [0.4.0](https://github.com/azayrahmad/win98-web/compare/win98-web-v0.3.1...win98-web-v0.4.0) (2026-02-06)
 
 
