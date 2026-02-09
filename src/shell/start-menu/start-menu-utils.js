@@ -135,19 +135,61 @@ export async function getPinnedItemsFromZenFS(path = PINNED_PATH) {
 
 /**
  * Refreshes the Programs menu by ensuring shortcuts exist for all apps with a category.
+ * It also cleans up shortcuts that refer to non-existent applications.
  */
 export async function refreshPrograms() {
   if (!(await existsAsync(START_MENU_PATH))) {
     await fs.promises.mkdir(START_MENU_PATH, { recursive: true });
   }
 
+  // 1. Cleanup: Remove invalid shortcuts
+  const appIds = new Set(apps.map(app => app.id));
+
+  async function cleanupDir(dirPath) {
+    if (!(await existsAsync(dirPath))) return;
+
+    const entries = await fs.promises.readdir(dirPath);
+    for (const entry of entries) {
+      const fullPath = `${dirPath}/${entry}`;
+      const stat = await fs.promises.stat(fullPath);
+
+      if (stat.isDirectory()) {
+        await cleanupDir(fullPath);
+        // Optionally remove empty directory if it's not the root
+        if (fullPath !== START_MENU_PATH) {
+          const remaining = await fs.promises.readdir(fullPath);
+          if (remaining.length === 0) {
+            await fs.promises.rmdir(fullPath);
+          }
+        }
+      } else if (entry.endsWith(".lnk.json")) {
+        try {
+          const content = await fs.promises.readFile(fullPath, "utf8");
+          const data = JSON.parse(content);
+          if (data.type === "shortcut" && data.appId && !appIds.has(data.appId)) {
+            console.log(`Removing invalid shortcut: ${fullPath} (appId: ${data.appId})`);
+            await fs.promises.unlink(fullPath);
+          }
+        } catch (e) {
+          console.warn(`Failed to validate shortcut ${fullPath}:`, e);
+        }
+      }
+    }
+  }
+
+  await cleanupDir(START_MENU_PATH);
+
+  // 2. Addition: Ensure shortcuts exist for all current apps
   for (const app of apps) {
-    if (app.category !== undefined) {
+    // Only include apps that have a category defined (including empty string)
+    // As per requirement, undefined/null categories are skipped.
+    if (app.category !== undefined && app.category !== null) {
       const categories = Array.isArray(app.category) ? app.category : [app.category];
 
       for (const category of categories) {
         let targetDir = START_MENU_PATH;
         if (category) {
+          // Categories can be nested like "Accessories/Games"
           targetDir += `/${category}`;
         }
 

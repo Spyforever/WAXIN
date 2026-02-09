@@ -2,6 +2,7 @@ import { resolveMountConfig, InMemory, fs } from "@zenfs/core";
 import { IndexedDB } from "@zenfs/dom";
 import {
   migrateToZenFS,
+  refreshPrograms,
   PINNED_PATH,
   START_MENU_PATH,
   FAVORITES_PATH,
@@ -182,7 +183,8 @@ export async function initFileSystem(onProgress) {
     }
 
     if (!(await existsAsync(START_MENU_PATH))) {
-      await fs.promises.mkdir(START_MENU_PATH, { recursive: true });
+      if (onProgress) onProgress("Populating Programs menu...");
+      await refreshPrograms();
 
       // Migrate startup apps from localStorage to ZenFS
       const startupApps = await getStartupApps();
