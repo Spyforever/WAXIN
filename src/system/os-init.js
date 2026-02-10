@@ -23,7 +23,6 @@ import screensaver from './screensaver-utils.js';
 import { initScreenManager } from './screen-manager.js';
 import { fs, mounts } from "@zenfs/core";
 import { initFileSystem } from './zenfs-init.js';
-import { wallpapers } from '../config/wallpapers.js';
 import { existsAsync } from './zenfs-utils.js';
 import { RecycleBinManager } from '../shell/explorer/file-operations/recycle-bin-manager.js';
 import { appManager } from './app-manager.js';
@@ -167,37 +166,6 @@ export async function initializeOS() {
       finalizeBootProcessStep(logElement, "OK");
     });
 
-    await executeBootStep(async () => {
-      const wallpaperDir = "/C:/WINDOWS";
-      let needed = false;
-      for (const w of wallpapers.default) {
-        if (!(await existsAsync(`${wallpaperDir}/${w.filename}`))) {
-          needed = true;
-          break;
-        }
-      }
-
-      if (needed) {
-        let logElement = startBootProcessStep("Loading wallpapers...");
-        for (const w of wallpapers.default) {
-          const path = `${wallpaperDir}/${w.filename}`;
-          if (!(await existsAsync(path))) {
-            if (logElement && logElement.firstChild) {
-              logElement.firstChild.nodeValue = `Loading wallpaper: ${w.filename}...`;
-            }
-            try {
-              const response = await fetch(w.src);
-              const buffer = await response.arrayBuffer();
-              await fs.promises.writeFile(path, new Uint8Array(buffer));
-            } catch (e) {
-              console.error(`Failed to load wallpaper ${w.filename}:`, e);
-            }
-          }
-        }
-        finalizeBootProcessStep(logElement, "OK");
-      }
-    });
-
     const createAssetLogCallbacks = (logElement, baseMessage) => {
       const onAssetLogStart = (name) => {
         if (logElement && logElement.firstChild) {
@@ -271,38 +239,6 @@ export async function initializeOS() {
         finalizeBootProcessStep(logElement, "OK");
       });
     }
-
-    await executeBootStep(async () => {
-      const doomFiles = ["doom1.wad", "default.cfg"];
-      const baseRemotePath = "games/doom/";
-      const baseLocalPath = "/C:/Program Files/Doom/";
-
-      let needed = false;
-      for (const file of doomFiles) {
-        if (!fs.existsSync(baseLocalPath + file)) {
-          needed = true;
-          break;
-        }
-      }
-
-      if (needed) {
-        let logElement = startBootProcessStep("Loading Doom game data...");
-        for (const file of doomFiles) {
-          if (!fs.existsSync(baseLocalPath + file)) {
-            if (logElement && logElement.firstChild) {
-              logElement.firstChild.nodeValue = `Loading Doom game data: ${file}...`;
-            }
-            const response = await fetch(baseRemotePath + file);
-            const buffer = await response.arrayBuffer();
-            await fs.promises.writeFile(baseLocalPath + file, new Uint8Array(buffer));
-          }
-        }
-        if (logElement && logElement.firstChild) {
-          logElement.firstChild.nodeValue = "Loading Doom game data...";
-        }
-        finalizeBootProcessStep(logElement, "OK");
-      }
-    });
 
     if (!isMSDOSMode) {
       await executeBootStep(async () => {
