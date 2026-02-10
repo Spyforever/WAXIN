@@ -34,6 +34,7 @@ import { RecycleBinExtension } from './extensions/recycle-bin-extension.js';
 import { NetworkNeighborhoodExtension } from './extensions/network-neighborhood-extension.js';
 import { InternetExplorerExtension } from './extensions/internet-explorer-extension.js';
 import { isZenFSPath, getZenFSFileUrl } from '../../system/zenfs-utils.js';
+import { getMenuFromZenFS, FAVORITES_PATH } from '../start-menu/start-menu-utils.js';
 import "./explorer.css";
 
 // Initialize Shell Extensions
@@ -96,6 +97,8 @@ export class ZenExplorerApp extends Application {
     this.retroMode = true;
     this.blobUrl = null;
     this.isInWebMode = false;
+    this._favoritesCache = null;
+    this._favoritesLoading = false;
   }
 
   async launch(data = null) {
@@ -848,8 +851,19 @@ export class ZenExplorerApp extends Application {
 
   async _updateMenuBar() {
     if (!this.win) return;
+
+    // Fetch favorites if not cached
+    if (!this._favoritesCache && !this._favoritesLoading) {
+      this._favoritesLoading = true;
+      getMenuFromZenFS(FAVORITES_PATH).then(items => {
+        this._favoritesCache = items;
+        this._favoritesLoading = false;
+        this._updateMenuBar();
+      });
+    }
+
     const menuBuilder = new MenuBarBuilder(this);
-    this.menuBar = await menuBuilder.build();
+    this.menuBar = menuBuilder.build(this._favoritesCache || []);
     this.win.setMenuBar(this.menuBar);
 
     // Add Animated Logo
