@@ -137,6 +137,11 @@ body > .window-titlebar {
     border: none !important;
     margin: 0 !important;
     z-index: 10000000 !important;
+    cursor: none !important;
+}
+
+.os-window.is-fullscreen * {
+    cursor: none !important;
 }
 
 .os-window.is-fullscreen .window-titlebar {
