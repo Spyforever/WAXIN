@@ -127,6 +127,9 @@
     if (options.maximizable === undefined) {
       options.maximizable = true;
     }
+    if (options.allowFullscreen === undefined) {
+      options.allowFullscreen = false;
+    }
 
     // WOW, this is ugly. It's kind of impressive, almost.
     const tagName = options.tagName || (options.modal ? "dialog" : "article");
@@ -146,6 +149,7 @@
 
     // TODO: A $Window.fromElement (or similar) static method using a Map would be better for type checking.
     $w[0].$window = $w;
+    $w.options = options;
     $w.element = $w[0];
     /** @type {OSGUI$Window[]} */
     $w.child_$windows = []; // Initialize as an instance property
@@ -563,11 +567,12 @@
                   }
                 });
                 iframe.contentWindow.addEventListener("keydown", (e) => {
-                  if (e.altKey && (e.key === "Enter" || e.keyCode === 13)) {
-                    e.preventDefault();
+                  if (e.altKey && e.key === "Enter" && options.allowFullscreen) {
                     $w.toggleFullscreen();
+                    e.preventDefault();
+                    e.stopPropagation();
                   }
-                });
+                }, true);
                 observeIframes(iframe.contentDocument);
               });
             } catch (error) {
@@ -1050,6 +1055,30 @@
         }
       });
     };
+    $w.toggleFullscreen = () => {
+      if (!document.fullscreenElement) {
+        $w.element.requestFullscreen().catch((err) => {
+          console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+        });
+      } else {
+        document.exitFullscreen().catch((err) => {
+          console.error(`Error attempting to exit full-screen mode: ${err.message} (${err.name})`);
+        });
+      }
+    };
+
+    const handleFullscreenChange = () => {
+      if (document.fullscreenElement === $w.element) {
+        $w.addClass("is-fullscreen");
+        $w.trigger("fullscreenchange", { isFullscreen: true });
+      } else {
+        $w.removeClass("is-fullscreen");
+        $w.trigger("fullscreenchange", { isFullscreen: false });
+      }
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+
     $w.restore = () => {
       if ($w.is(".minimized-without-taskbar, .minimized")) {
         $w.unminimize();
@@ -1057,26 +1086,6 @@
         $w.maximize(); // toggles maximization
       }
     };
-
-    $w.toggleFullscreen = () => {
-      if (document.fullscreenElement !== $w[0]) {
-        $w[0].requestFullscreen().catch((err) => {
-          console.error(
-            `Error attempting to enable full-screen mode: ${err.message} (${err.name})`,
-          );
-        });
-      } else {
-        document.exitFullscreen();
-      }
-    };
-
-    $w[0].addEventListener("fullscreenchange", () => {
-      if (document.fullscreenElement === $w[0]) {
-        $w.addClass("is-fullscreen");
-      } else {
-        $w.removeClass("is-fullscreen");
-      }
-    });
     // must not pass event to functions by accident; also methods may not be defined yet
     $w.$minimize?.on("click", (e) => {
       $w.minimize();
@@ -1484,11 +1493,6 @@ You can also disable this warning by passing {iframes: {ignoreCrossOrigin: true}
       if (e.isDefaultPrevented()) {
         return;
       }
-      if (e.altKey && (e.key === "Enter" || e.keyCode === 13)) {
-        e.preventDefault();
-        $w.toggleFullscreen();
-        return;
-      }
       if (e.ctrlKey || e.altKey || e.metaKey) {
         return;
       }
@@ -1561,6 +1565,12 @@ You can also disable this warning by passing {iframes: {ignoreCrossOrigin: true}
         case 27: // Escape
           // @TODO: make this optional, and probably default false
           $w.close();
+          break;
+        case 13: // Enter
+          if (e.altKey && options.allowFullscreen) {
+            $w.toggleFullscreen();
+            e.preventDefault();
+          }
           break;
       }
     });
@@ -2097,6 +2107,7 @@ You can also disable this warning by passing {iframes: {ignoreCrossOrigin: true}
 
       // MUST be after any events are triggered!
       $w.remove();
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
 
       // TODO: support modals, which should focus what was focused before the modal was opened.
       // (Note: must consider the element being removed from the DOM, or hidden, or made un-focusable)

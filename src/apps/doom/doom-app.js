@@ -30,7 +30,6 @@ export class DoomApp extends Application {
     resizable: true,
     maximizable: true,
     isSingleton: true,
-    startsInFullscreen: true,
   };
 
   constructor(config) {
@@ -49,6 +48,7 @@ export class DoomApp extends Application {
       outerHeight: this.height,
       resizable: this.resizable,
       maximizable: this.maximizable,
+      allowFullscreen: true,
       icons: this.icon,
       id: "doom", // Fixed ID for easier testing/access
     });
@@ -201,11 +201,6 @@ export class DoomApp extends Application {
 
   _startGame(wadFile = "doom1.wad") {
     if (!this.iframe || !this.iframe.contentWindow) return;
-
-    if (this.config.startsInFullscreen) {
-      this.win.toggleFullscreen();
-    }
-
     const guestWindow = this.iframe.contentWindow;
     const commonArgs = [
       "-iwad",

@@ -54,6 +54,7 @@ export class DosBoxApp extends Application {
       outerHeight: this.height,
       resizable: this.resizable,
       maximizable: this.maximizable,
+      allowFullscreen: true,
       icons: this.icon,
     });
 
