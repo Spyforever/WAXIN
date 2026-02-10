@@ -12,6 +12,7 @@ import startMenuConfig from "../config/start-menu.js";
 import { getStartupApps } from "./startup-manager.js";
 import { apps } from "../config/apps.js";
 import { existsAsync } from "./zenfs-utils.js";
+import { wallpapers } from "../config/wallpapers.js";
 
 let isInitialized = false;
 
@@ -56,12 +57,67 @@ export async function initFileSystem(onProgress) {
       await fs.promises.mkdir("/C:/WINDOWS");
     }
 
+    const wallpaperDir = "/C:/WINDOWS";
+    let wallpapersNeeded = false;
+    for (const w of wallpapers.default) {
+      if (!(await existsAsync(`${wallpaperDir}/${w.filename}`))) {
+        wallpapersNeeded = true;
+        break;
+      }
+    }
+
+    if (wallpapersNeeded) {
+      for (const w of wallpapers.default) {
+        const path = `${wallpaperDir}/${w.filename}`;
+        if (!(await existsAsync(path))) {
+          if (onProgress) onProgress(`Loading wallpaper: ${w.filename}...`);
+          try {
+            const response = await fetch(w.src);
+            const buffer = await response.arrayBuffer();
+            await fs.promises.writeFile(path, new Uint8Array(buffer));
+          } catch (e) {
+            console.error(`Failed to load wallpaper ${w.filename}:`, e);
+          }
+        }
+      }
+    }
+
     // Ensure Program Files/Doom exists
     if (!(await existsAsync("/C:/Program Files"))) {
       await fs.promises.mkdir("/C:/Program Files");
     }
     if (!(await existsAsync("/C:/Program Files/Doom"))) {
       await fs.promises.mkdir("/C:/Program Files/Doom");
+    }
+
+    const doomFiles = ["doom1.wad", "default.cfg"];
+    const doomRemotePath = "games/doom/";
+    const doomLocalPath = "/C:/Program Files/Doom/";
+
+    let doomNeeded = false;
+    for (const file of doomFiles) {
+      if (!(await existsAsync(doomLocalPath + file))) {
+        doomNeeded = true;
+        break;
+      }
+    }
+
+    if (doomNeeded) {
+      for (const file of doomFiles) {
+        if (!(await existsAsync(doomLocalPath + file))) {
+          if (onProgress) onProgress(`Loading Doom game data: ${file}...`);
+          try {
+            const response = await fetch(doomRemotePath + file);
+            const buffer = await response.arrayBuffer();
+            await fs.promises.writeFile(
+              doomLocalPath + file,
+              new Uint8Array(buffer),
+            );
+          } catch (e) {
+            console.error(`Failed to load Doom game data ${file}:`, e);
+          }
+        }
+      }
     }
     // Ensure WINDOWS/Desktop directory exists for the Desktop shell extension
     if (!(await existsAsync("/C:/WINDOWS/Desktop"))) {
