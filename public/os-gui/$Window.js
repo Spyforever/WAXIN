@@ -130,6 +130,9 @@
     if (options.allowFullscreen === undefined) {
       options.allowFullscreen = false;
     }
+    if (options.startFullscreen === undefined) {
+      options.startFullscreen = false;
+    }
 
     // WOW, this is ugly. It's kind of impressive, almost.
     const tagName = options.tagName || (options.modal ? "dialog" : "article");
@@ -2149,6 +2152,12 @@ You can also disable this warning by passing {iframes: {ignoreCrossOrigin: true}
 
     if (!$component) {
       $w.center();
+    }
+
+    if (options.startFullscreen && options.allowFullscreen) {
+      requestAnimationFrame(() => {
+        $w.toggleFullscreen();
+      });
     }
 
     // mustHaveMethods($w, windowInterfaceMethods);

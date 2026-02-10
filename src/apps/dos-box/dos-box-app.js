@@ -15,6 +15,8 @@ export class DosBoxApp extends Application {
       height: 480,
       resizable: true,
       maximizable: true,
+      allowFullscreen: true,
+      startFullscreen: true,
       isSingleton: false,
     },
     {
@@ -25,6 +27,8 @@ export class DosBoxApp extends Application {
       category: "Accessories/Games",
       width: 640,
       height: 480,
+      allowFullscreen: true,
+      startFullscreen: true,
     }
   ];
 
@@ -54,7 +58,8 @@ export class DosBoxApp extends Application {
       outerHeight: this.height,
       resizable: this.resizable,
       maximizable: this.maximizable,
-      allowFullscreen: true,
+      allowFullscreen: this.config.allowFullscreen,
+      startFullscreen: this.config.startFullscreen,
       icons: this.icon,
     });
 
