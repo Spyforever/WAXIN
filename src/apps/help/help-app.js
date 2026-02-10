@@ -76,7 +76,16 @@ class HelpApp extends Application {
           }
       }
     } else if (typeof data === "object" && data !== null) {
-      this.currentHelpData = data;
+      if (data.hhc || data.hhk) {
+        this.rootPath = data.baseUrl || "";
+        this.currentHelpData = {
+          title: data.title || (data.hhc ? "Help" : "Help Topics"),
+          topics: data.hhc ? this.parseHHC(data.hhc) : [],
+          index: data.hhk ? this.parseHHK(data.hhk) : []
+        };
+      } else {
+        this.currentHelpData = data;
+      }
     }
 
     if (!this.currentHelpData) {
@@ -102,25 +111,39 @@ class HelpApp extends Application {
   parseHHC(hhcText) {
     const parser = new DOMParser();
     const doc = parser.parseFromString(hhcText, "text/html");
-    const rootUl = doc.querySelector("ul");
-    if (!rootUl) return [];
 
     const parseUl = (ul) => {
       const items = [];
-      for (const li of ul.children) {
-        if (li.tagName !== "LI") continue;
-        const obj = li.querySelector("object");
-        if (!obj) continue;
+      const children = Array.from(ul.children);
+
+      for (let i = 0; i < children.length; i++) {
+        const el = children[i];
+        if (el.tagName !== "LI") continue;
+
         const params = {};
-        for (const param of li.querySelectorAll("object > param")) {
-          params[param.getAttribute("name")] = param.getAttribute("value");
+        const obj = el.querySelector("object");
+        if (obj) {
+            for (const param of obj.querySelectorAll("param")) {
+                const name = param.getAttribute("name");
+                const value = param.getAttribute("value");
+                if (name) params[name] = value;
+            }
         }
+
+        if (!params.Name) continue;
+
         const item = {
-          title: params.Name,
+          title: params.Name.trim(),
           file: params.Local,
           children: []
         };
-        const childUl = li.querySelector("ul");
+
+        // Children UL might be inside LI or as a sibling of LI
+        let childUl = el.querySelector("ul");
+        if (!childUl && i + 1 < children.length && children[i+1].tagName === "UL") {
+            childUl = children[i+1];
+        }
+
         if (childUl) {
           item.children = parseUl(childUl);
         }
@@ -129,19 +152,19 @@ class HelpApp extends Application {
       return items;
     };
 
-    return parseUl(rootUl);
+    const rootUl = doc.querySelector("ul");
+    return rootUl ? parseUl(rootUl) : [];
   }
 
   parseHHK(hhkText) {
     const parser = new DOMParser();
     const doc = parser.parseFromString(hhkText, "text/html");
     const items = [];
-    const lis = doc.querySelectorAll("li");
-    for (const li of lis) {
-        const obj = li.querySelector("object");
-        if (!obj) continue;
+    // HHK files can be just a list of OBJECTs without LIs
+    const objects = doc.querySelectorAll("object[type='text/sitemap'], object[type='Text/sitemap']");
+    for (const obj of objects) {
         const params = [];
-        for (const param of li.querySelectorAll("object > param")) {
+        for (const param of obj.querySelectorAll("param")) {
             params.push({ name: param.getAttribute("name"), value: param.getAttribute("value") });
         }
         const nameParams = params.filter(p => p.name === "Name");
