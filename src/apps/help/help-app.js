@@ -1,31 +1,27 @@
 import { Application } from '../../system/application.js';
-import TreeView from './tree-view.js';
-import helpData from "../../config/help.json";
 import "./help.css";
 import contentHtml from "./help.html?raw";
-
 import { ICONS } from '../../config/icons.js';
-const jsonContentModules = import.meta.glob('/src/apps/**/*.json', { eager: true });
-console.log('[HelpApp] Available JSON modules:', Object.keys(jsonContentModules));
-
+import helpData from "../../config/help.json";
 
 class HelpApp extends Application {
   static config = {
     id: "help",
-    title: "Help",
+    title: "Help Topics",
     description: "Provides help and support.",
     icon: ICONS.help,
-    width: 550,
+    width: 600,
     height: 450,
     resizable: true,
+    isSingleton: false,
   };
 
   constructor(data) {
     super(data);
-
     this.history = [];
     this.historyIndex = -1;
-    this.treeView = null;
+    this.currentHelpData = null;
+    this.rootPath = "";
   }
 
   _createWindow() {
@@ -36,6 +32,7 @@ class HelpApp extends Application {
       resizable: this.resizable,
       icons: this.icon,
       id: this.id,
+      className: "help-window"
     });
   }
 
@@ -43,93 +40,275 @@ class HelpApp extends Application {
     const { win } = this;
     win.$content.html(contentHtml);
 
-    let currentHelpData = helpData; // Default help data
-
     if (typeof data === "string") {
-      // Handle file path for default help topics
-      const fullPath = `/src/apps/${data}`;
-      if (jsonContentModules[fullPath]) {
-        currentHelpData = jsonContentModules[fullPath].default;
+      if (data.endsWith(".hhc")) {
+          // It's an HHC file path
+          const response = await fetch(data);
+          const hhcText = await response.text();
+          this.rootPath = data.substring(0, data.lastIndexOf("/"));
+          this.currentHelpData = {
+              title: data.split('/').pop().replace('.hhc', '').replace('ms', '') + ' Help',
+              topics: this.parseHHC(hhcText)
+          };
+          if (this.currentHelpData.title.toLowerCase().startsWith('paint')) {
+              this.currentHelpData.title = "Paint Help";
+          }
+
+          // Try to load HHK (index)
+          const hhkPath = data.replace(".hhc", ".hhk");
+          try {
+              const hhkResponse = await fetch(hhkPath);
+              if (hhkResponse.ok) {
+                  const hhkText = await hhkResponse.text();
+                  this.currentHelpData.index = this.parseHHK(hhkText);
+              }
+          } catch (e) {
+              console.warn("Failed to load HHK file", hhkPath);
+          }
       } else {
-        console.error(`Failed to find pre-loaded help content for ${data}`);
-        this.win.close();
-        return;
+          // Legacy JSON path support (or other strings)
+          // For now, assume it might be a JSON if not .hhc
+          try {
+              const response = await fetch(data);
+              this.currentHelpData = await response.json();
+          } catch (e) {
+              console.error("Failed to load help data from string", data, e);
+          }
       }
     } else if (typeof data === "object" && data !== null) {
-      // Handle direct JSON object from Calculator
-      currentHelpData = data;
+      this.currentHelpData = data;
     }
 
-    // Set the window title from the loaded data
-    if (currentHelpData.title) {
-      win.title(currentHelpData.title);
+    if (!this.currentHelpData) {
+        this.currentHelpData = helpData;
     }
 
-    const treeContainer = win.$content.find("#contents")[0];
-    this.treeView = new TreeView(treeContainer, currentHelpData);
-    this.treeView.render();
+    if (this.currentHelpData.title) {
+      win.title(this.currentHelpData.title);
+    }
 
-    // Event listener for topic selection
-    treeContainer.addEventListener("topic-selected", async (e) => {
-      await this._showTopic(e.detail, true);
+    this._setupToolbar(win);
+    this._setupResizer(win);
+    this._setupTabs(win);
+    this._renderContents();
+    this._renderIndex();
+    this._setupSearch();
+
+    // Show default topic
+    const defaultTopic = this.currentHelpData.topics?.[0] || { title: "Welcome", file: "default.html" };
+    this._showTopic(defaultTopic);
+  }
+
+  parseHHC(hhcText) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(hhcText, "text/html");
+    const rootUl = doc.querySelector("ul");
+    if (!rootUl) return [];
+
+    const parseUl = (ul) => {
+      const items = [];
+      for (const li of ul.children) {
+        if (li.tagName !== "LI") continue;
+        const obj = li.querySelector("object");
+        if (!obj) continue;
+        const params = {};
+        for (const param of li.querySelectorAll("object > param")) {
+          params[param.getAttribute("name")] = param.getAttribute("value");
+        }
+        const item = {
+          title: params.Name,
+          file: params.Local,
+          children: []
+        };
+        const childUl = li.querySelector("ul");
+        if (childUl) {
+          item.children = parseUl(childUl);
+        }
+        items.push(item);
+      }
+      return items;
+    };
+
+    return parseUl(rootUl);
+  }
+
+  parseHHK(hhkText) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(hhkText, "text/html");
+    const items = [];
+    const lis = doc.querySelectorAll("li");
+    for (const li of lis) {
+        const obj = li.querySelector("object");
+        if (!obj) continue;
+        const params = [];
+        for (const param of li.querySelectorAll("object > param")) {
+            params.push({ name: param.getAttribute("name"), value: param.getAttribute("value") });
+        }
+        const nameParams = params.filter(p => p.name === "Name");
+        const localParams = params.filter(p => p.name === "Local");
+        if (nameParams.length > 0) {
+            items.push({
+                title: nameParams[0].value,
+                file: localParams.length > 0 ? localParams[0].value : null
+            });
+        }
+    }
+    return items.sort((a, b) => a.title.localeCompare(b.title));
+  }
+
+  _renderContents() {
+    const container = this.win.$content.find("#contents");
+    container.empty();
+    if (!this.currentHelpData.topics) return;
+    const ul = document.createElement("ul");
+    ul.className = "tree-view";
+
+    this.currentHelpData.topics.forEach(topic => {
+      ul.appendChild(this._createTreeNode(topic));
     });
 
-    // Setup toolbar
-    this._setupToolbar(win);
-    this._setupTabs(win);
+    container.append(ul);
+  }
 
-    // Show the default topic by default
-    const defaultTopic = {
-      file: "help/default/default.htm",
-      title: "Welcome",
+  _renderIndex() {
+    const container = this.win.$content.find("#index-list");
+    container.empty();
+    if (!this.currentHelpData.index) return;
+
+    this.currentHelpData.index.forEach(item => {
+        const li = document.createElement("li");
+        li.textContent = item.title;
+        li.addEventListener("click", () => {
+            this.win.$content.find("#index-list li").removeClass("selected");
+            $(li).addClass("selected");
+            this._showTopic(item, true);
+        });
+        container.append(li);
+    });
+
+    const input = this.win.$content.find("#index-input");
+    input.on("input", () => {
+        const query = input.val().toLowerCase();
+        container.find("li").each((i, li) => {
+            const text = $(li).text().toLowerCase();
+            $(li).toggle(text.includes(query));
+        });
+    });
+  }
+
+  _setupSearch() {
+    const input = this.win.$content.find("#search-input");
+    const button = this.win.$content.find("#list-topics-button");
+    const results = this.win.$content.find("#search-results");
+
+    const allTopics = [];
+    const flatten = (topics) => {
+        topics.forEach(t => {
+            if (t.file) allTopics.push(t);
+            if (t.children) flatten(t.children);
+        });
     };
-    await this._showTopic(defaultTopic, true);
+    if (this.currentHelpData.topics) flatten(this.currentHelpData.topics);
+    if (this.currentHelpData.index) {
+        this.currentHelpData.index.forEach(item => {
+            if (item.file) {
+                // Check if already in allTopics
+                if (!allTopics.some(t => t.file === item.file)) {
+                    allTopics.push(item);
+                }
+            }
+        });
+    }
+
+    const performSearch = () => {
+        const query = input.val().toLowerCase();
+        results.empty();
+        if (!query) return;
+
+        const filtered = allTopics.filter(t => t.title.toLowerCase().includes(query));
+        filtered.forEach(item => {
+            const li = document.createElement("li");
+            li.textContent = item.title;
+            li.addEventListener("click", () => {
+                results.find("li").removeClass("selected");
+                $(li).addClass("selected");
+                this._showTopic(item, true);
+            });
+            results.append(li);
+        });
+    };
+
+    button.on("click", performSearch);
+    input.on("keypress", (e) => {
+        if (e.which === 13) performSearch();
+    });
+  }
+
+  _createTreeNode(topic) {
+    const li = document.createElement("li");
+    li.className = "tree-node";
+
+    const item = document.createElement("div");
+    item.className = "item";
+    item.textContent = topic.title;
+    li.appendChild(item);
+
+    if (topic.children && topic.children.length > 0) {
+      li.classList.add("folder");
+      const childUl = document.createElement("ul");
+      topic.children.forEach(child => {
+        childUl.appendChild(this._createTreeNode(child));
+      });
+      li.appendChild(childUl);
+
+      item.addEventListener("click", (e) => {
+        e.stopPropagation();
+        li.classList.toggle("expanded");
+        this._selectItem(item, topic);
+      });
+    } else {
+      li.classList.add("page");
+      item.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this._selectItem(item, topic);
+      });
+    }
+
+    return li;
+  }
+
+  _selectItem(itemElement, topic) {
+    this.win.$content.find(".item").removeClass("selected");
+    $(itemElement).addClass("selected");
+    if (topic.file) {
+        this._showTopic(topic, true);
+    }
   }
 
   async _showTopic(topic, addToHistory = false) {
     const contentPanel = this.win.$content.find(".content-panel");
-    contentPanel.html(""); // Clear content first
-
-    if (topic.file) {
-      const helpFileUrl = `${import.meta.env.BASE_URL}${topic.file}`;
-
-      // Although the glob import is gone, we can do a quick check
-      // to see if the file is likely to exist.
-      fetch(helpFileUrl, { method: 'HEAD' })
-        .then(response => {
-          if (response.ok) {
-            const iframe = document.createElement('iframe');
-            iframe.style.width = '100%';
-            iframe.style.height = '100%';
-            iframe.style.border = 'none';
-            iframe.src = helpFileUrl;
-            contentPanel.append(iframe);
-          } else {
-            console.error(`Help file not found: ${helpFileUrl}`);
-            contentPanel.html(`<h2 class="help-topic-title">Error</h2><div class="help-topic-content">Content not found.</div>`);
-          }
-        })
-        .catch(error => {
-          console.error(`Error fetching help file: ${error}`);
-          contentPanel.html(`<h2 class="help-topic-title">Error</h2><div class="help-topic-content">Could not load content.</div>`);
-        });
-    } else if (topic.content) {
-      // This can be used for topics that define content directly
-      contentPanel.html(`
-        <h2 class="help-topic-title">${topic.title}</h2>
-        <div class="help-topic-content">${topic.content}</div>
-      `);
+    let url = topic.file;
+    if (url && !url.startsWith("http") && !url.startsWith("/")) {
+        url = this.rootPath ? `${this.rootPath}/${url}` : `${import.meta.env.BASE_URL}${url}`;
     }
 
-    if (addToHistory) {
-      // If we select a new topic after going back, clear the "forward" history
-      if (this.historyIndex < this.history.length - 1) {
-        this.history = this.history.slice(0, this.historyIndex + 1);
-      }
-      this.history.push(topic);
-      this.historyIndex = this.history.length - 1;
+    if (url) {
+        let iframe = contentPanel.find("iframe")[0];
+        if (!iframe) {
+            iframe = document.createElement("iframe");
+            contentPanel.empty().append(iframe);
+        }
+        iframe.src = url;
+
+        if (addToHistory) {
+            if (this.historyIndex < this.history.length - 1) {
+                this.history = this.history.slice(0, this.historyIndex + 1);
+            }
+            this.history.push(url);
+            this.historyIndex = this.history.length - 1;
+            this._updateHistoryButtons();
+        }
     }
-    this._updateHistoryButtons();
   }
 
   _updateHistoryButtons() {
@@ -141,26 +320,126 @@ class HelpApp extends Application {
 
   _setupToolbar(win) {
     const hideButton = win.$content.find(".hide-button")[0];
+    const showButton = win.$content.find(".show-button")[0];
     const backButton = win.$content.find(".back-button")[0];
     const forwardButton = win.$content.find(".forward-button")[0];
+    const optionsButton = win.$content.find(".options-button")[0];
+    const webHelpButton = win.$content.find(".web-help-button")[0];
     const sidebar = win.$content.find(".sidebar")[0];
+    const resizer = win.$content.find(".resizer")[0];
 
     hideButton.addEventListener("click", () => {
-      const isHidden = sidebar.classList.toggle("hidden");
-      hideButton.innerHTML = `<span class="icon"></span>${isHidden ? "Show" : "Hide"}`;
+        const sidebarWidth = sidebar.offsetWidth + resizer.offsetWidth;
+        sidebar.style.display = "none";
+        resizer.style.display = "none";
+        hideButton.style.display = "none";
+        showButton.style.display = "flex";
+
+        // Adjust window
+        const currentWidth = win.width();
+        win.width(currentWidth - sidebarWidth);
+        win.css("left", win.offset().left + sidebarWidth);
     });
 
-    backButton.addEventListener("click", async () => {
-      if (this.historyIndex > 0) {
-        this.historyIndex--;
-        await this._showTopic(this.history[this.historyIndex], false);
-      }
+    showButton.addEventListener("click", () => {
+        sidebar.style.display = "flex";
+        resizer.style.display = "block";
+        showButton.style.display = "none";
+        hideButton.style.display = "flex";
+
+        const sidebarWidth = sidebar.offsetWidth + resizer.offsetWidth;
+        const currentWidth = win.width();
+        win.width(currentWidth + sidebarWidth);
+        win.css("left", Math.max(0, win.offset().left - sidebarWidth));
     });
 
-    forwardButton.addEventListener("click", async () => {
-      if (this.historyIndex < this.history.length - 1) {
-        this.historyIndex++;
-        await this._showTopic(this.history[this.historyIndex], false);
+    backButton.addEventListener("click", () => {
+        const iframe = win.$content.find("iframe")[0];
+        if (iframe && iframe.contentWindow) {
+            iframe.contentWindow.history.back();
+            // We'd need to listen to iframe load to update historyIndex if we want it perfect
+        }
+    });
+
+    forwardButton.addEventListener("click", () => {
+        const iframe = win.$content.find("iframe")[0];
+        if (iframe && iframe.contentWindow) {
+            iframe.contentWindow.history.forward();
+        }
+    });
+
+    optionsButton.addEventListener("click", (e) => {
+        const menu = [
+            {
+                item: "Print...",
+                action: () => {
+                    const iframe = win.$content.find("iframe")[0];
+                    if (iframe && iframe.contentWindow) iframe.contentWindow.print();
+                }
+            },
+            {
+                item: "Refresh",
+                action: () => {
+                    const iframe = win.$content.find("iframe")[0];
+                    if (iframe && iframe.contentWindow) iframe.contentWindow.location.reload();
+                }
+            },
+            {
+                item: "Back",
+                enabled: () => this.historyIndex > 0,
+                action: () => backButton.click()
+            },
+            {
+                item: "Forward",
+                enabled: () => this.historyIndex < this.history.length - 1,
+                action: () => forwardButton.click()
+            }
+        ];
+        window.ContextMenu(menu, {
+            left: e.clientX,
+            top: e.clientY
+        });
+    });
+
+    webHelpButton.addEventListener("click", () => {
+        this._showTopic({ file: "online_support.htm" }, true);
+    });
+
+    // Update buttons on iframe load
+    win.$content.on("load", "iframe", () => {
+        // This is tricky because cross-origin iframes won't let us see history
+        // But for internal help files it might work.
+        this._updateHistoryButtons();
+    });
+  }
+
+  _setupResizer(win) {
+    const resizer = win.$content.find(".resizer")[0];
+    const sidebar = win.$content.find(".sidebar")[0];
+
+    let isDragging = false;
+
+    resizer.addEventListener("mousedown", (e) => {
+      isDragging = true;
+      document.body.style.cursor = "ew-resize";
+      // Add overlay to iframe to prevent losing mouse events
+      win.$content.find(".content-panel").css("pointer-events", "none");
+    });
+
+    window.addEventListener("mousemove", (e) => {
+      if (!isDragging) return;
+      const rect = win.$content[0].getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const sidebarWidth = Math.max(50, Math.min(x, rect.width - 50));
+      sidebar.style.flexBasis = `${sidebarWidth}px`;
+      sidebar.style.width = `${sidebarWidth}px`; // Ensure it stays this width
+    });
+
+    window.addEventListener("mouseup", () => {
+      if (isDragging) {
+        isDragging = false;
+        document.body.style.cursor = "";
+        win.$content.find(".content-panel").css("pointer-events", "");
       }
     });
   }
@@ -172,22 +451,12 @@ class HelpApp extends Application {
       const $clickedTab = $(e.currentTarget);
       const targetId = $clickedTab.find("a").attr("data-target");
 
-      // For now, only the Contents tab is functional
-      if (targetId !== "#contents") {
-        // Optionally, show a message that this feature is not implemented
-        return;
-      }
-
       $tabs.attr("aria-selected", "false");
       $clickedTab.attr("aria-selected", "true");
 
       win.$content.find(".tab-content").hide();
-      win.$content.find(targetId).show();
+      win.$content.find(targetId).css("display", "flex");
     });
-
-    // Disable Index and Search tabs visually and functionally for now
-    win.$content.find('[data-target="#index"]').parent().addClass('disabled');
-    win.$content.find('[data-target="#search"]').parent().addClass('disabled');
   }
 }
 
