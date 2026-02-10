@@ -368,7 +368,7 @@ export class ZenExplorerApp extends Application {
     this.navigateTo(this.currentPath);
 
     // 9. Setup MenuBar (last, as it depends on status bar, icon manager, etc.)
-    this._updateMenuBar();
+    await this._updateMenuBar();
 
     return win;
   }
@@ -595,7 +595,7 @@ export class ZenExplorerApp extends Application {
     document.addEventListener("theme-changed", this._themeHandler);
   }
 
-  _updateMode() {
+  async _updateMode() {
     const isWeb = this.isInWebMode;
     const wasWeb = this.iframe.style.display === "block";
 
@@ -613,7 +613,7 @@ export class ZenExplorerApp extends Application {
       // The resize observer will handle "with-sidebar" class for non-web paths
     }
 
-    this._updateMenuBar();
+    await this._updateMenuBar();
     this._updateToolbar(isWeb !== wasWeb);
   }
 
@@ -623,7 +623,7 @@ export class ZenExplorerApp extends Application {
       isHistoryNav,
       skipMRU,
     );
-    this._updateMode();
+    await this._updateMode();
 
     if (this.iconContainer) {
       this.iconContainer.setAttribute("data-current-path", this.currentPath);
@@ -846,10 +846,10 @@ export class ZenExplorerApp extends Application {
     return this.driveManager.ejectCD();
   }
 
-  _updateMenuBar() {
+  async _updateMenuBar() {
     if (!this.win) return;
     const menuBuilder = new MenuBarBuilder(this);
-    this.menuBar = menuBuilder.build();
+    this.menuBar = await menuBuilder.build();
     this.win.setMenuBar(this.menuBar);
 
     // Add Animated Logo

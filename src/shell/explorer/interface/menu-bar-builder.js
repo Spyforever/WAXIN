@@ -10,20 +10,23 @@ import { PropertiesManager } from '../file-operations/properties-manager.js';
 import UndoManager from '../file-operations/undo-manager.js';
 import { RemovableDiskManager } from '../drives/removable-disk-manager.js';
 import { RecycleBinManager } from '../file-operations/recycle-bin-manager.js';
+import { getMenuFromZenFS, FAVORITES_PATH } from '../../start-menu/start-menu-utils.js';
 
 export class MenuBarBuilder {
   constructor(app) {
     this.app = app;
   }
 
-  build() {
+  async build() {
     const isWeb = this.app.isWebPath(this.app.currentPath);
+    const favorites = await getMenuFromZenFS(FAVORITES_PATH);
     try {
       if (isWeb) {
         return new window.MenuBar({
           "&File": this._getIEFileMenuItems(),
           "&Edit": this._getIEEditMenuItems(),
           "&View": this._getIEViewMenuItems(),
+          "F&avorites": favorites,
           "&Go": this._getIEGoMenuItems(),
           "&Help": this._getIEHelpMenuItems(),
         });
@@ -32,6 +35,7 @@ export class MenuBarBuilder {
         "&File": this._getFileMenuItems(),
         "&Edit": this._getEditMenuItems(),
         "&View": this._getViewMenuItems(),
+        "F&avorites": favorites,
         "&Go": this._getGoMenuItems(),
         "&Help": this._getHelpMenuItems(),
       });
