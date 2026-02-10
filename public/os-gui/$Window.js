@@ -569,6 +569,7 @@
                     stopShowingAsFocused();
                   }
                 });
+                updateIframeFullscreenStyle(iframe, document.fullscreenElement === $w.element);
                 iframe.contentWindow.addEventListener("keydown", (e) => {
                   if (e.altKey && e.key === "Enter" && options.allowFullscreen) {
                     $w.toggleFullscreen();
@@ -1070,12 +1071,32 @@
       }
     };
 
+    const updateIframeFullscreenStyle = (iframe, isFullscreen) => {
+      try {
+        if (isFullscreen) {
+          if (!iframe.contentDocument.getElementById("os-gui-fullscreen-cursor-hide")) {
+            const style = iframe.contentDocument.createElement("style");
+            style.id = "os-gui-fullscreen-cursor-hide";
+            style.textContent = "html, body, canvas { cursor: none !important; }";
+            iframe.contentDocument.head.appendChild(style);
+          }
+        } else {
+          iframe.contentDocument.getElementById("os-gui-fullscreen-cursor-hide")?.remove();
+        }
+      } catch (e) {
+        // May fail for cross-origin iframes
+      }
+    };
+
     const handleFullscreenChange = () => {
-      if (document.fullscreenElement === $w.element) {
+      const isFullscreen = document.fullscreenElement === $w.element;
+      if (isFullscreen) {
         $w.addClass("is-fullscreen");
+        $w.find("iframe").each((i, iframe) => updateIframeFullscreenStyle(iframe, true));
         $w.trigger("fullscreenchange", { isFullscreen: true });
       } else {
         $w.removeClass("is-fullscreen");
+        $w.find("iframe").each((i, iframe) => updateIframeFullscreenStyle(iframe, false));
         $w.trigger("fullscreenchange", { isFullscreen: false });
       }
     };
