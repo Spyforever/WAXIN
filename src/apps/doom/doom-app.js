@@ -29,6 +29,7 @@ export class DoomApp extends Application {
     height: 400,
     resizable: true,
     maximizable: true,
+    allowFullscreen: true,
     isSingleton: true,
   };
 
@@ -48,6 +49,8 @@ export class DoomApp extends Application {
       outerHeight: this.height,
       resizable: this.resizable,
       maximizable: this.maximizable,
+      allowFullscreen: this.config.allowFullscreen,
+      startFullscreen: this.config.startFullscreen,
       icons: this.icon,
       id: "doom", // Fixed ID for easier testing/access
     });

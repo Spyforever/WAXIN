@@ -127,6 +127,12 @@
     if (options.maximizable === undefined) {
       options.maximizable = true;
     }
+    if (options.allowFullscreen === undefined) {
+      options.allowFullscreen = false;
+    }
+    if (options.startFullscreen === undefined) {
+      options.startFullscreen = false;
+    }
 
     // WOW, this is ugly. It's kind of impressive, almost.
     const tagName = options.tagName || (options.modal ? "dialog" : "article");
@@ -146,6 +152,7 @@
 
     // TODO: A $Window.fromElement (or similar) static method using a Map would be better for type checking.
     $w[0].$window = $w;
+    $w.options = options;
     $w.element = $w[0];
     /** @type {OSGUI$Window[]} */
     $w.child_$windows = []; // Initialize as an instance property
@@ -562,6 +569,14 @@
                     stopShowingAsFocused();
                   }
                 });
+                updateIframeFullscreenStyle(iframe, document.fullscreenElement === $w.element);
+                iframe.contentWindow.addEventListener("keydown", (e) => {
+                  if (e.altKey && e.key === "Enter" && options.allowFullscreen) {
+                    $w.toggleFullscreen();
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }
+                }, true);
                 observeIframes(iframe.contentDocument);
               });
             } catch (error) {
@@ -1044,6 +1059,50 @@
         }
       });
     };
+    $w.toggleFullscreen = () => {
+      if (!document.fullscreenElement) {
+        $w.element.requestFullscreen().catch((err) => {
+          console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+        });
+      } else {
+        document.exitFullscreen().catch((err) => {
+          console.error(`Error attempting to exit full-screen mode: ${err.message} (${err.name})`);
+        });
+      }
+    };
+
+    const updateIframeFullscreenStyle = (iframe, isFullscreen) => {
+      try {
+        if (isFullscreen) {
+          if (!iframe.contentDocument.getElementById("os-gui-fullscreen-cursor-hide")) {
+            const style = iframe.contentDocument.createElement("style");
+            style.id = "os-gui-fullscreen-cursor-hide";
+            style.textContent = "html, body, canvas { cursor: none !important; }";
+            iframe.contentDocument.head.appendChild(style);
+          }
+        } else {
+          iframe.contentDocument.getElementById("os-gui-fullscreen-cursor-hide")?.remove();
+        }
+      } catch (e) {
+        // May fail for cross-origin iframes
+      }
+    };
+
+    const handleFullscreenChange = () => {
+      const isFullscreen = document.fullscreenElement === $w.element;
+      if (isFullscreen) {
+        $w.addClass("is-fullscreen");
+        $w.find("iframe").each((i, iframe) => updateIframeFullscreenStyle(iframe, true));
+        $w.trigger("fullscreenchange", { isFullscreen: true });
+      } else {
+        $w.removeClass("is-fullscreen");
+        $w.find("iframe").each((i, iframe) => updateIframeFullscreenStyle(iframe, false));
+        $w.trigger("fullscreenchange", { isFullscreen: false });
+      }
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+
     $w.restore = () => {
       if ($w.is(".minimized-without-taskbar, .minimized")) {
         $w.unminimize();
@@ -1530,6 +1589,12 @@ You can also disable this warning by passing {iframes: {ignoreCrossOrigin: true}
         case 27: // Escape
           // @TODO: make this optional, and probably default false
           $w.close();
+          break;
+        case 13: // Enter
+          if (e.altKey && options.allowFullscreen) {
+            $w.toggleFullscreen();
+            e.preventDefault();
+          }
           break;
       }
     });
@@ -2066,6 +2131,7 @@ You can also disable this warning by passing {iframes: {ignoreCrossOrigin: true}
 
       // MUST be after any events are triggered!
       $w.remove();
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
 
       // TODO: support modals, which should focus what was focused before the modal was opened.
       // (Note: must consider the element being removed from the DOM, or hidden, or made un-focusable)
@@ -2107,6 +2173,12 @@ You can also disable this warning by passing {iframes: {ignoreCrossOrigin: true}
 
     if (!$component) {
       $w.center();
+    }
+
+    if (options.startFullscreen && options.allowFullscreen) {
+      requestAnimationFrame(() => {
+        $w.toggleFullscreen();
+      });
     }
 
     // mustHaveMethods($w, windowInterfaceMethods);
