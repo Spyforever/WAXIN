@@ -27,7 +27,7 @@ export class PaintApp extends Application {
         });
 
         const iframe = document.createElement('iframe');
-        iframe.src = 'https://jspaint.app';
+        iframe.src = 'apps/paint/index.html';
         iframe.style.width = '100%';
         iframe.style.height = '100%';
         iframe.style.border = 'none';
