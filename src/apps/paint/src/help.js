@@ -491,23 +491,6 @@ function $Iframe(options) {
 // 	return $win;
 // }
 
-// Fix dragging things (i.e. windows) over iframes (i.e. other windows)
-// (when combined with a bit of css, .dragging iframe { pointer-events: none; })
-// (and a similar thing in $IframeWindow)
-$(window).on("pointerdown", function () {
-	//console.log(e.type);
-	$("body").addClass("dragging");
-});
-$(window).on("pointerup dragend blur", function (e) {
-	//console.log(e.type);
-	if (e.type === "blur") {
-		if (document.activeElement.tagName.match(/iframe/i)) {
-			return;
-		}
-	}
-	$("body").removeClass("dragging");
-	$("iframe").css("pointer-events", "");
-});
 
 export { show_help };
 

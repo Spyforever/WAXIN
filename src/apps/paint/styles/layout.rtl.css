@@ -891,7 +891,7 @@ whereas it breaks component docking calculations if used to shift the colors box
 	background-position: -32px 0;
 }
 
-.dragging iframe {
+.jspaint-dragging iframe {
 	pointer-events: none;
 }
 

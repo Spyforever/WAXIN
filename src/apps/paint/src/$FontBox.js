@@ -173,8 +173,8 @@ function $FontBox() {
 			display: "block",
 			width: 16,
 			height: 16,
-			"--icon-index": xi,
 		});
+		$icon[0].style.setProperty("--icon-index", xi.toString());
 		$button.on("click", () => {
 			$button.toggleClass("selected");
 			text_tool_font[thing] = $button.hasClass("selected");
