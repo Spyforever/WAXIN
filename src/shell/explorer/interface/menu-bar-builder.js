@@ -10,20 +10,23 @@ import { PropertiesManager } from '../file-operations/properties-manager.js';
 import UndoManager from '../file-operations/undo-manager.js';
 import { RemovableDiskManager } from '../drives/removable-disk-manager.js';
 import { RecycleBinManager } from '../file-operations/recycle-bin-manager.js';
+import { FAVORITES_PATH } from '../../start-menu/start-menu-utils.js';
 
 export class MenuBarBuilder {
   constructor(app) {
     this.app = app;
   }
 
-  build() {
+  build(favorites = []) {
     const isWeb = this.app.isWebPath(this.app.currentPath);
+    const patchedFavorites = this._patchFavoriteActions(favorites);
     try {
       if (isWeb) {
         return new window.MenuBar({
           "&File": this._getIEFileMenuItems(),
           "&Edit": this._getIEEditMenuItems(),
           "&View": this._getIEViewMenuItems(),
+          "F&avorites": patchedFavorites,
           "&Go": this._getIEGoMenuItems(),
           "&Help": this._getIEHelpMenuItems(),
         });
@@ -32,6 +35,7 @@ export class MenuBarBuilder {
         "&File": this._getFileMenuItems(),
         "&Edit": this._getEditMenuItems(),
         "&View": this._getViewMenuItems(),
+        "F&avorites": patchedFavorites,
         "&Go": this._getGoMenuItems(),
         "&Help": this._getHelpMenuItems(),
       });
@@ -444,5 +448,26 @@ export class MenuBarBuilder {
         },
       },
     ];
+  }
+
+  _patchFavoriteActions(items) {
+    return items.map(item => {
+      const newItem = { ...item };
+      if (newItem.submenu) {
+        newItem.submenu = this._patchFavoriteActions(newItem.submenu);
+      } else if (newItem.appId === "explorer" || newItem.appId === "internet-explorer") {
+        newItem.action = () => {
+          if (newItem.args) {
+            this.app.navigateTo(newItem.args);
+          } else if (newItem.targetPath) {
+            this.app.navigateTo(newItem.targetPath);
+          } else {
+            // Default explorer or IE launch, just let it be or navigate to root/home
+            this.app.navigateTo(newItem.appId === "internet-explorer" ? "azay.rahmad" : "/");
+          }
+        };
+      }
+      return newItem;
+    });
   }
 }
