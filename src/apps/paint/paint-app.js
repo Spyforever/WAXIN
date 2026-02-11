@@ -2,6 +2,7 @@ import { Application } from '../../system/application.js';
 import { fs } from "@zenfs/core";
 import { ICONS } from '../../config/icons.js';
 import { ShowFilePicker } from '../../shared/utils/file-picker.js';
+import { setItem, LOCAL_STORAGE_KEYS } from '../../system/local-storage.js';
 import './paint.css'; // I'll create this file to import all paint styles
 
 export class PaintApp extends Application {
@@ -91,6 +92,14 @@ export class PaintApp extends Application {
             if (this.win) {
                 this.win.title(title);
             }
+        };
+
+        window.systemHooks.setWallpaperTiled = async (canvas) => {
+            await this._setWallpaper(canvas, "tile");
+        };
+
+        window.systemHooks.setWallpaperCentered = async (canvas) => {
+            await this._setWallpaper(canvas, "center");
         };
 
         // Override window.close for jspaint to use our window component
@@ -265,6 +274,37 @@ export class PaintApp extends Application {
         }
 
         this._setupDragAndDrop();
+    }
+
+    async _setWallpaper(canvas, mode) {
+        await import('./src/app-localization.js');
+        const localize = window.localize;
+        const { image_formats } = await import('./src/file-format-data.js');
+        const { write_image_file } = await import('./src/functions.js');
+
+        const fileName = window.file_name || "wallpaper";
+        const defaultFileName = `${fileName.replace(/\.(bmp|dib|a?png|gif|jpe?g|jpe|jfif|tiff?|webp|raw)$/i, "") || "wallpaper"} wallpaper.png`;
+
+        window.systemHooks.showSaveFileDialog({
+            dialogTitle: localize("Save As"),
+            defaultFileName,
+            defaultFileFormatID: "image/png",
+            formats: image_formats,
+            getBlob: (new_file_type) => {
+                return new Promise((resolve) => {
+                    write_image_file(canvas, new_file_type, (blob) => {
+                        resolve(blob);
+                    });
+                });
+            },
+            savedCallbackUnreliable: ({ newFileHandle }) => {
+                if (newFileHandle) {
+                    setItem(LOCAL_STORAGE_KEYS.WALLPAPER, newFileHandle);
+                    setItem(LOCAL_STORAGE_KEYS.WALLPAPER_MODE, mode);
+                    document.dispatchEvent(new CustomEvent("wallpaper-changed"));
+                }
+            },
+        });
     }
 
     _setupDragAndDrop() {
