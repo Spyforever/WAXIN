@@ -89,6 +89,9 @@ export class SolitaireApp extends Application {
     this.boundOnMouseUp = this.onMouseUp.bind(this);
     this.boundOnMouseDown = this.onMouseDown.bind(this);
     this.boundOnClick = this.onClick.bind(this);
+    this.boundOnTouchStart = this.onTouchStart.bind(this);
+    this.boundOnTouchMove = this.onTouchMove.bind(this);
+    this.boundOnTouchEnd = this.onTouchEnd.bind(this);
 
     this.animationTimer = null;
 
@@ -533,6 +536,7 @@ export class SolitaireApp extends Application {
   addEventListeners() {
     this.container.addEventListener("mousedown", this.boundOnMouseDown);
     this.container.addEventListener("click", this.boundOnClick);
+    this.container.addEventListener("touchstart", this.boundOnTouchStart, { passive: false });
     this.win.element.addEventListener("keydown", (event) => {
       if (event.key === "F2") {
         event.preventDefault();
@@ -544,12 +548,16 @@ export class SolitaireApp extends Application {
   removeEventListeners() {
     this.container.removeEventListener("mousedown", this.boundOnMouseDown);
     this.container.removeEventListener("click", this.boundOnClick);
+    this.container.removeEventListener("touchstart", this.boundOnTouchStart);
+    window.removeEventListener("mousemove", this.boundOnMouseMove);
+    window.removeEventListener("mouseup", this.boundOnMouseUp);
+    window.removeEventListener("touchmove", this.boundOnTouchMove);
+    window.removeEventListener("touchend", this.boundOnTouchEnd);
   }
 
-  onClick(event) {
-    if (this.wasDragged) return;
-
-    const stockPileDiv = event.target.closest(".stock-pile");
+  handleTap(target) {
+    if (!target) return;
+    const stockPileDiv = target.closest(".stock-pile");
     if (stockPileDiv) {
       this.game.dealFromStock();
       this.render();
@@ -557,7 +565,7 @@ export class SolitaireApp extends Application {
       return;
     }
 
-    const cardDiv = event.target.closest(".card");
+    const cardDiv = target.closest(".card");
     if (cardDiv) {
       const pileType = cardDiv.dataset.pileType;
       if (pileType === "tableau") {
@@ -570,11 +578,15 @@ export class SolitaireApp extends Application {
     }
   }
 
-  onMouseDown(event) {
-    if (event.button !== 0) return; // Only main button
+  onClick(event) {
+    if (this.wasDragged) return;
+    this.handleTap(event.target);
+  }
+
+  handleStart(clientX, clientY, target, isTouch) {
     this.wasDragged = false;
 
-    const cardDiv = event.target.closest(".card");
+    const cardDiv = target.closest(".card");
     if (!cardDiv) return;
 
     const pileType = cardDiv.dataset.pileType;
@@ -609,8 +621,6 @@ export class SolitaireApp extends Application {
 
     if (!this.game.isValidMoveStack(pileType, pileIndex, cardIndex)) return;
 
-    event.preventDefault();
-
     this.isDragging = true;
     this.draggedCardsInfo = { pileType, pileIndex, cardIndex };
 
@@ -625,8 +635,8 @@ export class SolitaireApp extends Application {
     const cardsToDrag = fromPile.cards.slice(cardIndex);
     const containerRect = this.container.getBoundingClientRect();
     const cardRect = cardDiv.getBoundingClientRect();
-    this.dragOffsetX = event.clientX - cardRect.left;
-    this.dragOffsetY = event.clientY - cardRect.top;
+    this.dragOffsetX = clientX - cardRect.left;
+    this.dragOffsetY = clientY - cardRect.top;
 
     if (this.outlineDraggingEnabled) {
       this.draggedElement = document.createElement("div");
@@ -680,31 +690,36 @@ export class SolitaireApp extends Application {
       this.draggedElement.style.top = `${cardRect.top - containerRect.top}px`;
     }
 
-    window.addEventListener("mousemove", this.boundOnMouseMove);
-    window.addEventListener("mouseup", this.boundOnMouseUp);
+    if (isTouch) {
+      window.addEventListener("touchmove", this.boundOnTouchMove, { passive: false });
+      window.addEventListener("touchend", this.boundOnTouchEnd);
+    } else {
+      window.addEventListener("mousemove", this.boundOnMouseMove);
+      window.addEventListener("mouseup", this.boundOnMouseUp);
+    }
   }
 
-  onMouseMove(event) {
+  handleMove(clientX, clientY) {
     if (!this.isDragging) return;
     this.wasDragged = true;
 
     const containerRect = this.container.getBoundingClientRect();
-    const x = event.clientX - containerRect.left - this.dragOffsetX;
-    const y = event.clientY - containerRect.top - this.dragOffsetY;
+    const x = clientX - containerRect.left - this.dragOffsetX;
+    const y = clientY - containerRect.top - this.dragOffsetY;
     this.draggedElement.style.left = `${x}px`;
     this.draggedElement.style.top = `${y}px`;
 
     if (this.outlineDraggingEnabled) {
       const draggedRect = this.draggedElement.getBoundingClientRect();
       const potentialTargets = this.container.querySelectorAll(
-      ".tableau-pile, .foundation-pile, .foundation-placeholder, .tableau-placeholder",
+        ".tableau-pile, .foundation-pile, .foundation-placeholder, .tableau-placeholder",
       );
-    let bestTarget = findBestDropTarget(draggedRect, [...potentialTargets]);
+      let bestTarget = findBestDropTarget(draggedRect, [...potentialTargets]);
 
-    if (bestTarget?.classList.contains('foundation-placeholder') || bestTarget?.classList.contains('tableau-placeholder')) {
-      bestTarget = bestTarget.closest('.tableau-pile, .foundation-pile');
-    }
-    const toPileDiv = bestTarget;
+      if (bestTarget?.classList.contains('foundation-placeholder') || bestTarget?.classList.contains('tableau-placeholder')) {
+        bestTarget = bestTarget.closest('.tableau-pile, .foundation-pile');
+      }
+      const toPileDiv = bestTarget;
 
       if (this.hoveredTarget && this.hoveredTarget !== toPileDiv) {
         this.hoveredTarget.classList.remove("invert-colors");
@@ -754,12 +769,17 @@ export class SolitaireApp extends Application {
     }
   }
 
-  onMouseUp(event) {
+  handleEnd(isTouch) {
     if (!this.isDragging) return;
 
     this.isDragging = false;
-    window.removeEventListener("mousemove", this.boundOnMouseMove);
-    window.removeEventListener("mouseup", this.boundOnMouseUp);
+    if (isTouch) {
+      window.removeEventListener("touchmove", this.boundOnTouchMove);
+      window.removeEventListener("touchend", this.boundOnTouchEnd);
+    } else {
+      window.removeEventListener("mousemove", this.boundOnMouseMove);
+      window.removeEventListener("mouseup", this.boundOnMouseUp);
+    }
 
     if (this.hoveredTarget) {
       this.hoveredTarget.classList.remove("invert-colors");
@@ -812,6 +832,42 @@ export class SolitaireApp extends Application {
     this.render();
     this._updateMenuBar(this.win);
     this.draggedCardsInfo = null;
+  }
+
+  onMouseDown(event) {
+    if (event.button !== 0) return; // Only main button
+    this.handleStart(event.clientX, event.clientY, event.target, false);
+  }
+
+  onMouseMove(event) {
+    this.handleMove(event.clientX, event.clientY);
+  }
+
+  onMouseUp(event) {
+    this.handleEnd(false);
+  }
+
+  onTouchStart(event) {
+    if (event.touches.length > 1) return;
+    const touch = event.touches[0];
+    this.initialTouchTarget = touch.target;
+    this.handleStart(touch.clientX, touch.clientY, touch.target, true);
+    event.preventDefault();
+  }
+
+  onTouchMove(event) {
+    if (!this.isDragging) return;
+    const touch = event.touches[0];
+    this.handleMove(touch.clientX, touch.clientY);
+    event.preventDefault();
+  }
+
+  onTouchEnd(event) {
+    if (!this.wasDragged) {
+      this.handleTap(this.initialTouchTarget);
+    }
+    this.handleEnd(true);
+    event.preventDefault();
   }
 
   async showWinDialog() {
