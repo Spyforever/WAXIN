@@ -1,6 +1,3 @@
-@import "../../lib/os-gui/build/windows-98.css";
-/* @import "../../lib/os-gui/build/windows-default.css"; */
-/* @import "../../lib/os-gui/build/peggys-pastels.css"; */
 
 :root {
 	--theme-loaded: "classic.css";
