@@ -1,5 +1,7 @@
 import { Application } from '../../system/application.js';
+import { fs } from "@zenfs/core";
 import { ICONS } from '../../config/icons.js';
+import { ShowFilePicker } from '../../shared/utils/file-picker.js';
 import './paint.css'; // I'll create this file to import all paint styles
 
 export class PaintApp extends Application {
@@ -19,6 +21,132 @@ export class PaintApp extends Application {
         this.initialized = false;
     }
 
+    _mapFormats(formats) {
+        return formats.map(f => ({
+            label: f.nameWithExtensions || f.name,
+            extensions: f.extensions
+        }));
+    }
+
+    async _getFileFromPath(path) {
+        const buffer = await fs.promises.readFile(path);
+        const name = path.split('/').pop();
+        return new File([buffer], name);
+    }
+
+    _setupSystemHooks() {
+        window.systemHooks = window.systemHooks || {};
+
+        window.systemHooks.showOpenFileDialog = async ({ formats }) => {
+            const path = await ShowFilePicker({
+                title: "Open",
+                mode: "open",
+                fileTypes: this._mapFormats(formats)
+            });
+            if (path) {
+                const file = await this._getFileFromPath(path);
+                return { file, fileHandle: path };
+            }
+            return null;
+        };
+
+        window.systemHooks.showSaveFileDialog = async ({ formats, defaultFileName, getBlob, savedCallbackUnreliable }) => {
+            const path = await ShowFilePicker({
+                title: "Save As",
+                mode: "save",
+                fileTypes: this._mapFormats(formats),
+                suggestedName: defaultFileName
+            });
+            if (path) {
+                const extension = path.split('.').pop().toLowerCase();
+                const format = formats.find(f => f.extensions.includes(extension)) || formats[0];
+                const blob = await getBlob(format.formatID);
+                await fs.promises.writeFile(path, new Uint8Array(await blob.arrayBuffer()));
+
+                savedCallbackUnreliable?.({
+                    newFileName: path.split('/').pop(),
+                    newFileFormatID: format.formatID,
+                    newFileHandle: path,
+                    newBlob: blob,
+                });
+            }
+        };
+
+        window.systemHooks.writeBlobToHandle = async (handle, blob) => {
+            if (typeof handle === 'string') {
+                await fs.promises.writeFile(handle, new Uint8Array(await blob.arrayBuffer()));
+                return true;
+            }
+            return false;
+        };
+
+        window.systemHooks.readBlobFromHandle = async (handle) => {
+            if (typeof handle === 'string') {
+                return await this._getFileFromPath(handle);
+            }
+            throw new Error("Invalid handle");
+        };
+
+        window.systemHooks.updateTitle = (title) => {
+            if (this.win) {
+                this.win.title(title);
+            }
+        };
+
+        // Override window.close for jspaint to use our window component
+        if (window.close !== this._myClose) {
+            this._originalClose = window.close;
+            this._myClose = () => {
+                if (this.win && !this.win.closed) {
+                    this.win.close();
+                } else if (this._originalClose) {
+                    this._originalClose.call(window);
+                }
+            };
+            window.close = this._myClose;
+        }
+    }
+
+    async openFile(data) {
+        let path = data;
+        let file = null;
+
+        if (data && typeof data === 'object') {
+            if (data instanceof File) {
+                file = data;
+            } else {
+                path = data.filePath || data.file || data;
+                if (path instanceof File) {
+                    file = path;
+                }
+            }
+        }
+
+        const { open_from_file, load_image_from_uri } = await import('./src/functions.js');
+
+        if (file) {
+            open_from_file(file, file);
+            return;
+        }
+
+        if (typeof path === 'string') {
+            if (path.startsWith('/') && !path.startsWith('http')) {
+                try {
+                    const file = await this._getFileFromPath(path);
+                    open_from_file(file, path);
+                } catch (e) {
+                    console.error("Failed to open file from ZenFS", e);
+                }
+            } else {
+                try {
+                    load_image_from_uri(path);
+                } catch (e) {
+                    console.error("Failed to load image from URI", e);
+                }
+            }
+        }
+    }
+
     _createWindow() {
         const win = new $Window({
             id: this.id,
@@ -29,18 +157,82 @@ export class PaintApp extends Application {
             icons: this.icon,
         });
 
+        win.on("close", async (e) => {
+            if (!window.saved) {
+                e.preventDefault();
+                const { are_you_sure } = await import('./src/functions.js');
+                are_you_sure(() => {
+                    win.close(true);
+                });
+            }
+        });
+
         win.element.style.display = 'flex';
         win.$content.addClass("paint-container");
         return win;
     }
 
+    _onClose() {
+        if (window.close === this._myClose) {
+            window.close = this._originalClose;
+        }
+        this._myClose = null;
+        this._originalClose = null;
+
+        // Detach the app container from the window before it's destroyed.
+        // This is crucial because jQuery's .remove() (used by $Window)
+        // recursively removes all event handlers from child elements.
+        if (window.$app) {
+            window.$app.detach();
+        }
+
+        this._disposePaint();
+    }
+
+    async _disposePaint() {
+        try {
+            const { reset_file, reset_selected_colors, reset_canvas_and_history, set_magnification, deselect } = await import('./src/functions.js');
+            const { default_magnification } = await import('./src/app-state.js');
+
+            deselect();
+            reset_file();
+            reset_selected_colors();
+            reset_canvas_and_history();
+            set_magnification(default_magnification);
+
+            // Additional resets to prevent unresponsiveness on relaunch
+            window.pointer_active = false;
+            window.pointer_buttons = 0;
+            window.pointers = [];
+            if (window.$G) {
+                window.$G.triggerHandler("pointerup");
+                window.$G.triggerHandler("blur");
+            }
+        } catch (e) {
+            console.error("Failed to dispose Paint state", e);
+        }
+    }
+
     async _onLaunch(data) {
+        if (!this.win) {
+            this.win = this._createWindow();
+            this._setupWindow(this.id, this.isSingleton ? this.id : this.id + Date.now());
+        }
+
+        // Update global container reference for the current window
+        window.paintAppContainer = this.win.$content[0];
+
         if (window.$app) {
             this._injectHTML();
             this.win.$content.append(window.$app);
+            this._setupSystemHooks();
+            this._setupDragAndDrop();
             this.initialized = true;
             $(window).trigger("resize");
             this.win.focus();
+            if (data) {
+                this.openFile(data);
+            }
             return;
         }
 
@@ -48,9 +240,6 @@ export class PaintApp extends Application {
             this.win.focus();
             return;
         }
-
-        // Initialize Paint
-        window.paintAppContainer = this.win.$content[0];
 
         // We need to load dependencies that were in <script> tags in index.html
         await this._loadDependencies();
@@ -61,12 +250,42 @@ export class PaintApp extends Application {
         // Load localization first as it provides the global `localize`
         await import('./src/app-localization.js');
 
+        // Setup hooks
+        this._setupSystemHooks();
+
         // Import the main app. This will execute the code.
         // We need to make sure app.js uses window.paintAppContainer
         await import('./src/app.js');
 
         this.initialized = true;
         this.win.focus();
+
+        if (data) {
+            this.openFile(data);
+        }
+
+        this._setupDragAndDrop();
+    }
+
+    _setupDragAndDrop() {
+        this.win.$content.off("dragover drop");
+        this.win.$content.on("dragover", (e) => {
+            const dt = e.originalEvent.dataTransfer;
+            if (dt && dt.types.includes("application/x-zenfs-path")) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        });
+
+        this.win.$content.on("drop", async (e) => {
+            const dt = e.originalEvent.dataTransfer;
+            const zenfsPath = dt.getData("application/x-zenfs-path");
+            if (zenfsPath) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.openFile(zenfsPath);
+            }
+        });
     }
 
     async _loadDependencies() {
@@ -99,6 +318,9 @@ export class PaintApp extends Application {
     }
 
     _injectHTML() {
+        // Remove existing fragments if any (to avoid duplicate IDs)
+        this.win.$content.find('#about-paint, #news, #jspaint-svg-filters').remove();
+
         // These are from index.html
         const aboutPaint = document.createElement('div');
         aboutPaint.id = 'about-paint';
@@ -131,6 +353,7 @@ export class PaintApp extends Application {
 
         // SVG filters from index.html
         const svgFilters = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svgFilters.id = 'jspaint-svg-filters';
         svgFilters.style.position = "absolute";
         svgFilters.style.pointerEvents = "none";
         svgFilters.style.bottom = "100%";

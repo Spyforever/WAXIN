@@ -743,7 +743,11 @@ function make_history_node({
 }
 
 function update_title() {
-	document.title = `${file_name} - ${is_pride_month ? "June Solidarity " : ""}${localize("Paint")}`;
+	const title = `${file_name}${window.saved ? "" : " *"} - ${is_pride_month ? "June Solidarity " : ""}${localize("Paint")}`;
+
+	if (window.systemHooks && window.systemHooks.updateTitle) {
+		window.systemHooks.updateTitle(title);
+	}
 
 	if (is_pride_month) {
 		$("link[rel~='icon']").attr("href", "/win98-web/apps/paint/images/icons/gay-es-paint-16x16-light-outline.png");
@@ -961,7 +965,9 @@ function open_from_image_info(info, callback, canceled, into_existing_session, f
 
 		if (!into_existing_session) {
 			$G.triggerHandler("session-update"); // autosave old session
-			new_local_session();
+			if (typeof new_local_session !== "undefined") {
+				new_local_session();
+			}
 		}
 
 		reset_file();
@@ -1090,7 +1096,9 @@ function file_new() {
 		cancel();
 
 		$G.triggerHandler("session-update"); // autosave old session
-		new_local_session();
+		if (typeof new_local_session !== "undefined") {
+			new_local_session();
+		}
 
 		reset_file();
 		reset_selected_colors();
