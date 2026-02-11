@@ -5,7 +5,7 @@ import { $Swatch, update_$swatch } from "./$ColorBox.js";
 import { ShowDialogWindow } from "../../../shared/components/dialog-window.js";
 // import { localize } from "./app-localization.js";
 import { basic_colors, custom_colors } from "./color-data.js";
-import { detect_monochrome, make_monochrome_palette, show_error_message, undoable } from "./functions.js";
+import { detect_monochrome, handle_keyshortcuts, make_monochrome_palette, show_error_message, undoable } from "./functions.js";
 import { $G, get_help_folder_icon, get_rgba_from_color, make_canvas, render_access_key, rgb_to_hsl } from "./helpers.js";
 import { replace_color_globally } from "./image-manipulation.js";
 
