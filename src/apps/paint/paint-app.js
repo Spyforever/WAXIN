@@ -280,7 +280,7 @@ export class PaintApp extends Application {
         await import('./src/app-localization.js');
         const localize = window.localize;
         const { image_formats } = await import('./src/file-format-data.js');
-        const { write_image_file, update_title } = await import('./src/functions.js');
+        const { write_image_file, update_title, update_from_saved_file } = await import('./src/functions.js');
 
         const doSet = (path) => {
             setItem(LOCAL_STORAGE_KEYS.WALLPAPER, path);
@@ -330,8 +330,14 @@ export class PaintApp extends Application {
                     });
                 });
             },
-            savedCallbackUnreliable: ({ newFileHandle }) => {
+            savedCallbackUnreliable: ({ newFileName, newFileFormatID, newFileHandle, newBlob }) => {
                 if (newFileHandle) {
+                    window.saved = true;
+                    window.system_file_handle = newFileHandle;
+                    window.file_name = newFileName;
+                    window.file_format = newFileFormatID;
+                    update_title();
+                    update_from_saved_file(newBlob);
                     doSet(newFileHandle);
                 }
             },
