@@ -179,13 +179,22 @@ export class PaintApp extends Application {
         this._myClose = null;
         this._originalClose = null;
 
+        // Detach the app container from the window before it's destroyed.
+        // This is crucial because jQuery's .remove() (used by $Window)
+        // recursively removes all event handlers from child elements.
+        if (window.$app) {
+            window.$app.detach();
+        }
+
         this._disposePaint();
     }
 
     async _disposePaint() {
         try {
-            const { reset_file, reset_selected_colors, reset_canvas_and_history, set_magnification } = await import('./src/functions.js');
+            const { reset_file, reset_selected_colors, reset_canvas_and_history, set_magnification, deselect } = await import('./src/functions.js');
             const { default_magnification } = await import('./src/app-state.js');
+
+            deselect();
             reset_file();
             reset_selected_colors();
             reset_canvas_and_history();
