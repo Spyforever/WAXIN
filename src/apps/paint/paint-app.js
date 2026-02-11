@@ -94,15 +94,16 @@ export class PaintApp extends Application {
         };
 
         // Override window.close for jspaint to use our window component
-        if (!this._originalClose) {
+        if (window.close !== this._myClose) {
             this._originalClose = window.close;
-            window.close = () => {
+            this._myClose = () => {
                 if (this.win && !this.win.closed) {
                     this.win.close();
                 } else if (this._originalClose) {
                     this._originalClose.call(window);
                 }
             };
+            window.close = this._myClose;
         }
     }
 
@@ -157,8 +158,7 @@ export class PaintApp extends Application {
         });
 
         win.on("close", async (e) => {
-            const { saved } = await import('./src/app-state.js');
-            if (!saved) {
+            if (!window.saved) {
                 e.preventDefault();
                 const { are_you_sure } = await import('./src/functions.js');
                 are_you_sure(() => {
@@ -173,10 +173,12 @@ export class PaintApp extends Application {
     }
 
     _onClose() {
-        if (this._originalClose) {
+        if (window.close === this._myClose) {
             window.close = this._originalClose;
-            this._originalClose = null;
         }
+        this._myClose = null;
+        this._originalClose = null;
+
         this._disposePaint();
     }
 
@@ -188,6 +190,15 @@ export class PaintApp extends Application {
             reset_selected_colors();
             reset_canvas_and_history();
             set_magnification(default_magnification);
+
+            // Additional resets to prevent unresponsiveness on relaunch
+            window.pointer_active = false;
+            window.pointer_buttons = 0;
+            window.pointers = [];
+            if (window.$G) {
+                window.$G.triggerHandler("pointerup");
+                window.$G.triggerHandler("blur");
+            }
         } catch (e) {
             console.error("Failed to dispose Paint state", e);
         }
@@ -199,10 +210,14 @@ export class PaintApp extends Application {
             this._setupWindow(this.id, this.isSingleton ? this.id : this.id + Date.now());
         }
 
+        // Update global container reference for the current window
+        window.paintAppContainer = this.win.$content[0];
+
         if (window.$app) {
             this._injectHTML();
             this.win.$content.append(window.$app);
             this._setupSystemHooks();
+            this._setupDragAndDrop();
             this.initialized = true;
             $(window).trigger("resize");
             this.win.focus();
@@ -216,9 +231,6 @@ export class PaintApp extends Application {
             this.win.focus();
             return;
         }
-
-        // Initialize Paint
-        window.paintAppContainer = this.win.$content[0];
 
         // We need to load dependencies that were in <script> tags in index.html
         await this._loadDependencies();
@@ -243,7 +255,11 @@ export class PaintApp extends Application {
             this.openFile(data);
         }
 
-        // Setup drag and drop
+        this._setupDragAndDrop();
+    }
+
+    _setupDragAndDrop() {
+        this.win.$content.off("dragover drop");
         this.win.$content.on("dragover", (e) => {
             const dt = e.originalEvent.dataTransfer;
             if (dt && dt.types.includes("application/x-zenfs-path")) {
@@ -294,7 +310,7 @@ export class PaintApp extends Application {
 
     _injectHTML() {
         // Remove existing fragments if any (to avoid duplicate IDs)
-        this.win.$content.find('#about-paint, #news, svg').remove();
+        this.win.$content.find('#about-paint, #news, #jspaint-svg-filters').remove();
 
         // These are from index.html
         const aboutPaint = document.createElement('div');
@@ -328,6 +344,7 @@ export class PaintApp extends Application {
 
         // SVG filters from index.html
         const svgFilters = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svgFilters.id = 'jspaint-svg-filters';
         svgFilters.style.position = "absolute";
         svgFilters.style.pointerEvents = "none";
         svgFilters.style.bottom = "100%";

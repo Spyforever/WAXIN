@@ -743,7 +743,7 @@ function make_history_node({
 }
 
 function update_title() {
-	const title = `${file_name} - ${is_pride_month ? "June Solidarity " : ""}${localize("Paint")}`;
+	const title = `${file_name}${window.saved ? "" : " *"} - ${is_pride_month ? "June Solidarity " : ""}${localize("Paint")}`;
 
 	if (window.systemHooks && window.systemHooks.updateTitle) {
 		window.systemHooks.updateTitle(title);
