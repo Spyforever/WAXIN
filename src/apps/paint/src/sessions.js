@@ -2,7 +2,7 @@
 // eslint-disable-next-line no-unused-vars
 /* global file_name:writable */
 /* global $app, $canvas_area, localize, magnification, main_canvas, main_ctx, redos, undos */
-import { $DialogWindow } from "./$ToolWindow.js";
+import { ShowDialogWindow } from "../../../shared/components/dialog-window.js";
 // import { localize } from "./app-localization.js";
 import { change_url_param, get_uris, load_image_from_uri, open_from_image_info, redo, reset_file, show_error_message, show_resource_load_error_message, undo, undoable, update_title } from "./functions.js";
 import { $G, debounce, get_help_folder_icon, image_data_match, is_discord_embed, make_canvas, to_canvas_coords } from "./helpers.js";
@@ -33,19 +33,12 @@ const canvas_has_any_apparent_image_data = () =>
 let $recovery_window;
 function show_recovery_window(no_longer_blank) {
 	$recovery_window?.close();
-	const $w = $recovery_window = $DialogWindow();
-	$w.on("close", () => {
-		$recovery_window = null;
-	});
-	$w.title("Recover Document");
+
+	const content = document.createElement("div");
 	let backup_impossible = false;
 	try { window.localStorage.getItem("bogus test key"); } catch (_error) { backup_impossible = true; }
-	// TODO: get rid of this invasive dialog https://github.com/1j01/jspaint/issues/325
-	// It appears when it shouldn't, in basic scenarios like Ctrl+A in a transparent document,
-	// and it gets bigger once you edit the document, which feels... almost aggressive.
-	// That said, I've made it more compact and delineated the expanded section with a horizontal rule,
-	// so it doesn't feel as much like it's changed out from under you and you have to re-read it.
-	$w.$main.append($(`
+
+	content.innerHTML = `
 		<p>Woah! The canvas became empty.</p>
 		<p>If this was on purpose, please ignore this message.</p>
 		<p>
@@ -67,25 +60,48 @@ function show_recovery_window(no_longer_blank) {
 					""
 			)
 		}
-	`));
+	`;
 
-	const $undo = $w.$Button("Undo", () => {
-		undo();
+	const $w = ShowDialogWindow({
+		title: "Recover Document",
+		content,
+		buttons: [
+			{
+				label: "Undo",
+				action: () => {
+					undo();
+					return false; // Don't close
+				}
+			},
+			{
+				label: "Redo",
+				action: () => {
+					redo();
+					return false; // Don't close
+				}
+			},
+			{
+				label: localize("Close"),
+				action: () => { }
+			}
+		]
 	});
-	const $redo = $w.$Button("Redo", () => {
-		redo();
+	$recovery_window = $w;
+	$w.onClosed(() => {
+		$recovery_window = null;
+		$G.off("session-update.session-hook", update_buttons_disabled);
 	});
+
+	const $buttons = $w.find(".dialog-buttons button");
+	const $undo = $buttons.eq(0);
+	const $redo = $buttons.eq(1);
+
 	const update_buttons_disabled = () => {
 		$undo.prop("disabled", undos.length < 1);
 		$redo.prop("disabled", redos.length < 1);
 	};
 	$G.on("session-update.session-hook", update_buttons_disabled);
 	update_buttons_disabled();
-
-	$w.$Button(localize("Close"), () => {
-		$w.close();
-	});
-	$w.center();
 
 	$w.find("button:enabled").focus();
 }

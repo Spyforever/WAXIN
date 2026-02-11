@@ -1,11 +1,11 @@
 // @ts-check
 /* global localize */
-import { $DialogWindow } from "./$ToolWindow.js";
+import { ShowDialogWindow } from "../../../shared/components/dialog-window.js";
 // import { localize } from "./app-localization.js";
 import { E, is_discord_embed } from "./helpers.js";
 import { showMessageBox } from "./msgbox.js";
 
-/** @type {OSGUI$Window & I$DialogWindow} */
+/** @type {OSGUI$Window} */
 let $storage_manager;
 let $quota_exceeded_window;
 let ignoring_quota_exceeded = false;
@@ -45,16 +45,28 @@ function manage_storage() {
 	if ($storage_manager) {
 		$storage_manager.close();
 	}
-	$storage_manager = $DialogWindow();
-	$storage_manager.title("Manage Storage").addClass("storage-manager squish");
+
+	const content = document.createElement("div");
+	const $main = $(content);
 	// @TODO: way to remove all (with confirmation)
-	const $table = $(E("table")).appendTo($storage_manager.$main);
-	const $message = $(E("p")).appendTo($storage_manager.$main).html(
+	const $table = $(E("table")).appendTo($main);
+	const $message = $(E("p")).appendTo($main).html(
 		"Any images you've saved to your computer with <b>File > Save</b> will not be affected."
 	);
-	const $close = $storage_manager.$Button("Close", () => {
-		$storage_manager.close();
+
+	const $w = ShowDialogWindow({
+		title: "Manage Storage",
+		content,
+		buttons: [
+			{
+				label: "Close",
+				action: () => { }
+			}
+		]
 	});
+	$storage_manager = $w;
+	$w.addClass("storage-manager squish");
+	const $close = $w.find(".dialog-buttons button");
 
 	const addRow = (k, imgSrc) => {
 		const $tr = $(E("tr")).appendTo($table);
