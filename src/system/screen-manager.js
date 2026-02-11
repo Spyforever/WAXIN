@@ -58,6 +58,7 @@ function setResolution(resolutionId) {
 
   currentResolutionId = resolutionId;
   saveResolution(resolutionId);
+  window.dispatchEvent(new Event("resize"));
 }
 
 function saveResolution(resolutionId) {
