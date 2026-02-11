@@ -985,7 +985,10 @@ export class ZenExplorerApp extends Application {
   _onIframeLoad() {
     if (!this.iframe || !this.statusBar) return;
 
-    if (this.iframe.src.includes("/azay.rahmad/404.html")) {
+    if (
+      this.iframe.src.includes("/azay.rahmad/404.html") ||
+      this.iframe.src.includes("/internet-explorer/404.html")
+    ) {
       this.statusBar.setText("Page not found.");
       this._updateToolbar();
       return;
@@ -997,7 +1000,7 @@ export class ZenExplorerApp extends Application {
         iframeDoc.title.includes("Not Found") ||
         iframeDoc.body.innerHTML.includes("Wayback Machine doesn")
       ) {
-        this.iframe.src = "./azay.rahmad/404.html";
+        this.iframe.src = "./internet-explorer/404.html";
         this.statusBar.setText("Page not found.");
       } else {
         this.statusBar.setText("Done");
@@ -1110,14 +1113,14 @@ export class ZenExplorerApp extends Application {
             snapshot.timestamp.startsWith("1998");
 
           if (!has1998Snapshot) {
-            loadIframe("./azay.rahmad/404.html");
+            loadIframe("./internet-explorer/404.html");
             return;
           }
 
           loadIframe(`https://web.archive.org/web/1998/${finalUrl}`);
         } catch (err) {
           console.error("Failed to check Wayback availability:", err);
-          loadIframe("./azay.rahmad/404.html");
+          loadIframe("./internet-explorer/404.html");
         }
       } else {
         loadIframe(finalUrl);
