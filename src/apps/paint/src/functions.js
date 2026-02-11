@@ -448,10 +448,11 @@ function show_custom_zoom_window() {
 	const $content = $(content);
 
 	$content.append(`<div class='current-zoom'>${localize("Current zoom:")} <bdi>${magnification * 100}%</bdi></div>`);
-	// update when zoom changes
-	$G.on("magnification-changed", () => {
+
+	const update_zoom_display = () => {
 		$content.find(".current-zoom bdi").text(`${magnification * 100}%`);
-	});
+	};
+	$G.on("magnification-changed", update_zoom_display);
 
 	const $fieldset = $(E("fieldset")).appendTo($content);
 	$fieldset.append(`
@@ -558,6 +559,10 @@ function show_custom_zoom_window() {
 	});
 	$custom_zoom_window = $w;
 	$w.addClass("custom-zoom-window");
+
+	$w.onClosed(() => {
+		$G.off("magnification-changed", update_zoom_display);
+	});
 
 	handle_keyshortcuts($w);
 }

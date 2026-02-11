@@ -169,6 +169,9 @@ function choose_color(initial_color, callback) {
 	const content = document.createElement("div");
 	const $content = $(content);
 
+	/** @type {OSGUI$Window} */
+	let $w;
+
 	let hue_degrees = 0;
 	let sat_percent = 50;
 	let lum_percent = 50;
@@ -187,10 +190,10 @@ function choose_color(initial_color, callback) {
 		set_color_from_rgb(r, g, b);
 	};
 	const select = ($swatch) => {
-		$w.$content.find(".swatch").removeClass("selected");
+		$w.find(".swatch").removeClass("selected");
 		$swatch.addClass("selected");
 		set_color($swatch[0].dataset.color);
-		if ($swatch.closest("#custom-colors")) {
+		if ($swatch.closest("#custom-colors").length) {
 			custom_colors_index = Math.max(0, custom_colors_swatches_list_order.indexOf(
 				$custom_colors_grid.find(".swatch.selected")[0]
 			));
@@ -307,7 +310,7 @@ function choose_color(initial_color, callback) {
 	// for mobile layout, re-enable button because it's a navigation button in that case, rather than one-time expand action
 	const maybe_reenable_button_for_mobile_navigation = () => {
 		// if ($right.is(":hidden")) {
-		if ($w.width() < 300 || document.body.classList.contains("enlarge-ui")) {
+		if ($w && ($w.width() < 300 || document.body.classList.contains("enlarge-ui"))) {
 			$define_custom_colors_button.removeAttr("disabled");
 		}
 	};
@@ -528,6 +531,64 @@ function choose_color(initial_color, callback) {
 		}
 	});
 
+	const update_inputs = (components) => {
+		for (const component_letter of components) {
+			const input = inputs_by_component_letter[component_letter];
+			const [r, g, b] = get_rgba_from_color(get_current_color());
+			input.value = Math.floor({
+				h: hue_degrees,
+				s: sat_percent,
+				l: lum_percent,
+				r,
+				g,
+				b,
+			}[component_letter]);
+		}
+	};
+
+	$right.append(rainbow_canvas, luminosity_canvas, result_canvas, $color_solid_label, lum_arrow_canvas);
+
+	const $add_to_custom_colors_button = $(`<button class="add-to-custom-colors-button" type="button">`)
+		.html(render_access_key("&Add To Custom Colors"))
+		.appendTo($right)
+		.on("click", (event) => {
+			// prevent the form from submitting
+			// @TODO: instead, prevent the form's submit event in $Window.js in os-gui (or don't have a form? idk)
+			event.preventDefault();
+
+			const color = get_current_color();
+			custom_colors[custom_colors_index] = color;
+			// console.log(custom_colors_swatches_reordered, custom_colors_index, custom_colors_swatches_reordered[custom_colors_index]));
+			update_$swatch($(custom_colors_swatches_list_order[custom_colors_index]), color);
+			custom_colors_index = (custom_colors_index + 1) % custom_colors.length;
+
+			$edit_colors_window.removeClass("defining-custom-colors"); // for mobile layout
+		});
+
+	$w = ShowDialogWindow({
+		title: localize("Edit Colors"),
+		content,
+		buttons: [
+			{
+				label: localize("OK"),
+				isDefault: true,
+				action: () => {
+					callback(get_current_color());
+				}
+			},
+			{
+				label: localize("Cancel"),
+				action: () => { }
+			}
+		]
+	});
+	$edit_colors_window = $w;
+	$w.addClass("edit-colors-window");
+
+	$w.onClosed(() => {
+		$(window).off("resize", maybe_reenable_button_for_mobile_navigation);
+	});
+
 	$w.on("keydown", (event) => {
 		// For some reason Enter isn't working to submit the form. (Am I preventing it somewhere?)
 		// It's understandable that it wouldn't work for my custom grid controls,
@@ -595,59 +656,7 @@ function choose_color(initial_color, callback) {
 		event.stopPropagation();
 	});
 
-	const update_inputs = (components) => {
-		for (const component_letter of components) {
-			const input = inputs_by_component_letter[component_letter];
-			const [r, g, b] = get_rgba_from_color(get_current_color());
-			input.value = Math.floor({
-				h: hue_degrees,
-				s: sat_percent,
-				l: lum_percent,
-				r,
-				g,
-				b,
-			}[component_letter]);
-		}
-	};
-
-	$right.append(rainbow_canvas, luminosity_canvas, result_canvas, $color_solid_label, lum_arrow_canvas);
-
-	const $add_to_custom_colors_button = $(`<button class="add-to-custom-colors-button" type="button">`)
-		.html(render_access_key("&Add To Custom Colors"))
-		.appendTo($right)
-		.on("click", (event) => {
-			// prevent the form from submitting
-			// @TODO: instead, prevent the form's submit event in $Window.js in os-gui (or don't have a form? idk)
-			event.preventDefault();
-
-			const color = get_current_color();
-			custom_colors[custom_colors_index] = color;
-			// console.log(custom_colors_swatches_reordered, custom_colors_index, custom_colors_swatches_reordered[custom_colors_index]));
-			update_$swatch($(custom_colors_swatches_list_order[custom_colors_index]), color);
-			custom_colors_index = (custom_colors_index + 1) % custom_colors.length;
-
-			$edit_colors_window.removeClass("defining-custom-colors"); // for mobile layout
-		});
-
-	const $w = ShowDialogWindow({
-		title: localize("Edit Colors"),
-		content,
-		buttons: [
-			{
-				label: localize("OK"),
-				isDefault: true,
-				action: () => {
-					callback(get_current_color());
-				}
-			},
-			{
-				label: localize("Cancel"),
-				action: () => { }
-			}
-		]
-	});
-	$edit_colors_window = $w;
-	$w.addClass("edit-colors-window");
+	handle_keyshortcuts($w);
 
 	// In Windows, the buttons are actually part of the left side, not in a footer.
 	// But to match the new standard, we'll keep them in the footer.
