@@ -1,4 +1,4 @@
-import { ICONS } from './icons.js';
+import { ICONS } from "./icons.js";
 
 export const fileAssociations = {
   // Text files
@@ -151,7 +151,7 @@ export const fileAssociations = {
   },
   bmp: {
     name: "Bitmap Image",
-    appId: "image-viewer",
+    appId: "paint",
     icon: ICONS.imageBmpFile,
   },
   ico: {
