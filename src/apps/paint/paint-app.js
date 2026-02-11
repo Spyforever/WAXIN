@@ -2,7 +2,6 @@ import { Application } from '../../system/application.js';
 import { fs } from "@zenfs/core";
 import { ICONS } from '../../config/icons.js';
 import { ShowFilePicker } from '../../shared/utils/file-picker.js';
-import { saved } from './src/app-state.js';
 import './paint.css'; // I'll create this file to import all paint styles
 
 export class PaintApp extends Application {
@@ -94,15 +93,17 @@ export class PaintApp extends Application {
             }
         };
 
-        // Override window.close for jspaint
-        const originalClose = window.close;
-        window.close = () => {
-            if (this.win) {
-                this.win.close();
-            } else {
-                originalClose.call(window);
-            }
-        };
+        // Override window.close for jspaint to use our window component
+        if (!this._originalClose) {
+            this._originalClose = window.close;
+            window.close = () => {
+                if (this.win && !this.win.closed) {
+                    this.win.close();
+                } else if (this._originalClose) {
+                    this._originalClose.call(window);
+                }
+            };
+        }
     }
 
     async openFile(data) {
@@ -156,6 +157,7 @@ export class PaintApp extends Application {
         });
 
         win.on("close", async (e) => {
+            const { saved } = await import('./src/app-state.js');
             if (!saved) {
                 e.preventDefault();
                 const { are_you_sure } = await import('./src/functions.js');
@@ -171,6 +173,10 @@ export class PaintApp extends Application {
     }
 
     _onClose() {
+        if (this._originalClose) {
+            window.close = this._originalClose;
+            this._originalClose = null;
+        }
         this._disposePaint();
     }
 
@@ -188,6 +194,11 @@ export class PaintApp extends Application {
     }
 
     async _onLaunch(data) {
+        if (!this.win) {
+            this.win = this._createWindow();
+            this._setupWindow(this.id, this.isSingleton ? this.id : this.id + Date.now());
+        }
+
         if (window.$app) {
             this._injectHTML();
             this.win.$content.append(window.$app);
@@ -282,6 +293,9 @@ export class PaintApp extends Application {
     }
 
     _injectHTML() {
+        // Remove existing fragments if any (to avoid duplicate IDs)
+        this.win.$content.find('#about-paint, #news, svg').remove();
+
         // These are from index.html
         const aboutPaint = document.createElement('div');
         aboutPaint.id = 'about-paint';
