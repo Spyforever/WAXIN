@@ -167,6 +167,7 @@ export async function initFileSystem(onProgress) {
       { name: "Quake.lnk.json", appId: "quake" },
       { name: "Prince of Persia.lnk.json", appId: "prince-of-persia" },
       { name: "Wolfenstein 3D.lnk.json", appId: "wolf3d" },
+      { name: "Beneath a Steel Sky.lnk.json", appId: "sky" },
     ];
 
     for (const game of games) {
@@ -210,6 +211,25 @@ export async function initFileSystem(onProgress) {
           const response = await fetch(`games/dos/wolf3d/${file}`);
           const buffer = await response.arrayBuffer();
           await fs.promises.writeFile(`/C:/Games/WOLF3D/${file}`, new Uint8Array(buffer));
+        } catch (e) {
+          console.error(`Failed to install ${file}:`, e);
+        }
+      }
+    }
+
+    // Install Beneath a Steel Sky to C:\Games\SKY if it doesn't exist
+    if (!(await existsAsync("/C:/Games/SKY"))) {
+      if (onProgress) onProgress("Installing Beneath a Steel Sky...");
+      await fs.promises.mkdir("/C:/Games/SKY", { recursive: true });
+      const skyFiles = ["SKY.DNR", "SKY.DSK", "SKY.EXE", "SKY.RST"];
+      for (const file of skyFiles) {
+        try {
+          const response = await fetch(`games/dos/sky/${file}`);
+          const buffer = await response.arrayBuffer();
+          await fs.promises.writeFile(
+            `/C:/Games/SKY/${file}`,
+            new Uint8Array(buffer),
+          );
         } catch (e) {
           console.error(`Failed to install ${file}:`, e);
         }
