@@ -1096,7 +1096,9 @@ function file_new() {
 		cancel();
 
 		$G.triggerHandler("session-update"); // autosave old session
-		new_local_session();
+		if (typeof new_local_session !== "undefined") {
+			new_local_session();
+		}
 
 		reset_file();
 		reset_selected_colors();

@@ -2,6 +2,7 @@ import { Application } from '../../system/application.js';
 import { fs } from "@zenfs/core";
 import { ICONS } from '../../config/icons.js';
 import { ShowFilePicker } from '../../shared/utils/file-picker.js';
+import { saved } from './src/app-state.js';
 import './paint.css'; // I'll create this file to import all paint styles
 
 export class PaintApp extends Application {
@@ -92,6 +93,16 @@ export class PaintApp extends Application {
                 this.win.title(title);
             }
         };
+
+        // Override window.close for jspaint
+        const originalClose = window.close;
+        window.close = () => {
+            if (this.win) {
+                this.win.close();
+            } else {
+                originalClose.call(window);
+            }
+        };
     }
 
     async openFile(data) {
@@ -144,9 +155,36 @@ export class PaintApp extends Application {
             icons: this.icon,
         });
 
+        win.on("close", async (e) => {
+            if (!saved) {
+                e.preventDefault();
+                const { are_you_sure } = await import('./src/functions.js');
+                are_you_sure(() => {
+                    win.close(true);
+                });
+            }
+        });
+
         win.element.style.display = 'flex';
         win.$content.addClass("paint-container");
         return win;
+    }
+
+    _onClose() {
+        this._disposePaint();
+    }
+
+    async _disposePaint() {
+        try {
+            const { reset_file, reset_selected_colors, reset_canvas_and_history, set_magnification } = await import('./src/functions.js');
+            const { default_magnification } = await import('./src/app-state.js');
+            reset_file();
+            reset_selected_colors();
+            reset_canvas_and_history();
+            set_magnification(default_magnification);
+        } catch (e) {
+            console.error("Failed to dispose Paint state", e);
+        }
     }
 
     async _onLaunch(data) {
