@@ -1,11 +1,11 @@
 // @ts-check
 /* global localize */
-import { $DialogWindow } from "./$ToolWindow.js";
+import { ShowDialogWindow } from "../../../shared/components/dialog-window.js";
 import { show_error_message } from "./functions.js";
 // import { localize } from "./app-localization.js";
 import { E, is_discord_embed } from "./helpers.js";
 
-/** @type {OSGUI$Window & I$DialogWindow} */
+/** @type {OSGUI$Window} */
 let $imgur_window;
 
 /**
@@ -15,12 +15,13 @@ function show_imgur_uploader(blob) {
 	if ($imgur_window) {
 		$imgur_window.close();
 	}
-	$imgur_window = $DialogWindow();
-	$imgur_window.title("Upload To Imgur").addClass("horizontal-buttons");
 
-	const $preview_image_area = $(E("div")).appendTo($imgur_window.$main).addClass("inset-deep");
-	const $imgur_url_area = $(E("div")).appendTo($imgur_window.$main);
-	const $imgur_status = $(E("div")).appendTo($imgur_window.$main);
+	const content = document.createElement("div");
+	const $main = $(content);
+
+	const $preview_image_area = $(E("div")).appendTo($main).addClass("inset-deep");
+	const $imgur_url_area = $(E("div")).appendTo($main);
+	const $imgur_status = $(E("div")).appendTo($main);
 
 	// @TODO: maybe make this preview small but zoomable to full size?
 	// (starting small (max-width: 100%) and toggling to either scrollable or fullscreen)
@@ -37,26 +38,48 @@ function show_imgur_uploader(blob) {
 		overflow: "auto",
 		marginBottom: "0.5em",
 	});
-	$preview_image.on("load", () => {
-		$imgur_window.css({ width: "auto" });
-		$imgur_window.center();
+
+	const $w = ShowDialogWindow({
+		title: "Upload To Imgur",
+		content,
+		buttons: [
+			{
+				label: "Upload",
+				isDefault: true,
+				action: () => {
+					onUpload();
+					return false; // Handle manual removal
+				}
+			},
+			{
+				label: localize("Cancel"),
+				action: () => { }
+			}
+		]
 	});
-	$imgur_window.on("close", () => {
+	$imgur_window = $w;
+
+	$preview_image.on("load", () => {
+		$w.css({ width: "auto" });
+		$w.center();
+	});
+	$w.onClosed(() => {
 		URL.revokeObjectURL(blob_url);
 	});
 
-	const $upload_button = $imgur_window.$Button("Upload", () => {
+	const onUpload = () => {
 
 		URL.revokeObjectURL(blob_url);
 		$preview_image_area.remove();
-		$upload_button.remove();
-		$cancel_button.remove(); // @TODO: allow canceling upload request
 
-		$imgur_window.$content.width(300);
-		$imgur_window.center();
+		const $buttonContainer = $w.find(".dialog-buttons");
+		$buttonContainer.empty();
 
-		const $progress = $(E("progress")).appendTo($imgur_window.$main).addClass("inset-deep");
-		const $progress_percent = $(E("span")).appendTo($imgur_window.$main).css({
+		$w.$content.width(300);
+		$w.center();
+
+		const $progress = $(E("progress")).appendTo($main).addClass("inset-deep");
+		const $progress_percent = $(E("span")).appendTo($main).css({
 			width: "2.3em",
 			display: "inline-block",
 			textAlign: "center",
@@ -141,10 +164,19 @@ function show_imgur_uploader(blob) {
 				// @TODO: a button to copy the URL to the clipboard
 				// (also maybe put the URL in a readonly input)
 
+				const addButton = (label, action, isDefault) => {
+					const btn = document.createElement("button");
+					btn.textContent = label;
+					if (isDefault) btn.classList.add("default");
+					btn.onclick = action;
+					$buttonContainer.append(btn);
+					return btn;
+				};
+
 				let $ok_button;
-				const $delete_button = $imgur_window.$Button("Delete", () => {
+				const $delete_button = addButton("Delete", () => {
 					const req = new XMLHttpRequest();
-					$delete_button[0].disabled = true;
+					$delete_button.disabled = true;
 					req.addEventListener("readystatechange", () => {
 						if (req.readyState == 4 && req.status == 200) {
 							$delete_button.remove();
@@ -175,9 +207,10 @@ function show_imgur_uploader(blob) {
 
 					$imgur_status.text("Deleting...");
 				});
-				$ok_button = $imgur_window.$Button(localize("OK"), () => {
-					$imgur_window.close();
-				}).focus();
+				$ok_button = addButton(localize("OK"), () => {
+					$w.close();
+				});
+				$ok_button.focus();
 			} else if (req.readyState == 4) {
 				//$progress.add($progress_percent).remove();
 				//$imgur_status.text("Error uploading image :(");
@@ -213,14 +246,13 @@ function show_imgur_uploader(blob) {
 		req.send(form_data);
 
 		$imgur_status.text("Uploading...");
-	}, { type: "submit" }).focus();
-	const $cancel_button = $imgur_window.$Button(localize("Cancel"), () => {
-		$imgur_window.close();
-	});
-	$imgur_window.$content.css({
+	};
+
+	$w.$content.css({
 		width: "min(1000px, 80vw)",
 	});
-	$imgur_window.center();
+	$w.center();
+	$w.find(".dialog-buttons button").first().focus();
 }
 
 export { show_imgur_uploader };

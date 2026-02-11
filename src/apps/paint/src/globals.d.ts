@@ -643,14 +643,6 @@ interface Rect { x: number; y: number; width: number; height: number; }
 // 	$Button(label: string, action: () => void): JQuery<HTMLButtonElement>;
 // }
 
-// still part of jspaint, uncomfortably overlapping with os-gui.js's I$FormWindow
-interface I$DialogWindow {
-	$form: JQuery<HTMLFormElement>;
-	$main: JQuery<HTMLDivElement>;
-	$buttons: JQuery<HTMLDivElement>;
-
-	$Button(label: string | Node, action: () => void, options?: { type?: string }): JQuery<HTMLButtonElement>;
-}
 // definitely some cleanup to be done here regarding the window "classes"
 interface I$ToolWindow { }
 

@@ -2,7 +2,7 @@
 /* global palette:writable */
 /* global $colorbox, localize, main_ctx, monochrome, selected_colors, selection */
 import { $Swatch, update_$swatch } from "./$ColorBox.js";
-import { $DialogWindow } from "./$ToolWindow.js";
+import { ShowDialogWindow } from "../../../shared/components/dialog-window.js";
 // import { localize } from "./app-localization.js";
 import { basic_colors, custom_colors } from "./color-data.js";
 import { detect_monochrome, make_monochrome_palette, show_error_message, undoable } from "./functions.js";
@@ -165,9 +165,9 @@ function choose_color(initial_color, callback) {
 	if ($edit_colors_window) {
 		$edit_colors_window.close();
 	}
-	const $w = $DialogWindow(localize("Edit Colors"));
-	$w.addClass("edit-colors-window");
-	$edit_colors_window = $w;
+
+	const content = document.createElement("div");
+	const $content = $(content);
 
 	let hue_degrees = 0;
 	let sat_percent = 50;
@@ -261,7 +261,7 @@ function choose_color(initial_color, callback) {
 		});
 		return $color_grid;
 	};
-	const $left_right_split = $(`<div class="left-right-split">`).appendTo($w.$main);
+	const $left_right_split = $(`<div class="left-right-split">`).appendTo($content);
 	const $left = $(`<div class="left-side">`).appendTo($left_right_split);
 	const $right = $(`<div class="right-side">`).appendTo($left_right_split).hide();
 	$left.append(`<label for="basic-colors">${render_access_key("&Basic colors:")}</label>`);
@@ -360,7 +360,7 @@ function choose_color(initial_color, callback) {
 			luminosity_canvas.ctx.fillRect(0, y, luminosity_canvas.width, 6);
 		}
 
-		lum_arrow_canvas.ctx.fillStyle = getComputedStyle($w.$content[0]).getPropertyValue("--ButtonText");
+		lum_arrow_canvas.ctx.fillStyle = getComputedStyle(document.body).getPropertyValue("--ButtonText");
 		for (let x = 0; x < lum_arrow_canvas.width; x++) {
 			lum_arrow_canvas.ctx.fillRect(x, lum_arrow_canvas.width - x - 1, 1, 1 + x * 2);
 		}
@@ -626,18 +626,32 @@ function choose_color(initial_color, callback) {
 			update_$swatch($(custom_colors_swatches_list_order[custom_colors_index]), color);
 			custom_colors_index = (custom_colors_index + 1) % custom_colors.length;
 
-			$w.removeClass("defining-custom-colors"); // for mobile layout
+			$edit_colors_window.removeClass("defining-custom-colors"); // for mobile layout
 		});
 
-	$w.$Button(localize("OK"), () => {
-		callback(get_current_color());
-		$w.close();
-	}, { type: "submit" });
-	$w.$Button(localize("Cancel"), () => {
-		$w.close();
+	const $w = ShowDialogWindow({
+		title: localize("Edit Colors"),
+		content,
+		buttons: [
+			{
+				label: localize("OK"),
+				isDefault: true,
+				action: () => {
+					callback(get_current_color());
+				}
+			},
+			{
+				label: localize("Cancel"),
+				action: () => { }
+			}
+		]
 	});
+	$edit_colors_window = $w;
+	$w.addClass("edit-colors-window");
 
-	$left.append($w.$buttons);
+	// In Windows, the buttons are actually part of the left side, not in a footer.
+	// But to match the new standard, we'll keep them in the footer.
+	// JS Paint's CSS might need adjustment to handle this change.
 
 	// Initially select the first color cell that matches the color to edit, if any
 	// (first in the basic colors, then in the custom colors otherwise.
@@ -665,8 +679,6 @@ function choose_color(initial_color, callback) {
 
 	set_color(initial_color);
 	update_inputs("hslrgb");
-
-	$w.center();
 }
 
 export { show_edit_colors_window };

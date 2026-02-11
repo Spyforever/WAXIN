@@ -3,7 +3,7 @@
 /* global $thumbnail_window:writable, canvas_bounding_client_rect:writable, current_history_node:writable, file_format:writable, file_name:writable, helper_layer:writable, history_node_to_cancel_to:writable, magnification:writable, monochrome:writable, palette:writable, pointer:writable, return_to_magnification:writable, return_to_tools:writable, root_history_node:writable, saved:writable, selected_colors:writable, selected_tool:writable, selected_tools:writable, selection:writable, show_grid:writable, show_thumbnail:writable, system_file_handle:writable, textbox:writable, thumbnail_canvas:writable, tool_transparent_mode:writable, transparency:writable, undos:writable */
 /* global $canvas, $canvas_area, $colorbox, $status_text, $toolbox, $Window, AccessKeys, applyCSSProperties, decodeBMP, default_canvas_height, default_canvas_width, default_magnification, default_tool, enable_palette_loading_from_indexed_images, encodeBMP, localize, main_canvas, main_ctx, monochrome_palette, my_canvas_height, my_canvas_width, new_local_session, parseThemeFileString, pointer_active, pointers, polychrome_palette, redos, systemHooks, text_tool_font, update_fill_and_stroke_colors_and_lineWidth, UPNG, UTIF */
 
-import { $DialogWindow } from "./$ToolWindow.js";
+import { ShowDialogWindow } from "../../../shared/components/dialog-window.js";
 import { OnCanvasHelperLayer } from "./OnCanvasHelperLayer.js";
 import { OnCanvasSelection } from "./OnCanvasSelection.js";
 import { OnCanvasTextBox } from "./OnCanvasTextBox.js";
@@ -443,17 +443,17 @@ function show_custom_zoom_window() {
 	if ($custom_zoom_window) {
 		$custom_zoom_window.close();
 	}
-	const $w = $DialogWindow(localize("Custom Zoom"));
-	$custom_zoom_window = $w;
-	$w.addClass("custom-zoom-window");
 
-	$w.$main.append(`<div class='current-zoom'>${localize("Current zoom:")} <bdi>${magnification * 100}%</bdi></div>`);
+	const content = document.createElement("div");
+	const $content = $(content);
+
+	$content.append(`<div class='current-zoom'>${localize("Current zoom:")} <bdi>${magnification * 100}%</bdi></div>`);
 	// update when zoom changes
 	$G.on("magnification-changed", () => {
-		$w.$main.find(".current-zoom bdi").text(`${magnification * 100}%`);
+		$content.find(".current-zoom bdi").text(`${magnification * 100}%`);
 	});
 
-	const $fieldset = $(E("fieldset")).appendTo($w.$main);
+	const $fieldset = $(E("fieldset")).appendTo($content);
 	$fieldset.append(`
 		<legend>${localize("Zoom to")}</legend>
 		<div class="fieldset-body">
@@ -522,33 +522,42 @@ function show_custom_zoom_window() {
 
 	$fieldset.find("label").css({ display: "block" });
 
-	$w.$Button(localize("OK"), () => {
-		let option_val = String($fieldset.find("input[name='custom-zoom-radio']:checked").val());
-		let mag;
-		if (option_val === "really-custom") {
-			option_val = $really_custom_input.val();
-			if (`${option_val}`.match(/\dx$/)) { // ...you can't actually type an x; oh well...
-				mag = parseFloat(option_val);
-			} else if (`${option_val}`.match(/\d%?$/)) {
-				mag = parseFloat(option_val) / 100;
-			}
-			if (isNaN(mag)) {
-				please_enter_a_number();
-				return;
-			}
-		} else {
-			mag = parseFloat(option_val);
-		}
+	const $w = ShowDialogWindow({
+		title: localize("Custom Zoom"),
+		content,
+		buttons: [
+			{
+				label: localize("OK"),
+				isDefault: true,
+				action: () => {
+					let option_val = String($fieldset.find("input[name='custom-zoom-radio']:checked").val());
+					let mag;
+					if (option_val === "really-custom") {
+						option_val = $really_custom_input.val();
+						if (`${option_val}`.match(/\dx$/)) { // ...you can't actually type an x; oh well...
+							mag = parseFloat(option_val);
+						} else if (`${option_val}`.match(/\d%?$/)) {
+							mag = parseFloat(option_val) / 100;
+						}
+						if (isNaN(mag)) {
+							please_enter_a_number();
+							return false; // Don't close
+						}
+					} else {
+						mag = parseFloat(option_val);
+					}
 
-		set_magnification(mag);
-
-		$w.close();
-	}, { type: "submit" });
-	$w.$Button(localize("Cancel"), () => {
-		$w.close();
+					set_magnification(mag);
+				}
+			},
+			{
+				label: localize("Cancel"),
+				action: () => { }
+			}
+		]
 	});
-
-	$w.center();
+	$custom_zoom_window = $w;
+	$w.addClass("custom-zoom-window");
 
 	handle_keyshortcuts($w);
 }
@@ -1120,35 +1129,40 @@ function file_load_from_url() {
 	if ($file_load_from_url_window) {
 		$file_load_from_url_window.close();
 	}
-	const $w = $DialogWindow().addClass("horizontal-buttons");
-	$file_load_from_url_window = $w;
-	$w.title("Load from URL");
-	// @TODO: URL validation (input has to be in a form (and we don't want the form to submit))
-	$w.$main.html(`
-		<div style="padding: 10px;">
-			<label style="display: block; margin-bottom: 5px;" for="url-input">Paste or type the web address of an image:</label>
-			<input type="url" required value="" id="url-input" class="inset-deep" style="width: 300px;"/></label>
-		</div>
-	`);
-	const $input = $w.$main.find("#url-input");
-	// $w.$Button("Load", () => {
-	$w.$Button(localize("Open"), () => {
-		const uris = get_uris(String($input.val()));
-		if (uris.length > 0) {
-			// @TODO: retry loading if same URL entered
-			// actually, make it change the hash only after loading successfully
-			// (but still load from the hash when necessary)
-			// make sure it doesn't overwrite the old session before switching
-			$w.close();
-			change_url_param("load", uris[0]);
-		} else {
-			show_error_message("Invalid URL. It must include a protocol (https:// or http://)");
-		}
-	}, { type: "submit" });
-	$w.$Button(localize("Cancel"), () => {
-		$w.close();
+
+	const content = document.createElement("div");
+	content.style.padding = "10px";
+	content.innerHTML = `
+		<label style="display: block; margin-bottom: 5px;" for="url-input">Paste or type the web address of an image:</label>
+		<input type="url" required value="" id="url-input" class="inset-deep" style="width: 300px;"/></label>
+	`;
+	const $input = $(content).find("#url-input");
+
+	const $w = ShowDialogWindow({
+		title: "Load from URL",
+		content,
+		buttons: [
+			{
+				label: localize("Open"),
+				isDefault: true,
+				action: () => {
+					const uris = get_uris(String($input.val()));
+					if (uris.length > 0) {
+						change_url_param("load", uris[0]);
+					} else {
+						show_error_message("Invalid URL. It must include a protocol (https:// or http://)");
+						return false; // Don't close
+					}
+				}
+			},
+			{
+				label: localize("Cancel"),
+				action: () => { }
+			}
+		]
 	});
-	$w.center();
+
+	$file_load_from_url_window = $w;
 	$input[0].focus();
 }
 
@@ -1903,36 +1917,38 @@ function paste(img_or_canvas) {
 }
 
 function render_history_as_gif() {
-	const $win = $DialogWindow();
-	$win.title("Rendering GIF");
-
-	const $output = $win.$main;
+	const content = document.createElement("div");
+	content.style.padding = "5px";
+	const $output = $(content);
 	const $progress = $(E("progress")).appendTo($output).addClass("inset-deep");
 	const $progress_percent = $(E("span")).appendTo($output).css({
 		width: "2.3em",
 		display: "inline-block",
 		textAlign: "center",
 	});
-	$win.$main.css({ padding: 5 });
 
-	const $cancel = $win.$Button("Cancel", () => {
-		$win.close();
-	}).focus();
-
-	$win.center();
+	let gif;
+	const $win = ShowDialogWindow({
+		title: "Rendering GIF",
+		content,
+		buttons: [
+			{
+				label: "Cancel",
+				action: () => {
+					gif?.abort();
+				}
+			}
+		]
+	});
 
 	try {
 		const width = main_canvas.width;
 		const height = main_canvas.height;
-		const gif = new GIF({
+		gif = new GIF({
 			//workers: Math.min(5, Math.floor(undos.length/50)+1),
 			workerScript: "/win98-web/apps/paint/lib/gif.js/gif.worker.js",
 			width,
 			height,
-		});
-
-		$win.on("close", () => {
-			gif.abort();
 		});
 
 		gif.on("progress", (p) => {
@@ -1958,17 +1974,33 @@ function render_history_as_gif() {
 					maxWidth: "70vw",
 				})
 			);
-			$win.on("close", () => {
+
+			$win.onClosed(() => {
 				// revoking on image load(+error) breaks right click > "Save image as" and "Open image in new tab"
 				URL.revokeObjectURL(blob_url);
 			});
-			$win.$Button("Upload to Imgur", () => {
+
+			// Update buttons
+			const $buttonContainer = $win.find(".dialog-buttons");
+			$buttonContainer.empty();
+
+			const addButton = (label, action, isDefault) => {
+				const btn = document.createElement("button");
+				btn.textContent = label;
+				if (isDefault) btn.classList.add("default");
+				btn.onclick = action;
+				$buttonContainer.append(btn);
+				return btn;
+			};
+
+			addButton("Upload to Imgur", () => {
 				$win.close();
 				sanity_check_blob(blob, () => {
 					show_imgur_uploader(blob);
 				});
-			}).focus();
-			$win.$Button(localize("Save"), () => {
+			});
+
+			addButton(localize("Save"), () => {
 				$win.close();
 				sanity_check_blob(blob, () => {
 					const suggested_file_name = `${file_name.replace(/\.(bmp|dib|a?png|gif|jpe?g|jpe|jfif|tiff?|webp|raw)$/i, "")} history.gif`;
@@ -1988,7 +2020,11 @@ function render_history_as_gif() {
 					});
 				});
 			});
-			$cancel.appendTo($win.$buttons);
+
+			addButton("Cancel", () => {
+				$win.close();
+			});
+
 			$win.center();
 		});
 
@@ -2273,15 +2309,10 @@ function show_document_history() {
 	if ($document_history_window) {
 		$document_history_window.close();
 	}
-	const $w = $document_history_window = $Window({
-		title: "Document History",
-		resizable: false,
-		maximizeButton: false,
-		minimizeButton: false,
-	});
-	// $w.prependTo("body").css({position: ""});
-	$w.addClass("history-window squish");
-	$w.$content.html(`
+
+	const content = document.createElement("div");
+	content.className = "history-window squish";
+	content.innerHTML = `
 		<label>
 			<select id="history-view-mode" class="inset-deep">
 				<option value="linear">Linear timeline</option>
@@ -2289,9 +2320,21 @@ function show_document_history() {
 			</select>
 		</label>
 		<div class="history-view" tabIndex="0"></div>
-	`);
+	`;
 
-	const $history_view = $w.$content.find(".history-view");
+	const $history_view = $(content).find(".history-view");
+
+	const $w = ShowDialogWindow({
+		title: "Document History",
+		content,
+		buttons: [
+			{
+				label: localize("OK"),
+				action: () => { }
+			}
+		]
+	});
+	$document_history_window = $w;
 	$history_view.focus();
 
 	let previous_scroll_position = 0;
@@ -3187,10 +3230,9 @@ function image_attributes() {
 	if (image_attributes.$window) {
 		image_attributes.$window.close();
 	}
-	const $w = image_attributes.$window = $DialogWindow(localize("Attributes"));
-	$w.addClass("attributes-window");
 
-	const $main = $w.$main;
+	const content = document.createElement("div");
+	const $main = $(content);
 
 	// Information
 
@@ -3264,89 +3306,86 @@ function image_attributes() {
 	`);
 	$transparency.find(`[value=${transparency ? "transparent" : "opaque"}]`).attr({ checked: true });
 
-	// Buttons on the right
+	const $w = ShowDialogWindow({
+		title: localize("Attributes"),
+		content,
+		buttonAlignment: "right",
+		buttons: [
+			{
+				label: localize("OK"),
+				isDefault: true,
+				action: () => {
+					const transparency_option = $transparency.find(":checked").val();
+					const colors_option = $colors.find(":checked").val();
+					const unit = String($units.find(":checked").val());
 
-	$w.$Button(localize("OK"), () => {
-		const transparency_option = $transparency.find(":checked").val();
-		const colors_option = $colors.find(":checked").val();
-		const unit = String($units.find(":checked").val());
+					const was_monochrome = monochrome;
+					let monochrome_info;
 
-		const was_monochrome = monochrome;
-		let monochrome_info;
+					image_attributes.unit = unit;
+					transparency = (transparency_option == "transparent");
+					monochrome = (colors_option == "monochrome");
 
-		image_attributes.unit = unit;
-		transparency = (transparency_option == "transparent");
-		monochrome = (colors_option == "monochrome");
+					if (monochrome != was_monochrome) {
+						if (selection) {
+							meld_selection_into_canvas();
+						}
+						monochrome_info = detect_monochrome(main_ctx);
 
-		if (monochrome != was_monochrome) {
-			if (selection) {
-				// want to detect monochrome based on selection + canvas
-				// simplest way to do that is to meld them together
-				meld_selection_into_canvas();
-			}
-			monochrome_info = detect_monochrome(main_ctx);
+						if (monochrome) {
+							if (monochrome_info.isMonochrome && monochrome_info.presentNonTransparentRGBAs.length === 2) {
+								palette = make_monochrome_palette(...monochrome_info.presentNonTransparentRGBAs);
+							} else {
+								palette = monochrome_palette;
+							}
+						} else {
+							palette = polychrome_palette;
+						}
+						selected_colors.foreground = palette[0];
+						selected_colors.background = palette[14]; // first in second row
+						selected_colors.ternary = "";
+						$colorbox.rebuild_palette();
+						$G.trigger("option-changed");
+					}
 
-			if (monochrome) {
-				if (monochrome_info.isMonochrome && monochrome_info.presentNonTransparentRGBAs.length === 2) {
-					palette = make_monochrome_palette(...monochrome_info.presentNonTransparentRGBAs);
-				} else {
-					palette = monochrome_palette;
+					const unit_to_px = unit_sizes_in_px[unit];
+					const width = Number($width.val()) * unit_to_px;
+					const height = Number($height.val()) * unit_to_px;
+					resize_canvas_and_save_dimensions(~~width, ~~height);
+
+					if (!transparency && has_any_transparency(main_ctx)) {
+						make_opaque();
+					}
+
+					if (monochrome != was_monochrome) {
+						if (monochrome && !monochrome_info.isMonochrome) {
+							show_convert_to_black_and_white();
+						}
+					}
 				}
-			} else {
-				palette = polychrome_palette;
+			},
+			{
+				label: localize("Cancel"),
+				action: () => { }
+			},
+			{
+				label: localize("Default"),
+				action: () => {
+					width_in_px = default_canvas_width;
+					height_in_px = default_canvas_height;
+					$width.val(width_in_px / unit_sizes_in_px[current_unit]);
+					$height.val(height_in_px / unit_sizes_in_px[current_unit]);
+					return false; // Don't close
+				}
 			}
-			selected_colors.foreground = palette[0];
-			selected_colors.background = palette[14]; // first in second row
-			selected_colors.ternary = "";
-			$colorbox.rebuild_palette();
-			$G.trigger("option-changed");
-		}
-
-		const unit_to_px = unit_sizes_in_px[unit];
-		const width = Number($width.val()) * unit_to_px;
-		const height = Number($height.val()) * unit_to_px;
-		resize_canvas_and_save_dimensions(~~width, ~~height);
-
-		if (!transparency && has_any_transparency(main_ctx)) {
-			make_opaque();
-		}
-
-		// 1. Must be after canvas resize to avoid weird undoable interaction and such.
-		// 2. Check that monochrome option changed, same as above.
-		//   a) for monochrome_info variable to be available
-		//   b) Consider the case where color is introduced to the canvas while in monochrome mode.
-		//      We only want to show this dialog if it would also change the palette (above), never leave you on an outdated palette.
-		//   c) And it's nice to be able to change other options without worrying about it trying to convert the document to monochrome.
-		if (monochrome != was_monochrome) {
-			if (monochrome && !monochrome_info.isMonochrome) {
-				show_convert_to_black_and_white();
-			}
-		}
-
-		image_attributes.$window.close();
-	}, { type: "submit" });
-
-	$w.$Button(localize("Cancel"), () => {
-		image_attributes.$window.close();
+		]
 	});
 
-	// Parsing HTML with jQuery; $Button takes text (not HTML) or Node/DocumentFragment
-	$w.$Button($.parseHTML(render_access_key(localize("&Default")))[0], () => {
-		width_in_px = default_canvas_width;
-		height_in_px = default_canvas_height;
-		$width.val(width_in_px / unit_sizes_in_px[current_unit]);
-		$height.val(height_in_px / unit_sizes_in_px[current_unit]);
-	}).attr("aria-keyshortcuts", "Alt+D D");
+	image_attributes.$window = $w;
+	$w.addClass("attributes-window");
 
 	handle_keyshortcuts($w);
-
-	// Default focus
-
 	$width.select();
-
-	// Reposition the window
-
-	image_attributes.$window.center();
 }
 
 // TODO: maybe don't tack properties onto functions so much!?
@@ -3362,10 +3401,9 @@ image_attributes.$window = null;
 image_attributes.unit = "px";
 
 function show_convert_to_black_and_white() {
-	const $w = $DialogWindow("Convert to Black and White");
-	$w.addClass("convert-to-black-and-white");
-	$w.$main.append("<fieldset><legend>Threshold:</legend><input type='range' min='0' max='1' step='0.01' value='0.5'></fieldset>");
-	const $slider = $w.$main.find("input[type='range']");
+	const content = document.createElement("div");
+	content.innerHTML = "<fieldset><legend>Threshold:</legend><input type='range' min='0' max='1' step='0.01' value='0.5'></fieldset>";
+	const $slider = $(content).find("input[type='range']");
 	const original_canvas = make_canvas(main_canvas);
 	let threshold;
 	const update_threshold = () => {
@@ -3383,30 +3421,40 @@ function show_convert_to_black_and_white() {
 	const update_threshold_soon = debounce(update_threshold, 100);
 	$slider.on("input", update_threshold_soon);
 
-	$w.$Button(localize("OK"), () => {
-		$w.close();
-	}, { type: "submit" }).focus();
-	$w.$Button(localize("Cancel"), () => {
-		if (current_history_node.name === "Make Monochrome") {
-			undo();
-		} else {
-			undoable({
-				name: "Cancel Make Monochrome",
-				icon: get_help_folder_icon("p_color.png"),
-			}, () => {
-				main_ctx.copy(original_canvas);
-			});
-		}
-		$w.close();
+	const $w = ShowDialogWindow({
+		title: "Convert to Black and White",
+		content,
+		buttons: [
+			{
+				label: localize("OK"),
+				isDefault: true,
+				action: () => { }
+			},
+			{
+				label: localize("Cancel"),
+				action: () => {
+					if (current_history_node.name === "Make Monochrome") {
+						undo();
+					} else {
+						undoable({
+							name: "Cancel Make Monochrome",
+							icon: get_help_folder_icon("p_color.png"),
+						}, () => {
+							main_ctx.copy(original_canvas);
+						});
+					}
+				}
+			}
+		]
 	});
-	$w.center();
+	$w.addClass("convert-to-black-and-white");
 }
 
 function image_flip_and_rotate() {
-	const $w = $DialogWindow(localize("Flip and Rotate"));
-	$w.addClass("flip-and-rotate");
+	const content = document.createElement("div");
+	const $content = $(content);
 
-	const $fieldset = $(E("fieldset")).appendTo($w.$main);
+	const $fieldset = $(E("fieldset")).appendTo($content);
 	$fieldset.append(`
 		<legend>${localize("Flip or rotate")}</legend>
 		<div class="radio-wrapper">
@@ -3510,52 +3558,60 @@ function image_flip_and_rotate() {
 		$fieldset.find("input[value='arbitrary']").prop("checked", true);
 	});
 
-	$w.$Button(localize("OK"), () => {
-		const action = $fieldset.find("input[name='flip-or-rotate']:checked").val();
-		switch (action) {
-			case "flip-horizontal":
-				flip_horizontal();
-				break;
-			case "flip-vertical":
-				flip_vertical();
-				break;
-			case "rotate-by-angle": {
-				let angle_val = $fieldset.find("input[name='rotate-by-angle']:checked").val();
-				if (angle_val === "arbitrary") {
-					angle_val = $fieldset.find("input[name='rotate-by-arbitrary-angle']").val();
-				}
-				const angle_deg = Number(angle_val);
-				const angle = angle_deg / 360 * TAU;
+	const $w = ShowDialogWindow({
+		title: localize("Flip and Rotate"),
+		content,
+		buttonAlignment: "right",
+		buttons: [
+			{
+				label: localize("OK"),
+				isDefault: true,
+				action: () => {
+					const action = $fieldset.find("input[name='flip-or-rotate']:checked").val();
+					switch (action) {
+						case "flip-horizontal":
+							flip_horizontal();
+							break;
+						case "flip-vertical":
+							flip_vertical();
+							break;
+						case "rotate-by-angle": {
+							let angle_val = $fieldset.find("input[name='rotate-by-angle']:checked").val();
+							if (angle_val === "arbitrary") {
+								angle_val = $fieldset.find("input[name='rotate-by-arbitrary-angle']").val();
+							}
+							const angle_deg = Number(angle_val);
+							const angle = angle_deg / 360 * TAU;
 
-				if (isNaN(angle)) {
-					please_enter_a_number();
-					return;
+							if (isNaN(angle)) {
+								please_enter_a_number();
+								return false;
+							}
+							rotate(angle);
+							break;
+						}
+					}
 				}
-				rotate(angle);
-				break;
+			},
+			{
+				label: localize("Cancel"),
+				action: () => { }
 			}
-		}
-
-		$w.close();
-	}, { type: "submit" });
-	$w.$Button(localize("Cancel"), () => {
-		$w.close();
+		]
 	});
+	$w.addClass("flip-and-rotate");
 
 	$fieldset.find("input[type='radio']").first().focus();
-
-	$w.center();
-
 	handle_keyshortcuts($w);
 }
 
 function image_stretch_and_skew() {
-	const $w = $DialogWindow(localize("Stretch and Skew"));
-	$w.addClass("stretch-and-skew");
+	const content = document.createElement("div");
+	const $content = $(content);
 
-	const $fieldset_stretch = $(E("fieldset")).appendTo($w.$main);
+	const $fieldset_stretch = $(E("fieldset")).appendTo($content);
 	$fieldset_stretch.append(`<legend>${localize("Stretch")}</legend><table></table>`);
-	const $fieldset_skew = $(E("fieldset")).appendTo($w.$main);
+	const $fieldset_skew = $(E("fieldset")).appendTo($content);
 	$fieldset_skew.append(`<legend>${localize("Skew")}</legend><table></table>`);
 
 	const $RowInput = ($table, img_src, label_with_hotkey, default_value, label_unit, min, max) => {
@@ -3591,38 +3647,46 @@ function image_stretch_and_skew() {
 	const skew_x = $RowInput($fieldset_skew.find("table"), "skew-x", localize("H&orizontal:"), 0, localize("Degrees"), -90, 90);
 	const skew_y = $RowInput($fieldset_skew.find("table"), "skew-y", localize("V&ertical:"), 0, localize("Degrees"), -90, 90);
 
-	$w.$Button(localize("OK"), () => {
-		const x_scale = parseFloat(stretch_x.val()) / 100;
-		const y_scale = parseFloat(stretch_y.val()) / 100;
-		const h_skew = parseFloat(skew_x.val()) / 360 * TAU;
-		const v_skew = parseFloat(skew_y.val()) / 360 * TAU;
-		if (isNaN(x_scale) || isNaN(y_scale) || isNaN(h_skew) || isNaN(v_skew)) {
-			please_enter_a_number();
-			return;
-		}
-		try {
-			stretch_and_skew(x_scale, y_scale, h_skew, v_skew);
-		} catch (exception) {
-			if (exception.name === "NS_ERROR_FAILURE") {
-				// or localize("There is not enough memory or resources to complete operation.")
-				show_error_message(localize("Insufficient memory to perform operation."), exception);
-			} else {
-				show_error_message(localize("An unknown error has occurred."), exception);
+	const $w = ShowDialogWindow({
+		title: localize("Stretch and Skew"),
+		content,
+		buttonAlignment: "right",
+		buttons: [
+			{
+				label: localize("OK"),
+				isDefault: true,
+				action: () => {
+					const x_scale = parseFloat(stretch_x.val()) / 100;
+					const y_scale = parseFloat(stretch_y.val()) / 100;
+					const h_skew = parseFloat(skew_x.val()) / 360 * TAU;
+					const v_skew = parseFloat(skew_y.val()) / 360 * TAU;
+					if (isNaN(x_scale) || isNaN(y_scale) || isNaN(h_skew) || isNaN(v_skew)) {
+						please_enter_a_number();
+						return false;
+					}
+					try {
+						stretch_and_skew(x_scale, y_scale, h_skew, v_skew);
+					} catch (exception) {
+						if (exception.name === "NS_ERROR_FAILURE") {
+							// or localize("There is not enough memory or resources to complete operation.")
+							show_error_message(localize("Insufficient memory to perform operation."), exception);
+						} else {
+							show_error_message(localize("An unknown error has occurred."), exception);
+						}
+						// @TODO: undo and clean up undoable
+						return false;
+					}
+				}
+			},
+			{
+				label: localize("Cancel"),
+				action: () => { }
 			}
-			// @TODO: undo and clean up undoable
-			return;
-		}
-		$w.close();
-	}, { type: "submit" });
-
-	$w.$Button(localize("Cancel"), () => {
-		$w.close();
+		]
 	});
+	$w.addClass("stretch-and-skew");
 
-	$w.$main.find("input").first().focus().select();
-
-	$w.center();
-
+	$content.find("input").first().focus().select();
 	handle_keyshortcuts($w);
 }
 
@@ -3714,31 +3778,26 @@ function save_as_prompt({
 	promptForName = true,
 }) {
 	return new Promise((resolve) => {
-		const $w = $DialogWindow(dialogTitle);
-		$w.addClass("save-as");
-
-		// This is needed to prevent the keyboard from closing when you tap the file name input! in FF mobile
-		// @TODO: Investigate this in os-gui.js; is it literally just the browser default behavior to focus a div with tabindex that's the parent of an input?
-		// That'd be crazy, right?
-		$w.$content.attr("tabIndex", null);
+		const content = document.createElement("div");
+		const $content = $(content);
 
 		// @TODO: hotkeys (N, T, S, Enter, Esc)
 		if (promptForName) {
-			$w.$main.append(`
+			$content.append(`
 				<label>
 					File name:
 					<input type="text" class="file-name inset-deep"/>
 				</label>
 			`);
 		}
-		$w.$main.append(`
+		$content.append(`
 			<label>
 				Save as type:
 				<select class="file-type-select inset-deep"></select>
 			</label>
 		`);
-		const $file_type = $w.$main.find(".file-type-select");
-		const $file_name = $w.$main.find(".file-name");
+		const $file_type = $content.find(".file-type-select");
+		const $file_name = $content.find(".file-name");
 
 		for (const format of formats) {
 			$file_type.append($("<option>").val(format.formatID).text(format.nameWithExtensions));
@@ -3815,19 +3874,32 @@ function save_as_prompt({
 		// and initially
 		update_extension_from_file_type(false);
 
-		const $save = $w.$Button(localize("Save"), () => {
-			$w.close();
-			update_extension_from_file_type(true);
-			resolve({
-				newFileName: promptForName ? String($file_name.val()) : defaultFileName,
-				newFileFormatID: String($file_type.val()),
-			});
-		}, { type: "submit" });
-		$w.$Button(localize("Cancel"), () => {
-			$w.close();
+		const $w = ShowDialogWindow({
+			title: dialogTitle,
+			content,
+			buttons: [
+				{
+					label: localize("Save"),
+					isDefault: true,
+					action: () => {
+						update_extension_from_file_type(true);
+						resolve({
+							newFileName: promptForName ? String($file_name.val()) : defaultFileName,
+							newFileFormatID: String($file_type.val()),
+						});
+					}
+				},
+				{
+					label: localize("Cancel"),
+					action: () => { }
+				}
+			]
 		});
+		$w.addClass("save-as");
 
-		$w.center();
+		// This is needed to prevent the keyboard from closing when you tap the file name input! in FF mobile
+		$w.$content.attr("tabIndex", null);
+
 		// For mobile devices with on-screen keyboards, move the window to the top
 		if (window.innerWidth < 500 || window.innerHeight < 700) {
 			$w.css({ top: 20 });
@@ -3835,9 +3907,6 @@ function save_as_prompt({
 
 		if (promptForName) {
 			$file_name.focus().select();
-		} else {
-			// $file_type.focus(); // most of the time you don't want to change the type from PNG
-			$save.focus();
 		}
 	});
 }
@@ -4179,9 +4248,9 @@ function sanity_check_blob(blob, okay_callback, magic_number_bytes, magic_wanted
  * @param {boolean} from_current_document
  */
 function show_multi_user_setup_dialog(from_current_document) {
-	const $w = $DialogWindow();
-	$w.title("Multi-User Setup").addClass("horizontal-buttons");
-	$w.$main.html(`
+	const content = document.createElement("div");
+	content.style.maxWidth = "500px";
+	content.innerHTML = `
 		${from_current_document ? "<p>This will make the current document public.</p>" : ""}
 		<p>
 			<!-- Choose a name for the multi-user session, included in the URL for sharing: -->
@@ -4200,31 +4269,42 @@ function show_multi_user_setup_dialog(from_current_document) {
 				>
 			</label>
 		</p>
-	`);
-	const $session_name = $w.$main.find("#session-name");
-	$w.$main.css({ maxWidth: "500px" });
-	$w.$Button("Start", () => {
-		let name = String($session_name.val()).trim();
+	`;
+	const $session_name = $(content).find("#session-name");
 
-		if (name == "") {
-			show_error_message("The session name cannot be empty.");
-		} else if ($session_name.is(":invalid")) {
-			show_error_message("The session name must be made from only numbers, letters, and hyphens.");
-		} else {
-			if (from_current_document) {
-				change_url_param("session", name);
-			} else {
-				// @TODO: load new empty session in the same browser tab
-				// (or at least... keep settings like vertical-color-box-mode?)
-				window.open(`${location.origin}${location.pathname}#session:${name}`);
+	const $w = ShowDialogWindow({
+		title: "Multi-User Setup",
+		content,
+		buttons: [
+			{
+				label: "Start",
+				isDefault: true,
+				action: () => {
+					let name = String($session_name.val()).trim();
+
+					if (name == "") {
+						show_error_message("The session name cannot be empty.");
+						return false; // Don't close
+					} else if ($session_name.is(":invalid")) {
+						show_error_message("The session name must be made from only numbers, letters, and hyphens.");
+						return false; // Don't close
+					} else {
+						if (from_current_document) {
+							change_url_param("session", name);
+						} else {
+							// @TODO: load new empty session in the same browser tab
+							// (or at least... keep settings like vertical-color-box-mode?)
+							window.open(`${location.origin}${location.pathname}#session:${name}`);
+						}
+					}
+				}
+			},
+			{
+				label: localize("Cancel"),
+				action: () => { }
 			}
-			$w.close();
-		}
-	}, { type: "submit" });
-	$w.$Button(localize("Cancel"), () => {
-		$w.close();
+		]
 	});
-	$w.center();
 	$session_name.focus();
 }
 

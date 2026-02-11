@@ -8,38 +8,10 @@
 // and set `window.defaultMessageBoxTitle` which is used in 98.js.org to set the default title for message boxes...
 // or, couldn't we just provide the default in a wrapper function, similar to how 98.js.org does it?
 
-import { make_window_supporting_scale } from "./$ToolWindow.js";
+import { ShowDialogWindow } from "../../../shared/components/dialog-window.js";
 // import { localize } from "./app-localization.js";
 
 const exports = {};
-
-const CHORD_WAV_URL = "/win98-web/apps/paint/audio/chord.wav";
-
-try {
-	// <audio> element is simpler for sound effects,
-	// but in iOS/iPad it shows up in the Control Center, as if it's music you'd want to play/pause/etc.
-	// It's very silly. Also, on subsequent plays, it only plays part of the sound.
-	// And Web Audio API is better for playing SFX anyway because it can play a sound overlapping with itself.
-	const audioContext = window.audioContext = window.audioContext || new AudioContext();
-	const audio_buffer_promise =
-		fetch(CHORD_WAV_URL)
-			.then((response) => response.arrayBuffer())
-			.then((array_buffer) => audioContext.decodeAudioData(array_buffer));
-	var play_chord = async function () {
-		audioContext.resume(); // in case it was not allowed to start until a user interaction
-		// Note that this should be before waiting for the audio buffer,
-		// so that it works the first time.
-		// (This only works if the message box is opened during a user gesture.)
-
-		const audio_buffer = await audio_buffer_promise;
-		const source = audioContext.createBufferSource();
-		source.buffer = audio_buffer;
-		source.connect(audioContext.destination);
-		source.start();
-	};
-} catch (error) {
-	console.log("AudioContext not supported", error);
-}
 
 /**
  * @typedef {Object} MessageBoxOptions
@@ -47,7 +19,7 @@ try {
  * @property {string} [message]
  * @property {string} [messageHTML]
  * @property {Array<{ label: string, value: string, default?: boolean, action?: () => void }>} [buttons]
- * @property {"error" | "warning" | "info" | "nuke"} [iconID]
+ * @property {"error" | "warning" | "info" | "nuke" | "question"} [iconID]
  * @property {OSGUIWindowOptions} [windowOptions]
  *
  * @typedef {Promise<string> & { $window: JQuery<Window>, $message: JQuery<HTMLDivElement>, promise: MessageBoxPromise }} MessageBoxPromise
@@ -60,87 +32,57 @@ function showMessageBox_implementation({
 	message,
 	messageHTML,
 	buttons = [{ label: "OK", value: "ok", default: true }],
-	iconID = "warning", // "error", "warning", "info", or "nuke" for deleting files/folders
+	iconID = "warning", // "error", "warning", "info", "nuke", or "question"
 	windowOptions = {}, // for controlling width, etc.
 }) {
-	let $window, $message;
-	const promise = /** @type {MessageBoxPromise} */ (new Promise((resolve) => {
-		$window = make_window_supporting_scale(Object.assign({
-			title,
-			resizable: false,
-			innerWidth: 400,
-			maximizeButton: false,
-			minimizeButton: false,
-		}, windowOptions));
-		// $window.addClass("dialog-window horizontal-buttons");
-		$message =
-			$("<div>").css({
-				textAlign: "left",
-				fontFamily: "MS Sans Serif, Arial, sans-serif",
-				fontSize: "14px",
-				marginTop: "22px",
-				flex: 1,
-				minWidth: 0, // Fixes hidden overflow, see https://css-tricks.com/flexbox-truncated-text/
-				whiteSpace: "normal", // overriding .window:not(.squish)
-			});
-		if (messageHTML) {
-			$message.html(messageHTML);
-		} else if (message) { // both are optional because you may populate later with dynamic content
-			$message.text(message).css({
-				whiteSpace: "pre-wrap",
-				wordWrap: "break-word",
-			});
-		}
-		$("<div>").append(
-			$("<img width='32' height='32'>").attr("src", `/win98-web/apps/paint/images/${iconID}-32x32-8bpp.png`).css({
-				margin: "16px",
-				display: "block",
-			}),
-			$message
-		).css({
-			display: "flex",
-			flexDirection: "row",
-		}).appendTo($window.$content);
+	const soundEventMap = {
+		error: "SystemHand",
+		warning: "SystemExclamation",
+		info: "SystemAsterisk",
+		nuke: "SystemExclamation",
+		question: "SystemQuestion",
+	};
 
-		$window.$content.css({
-			textAlign: "center",
-		});
-		for (const button of buttons) {
-			const $button = $window.$Button(button.label, () => {
-				button.action?.(); // API may be required for using user gesture requiring APIs
-				resolve(button.value);
-				$window.close(); // actually happens automatically
-			});
-			if (button.default) {
-				$button.addClass("default");
-				$button.focus();
-				setTimeout(() => $button.focus(), 0); // @TODO: why is this needed? does it have to do with the iframe window handling?
-			}
-			$button.css({
-				minWidth: 75,
-				height: 23,
-				margin: "16px 2px",
-			});
-		}
-		$window.on("focusin", "button", (event) => {
-			$(event.currentTarget).addClass("default");
-		});
-		$window.on("focusout", "button", (event) => {
-			$(event.currentTarget).removeClass("default");
-		});
-		$window.on("closed", () => {
-			resolve("closed"); // or "cancel"? do you need to distinguish?
-		});
-		$window.center();
+	let resolvePromise;
+	const promise = /** @type {MessageBoxPromise} */ (new Promise((resolve) => {
+		resolvePromise = resolve;
 	}));
-	promise.$window = $window;
+
+	const dialogButtons = buttons.map((btn) => ({
+		label: btn.label,
+		isDefault: btn.default,
+		action: () => {
+			btn.action?.();
+			resolvePromise(btn.value);
+		},
+	}));
+
+	const escapeHTML = (str) => {
+		const p = document.createElement("p");
+		p.textContent = str;
+		return p.innerHTML;
+	};
+
+	const win = ShowDialogWindow({
+		title,
+		text: messageHTML || (message ? escapeHTML(message).replace(/\n/g, "<br>") : ""),
+		buttons: dialogButtons,
+		contentIconUrl: `/win98-web/apps/paint/images/${iconID}-32x32-8bpp.png`,
+		soundEvent: soundEventMap[iconID] || "SystemExclamation",
+		modal: true,
+	});
+
+	win.onClosed(() => {
+		resolvePromise("closed");
+	});
+
+	// Compatibility shims for Paint's expectations
+	promise.$window = win;
+	// Paint expects $message to be a jQuery object for further manipulation in some cases
+	const $message = win.$content.find(".dialog-content-text");
 	promise.$message = $message;
-	promise.promise = promise; // for easy destructuring
-	try {
-		play_chord();
-	} catch (error) {
-		console.log(`Failed to play ${CHORD_WAV_URL}: `, error);
-	}
+	promise.promise = promise;
+
 	return promise;
 }
 
