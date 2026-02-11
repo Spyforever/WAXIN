@@ -39,7 +39,7 @@
 .smiley {
     width: 23px;
     height: 23px;
-    background-image: url("./minesweeper-smiley-neutral.png");
+    background-image: url("./assets/minesweeper-smiley-neutral.png");
     background-size: auto;
     background-position: center;
     background-repeat: no-repeat;
