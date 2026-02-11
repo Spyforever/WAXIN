@@ -11,6 +11,7 @@ export const aboutContent = `
       <h1>Windows 98 Web Edition version ${version}</h1>
       <p>A web-based operating system based on Windows 98, with some quirks.</p>
       <p>Copyright (C) 1997-2025 Microsoft Corp. All rights reserved.</p>
+      <div class="version-status" style="margin-top: 16px; font-style: italic;">Checking for updates...</div>
     </div>
   </div>
 `;

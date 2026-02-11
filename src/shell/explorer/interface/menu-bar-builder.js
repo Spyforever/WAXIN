@@ -240,14 +240,24 @@ export class MenuBarBuilder {
           const selectedPaths = [...selectedIcons].map((icon) =>
             icon.getAttribute("data-path"),
           );
+          const targets =
+            selectedPaths.length > 0 ? selectedPaths : [this.app.currentPath];
+          const isMyComputerSelected = targets.some(
+            (p) => p === "/" || p === "/Desktop/My Computer",
+          );
+
+          if (isMyComputerSelected) {
+            const { launchApp } = await import(
+              "../../../system/app-manager.js"
+            );
+            launchApp("about");
+            return;
+          }
+
           const busyId = `properties-${Math.random()}`;
           requestBusyState(busyId, this.app.win.element);
           try {
-            if (selectedPaths.length > 0) {
-              await PropertiesManager.show(selectedPaths);
-            } else {
-              await PropertiesManager.show([this.app.currentPath]);
-            }
+            await PropertiesManager.show(targets);
           } finally {
             releaseBusyState(busyId, this.app.win.element);
           }
