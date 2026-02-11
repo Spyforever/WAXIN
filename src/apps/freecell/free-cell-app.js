@@ -800,23 +800,21 @@ export class FreeCellApp extends Application {
 
   async startAutoMove() {
     this.isAnimating = true;
-    let moves;
-    while ((moves = this.game.findAllFoundationMoves()).length > 0) {
-      for (const move of moves) {
-        if (!this.options.get("quickPlay")) {
-          // Hide the original card
-          move.card.element.style.opacity = "0";
+    let move;
+    while ((move = this.game.findNextFoundationMove())) {
+      if (!this.options.get("quickPlay")) {
+        // Hide the original card
+        move.card.element.style.opacity = "0";
 
-          // Animate the move
-          await this.animateMove([move.card], move.toType, move.toIndex);
-        }
-
-        // Update the game state
-        this.game.moveCard(move.card, move.from, move.toType, move.toIndex);
-
-        // Re-render the board to reflect the move
-        this.render();
+        // Animate the move
+        await this.animateMove([move.card], move.toType, move.toIndex);
       }
+
+      // Update the game state
+      this.game.moveCard(move.card, move.from, move.toType, move.toIndex);
+
+      // Re-render the board to reflect the move
+      this.render();
     }
     this.isAnimating = false;
 
