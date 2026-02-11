@@ -2,6 +2,7 @@ import { Application } from '../../system/application.js';
 import { fs } from "@zenfs/core";
 import { ICONS } from '../../config/icons.js';
 import { ShowFilePicker } from '../../shared/utils/file-picker.js';
+import { setItem, LOCAL_STORAGE_KEYS } from '../../system/local-storage.js';
 import './paint.css'; // I'll create this file to import all paint styles
 
 export class PaintApp extends Application {
@@ -91,6 +92,14 @@ export class PaintApp extends Application {
             if (this.win) {
                 this.win.title(title);
             }
+        };
+
+        window.systemHooks.setWallpaperTiled = async (canvas) => {
+            await this._setWallpaper(canvas, "tile");
+        };
+
+        window.systemHooks.setWallpaperCentered = async (canvas) => {
+            await this._setWallpaper(canvas, "center");
         };
 
         // Override window.close for jspaint to use our window component
@@ -265,6 +274,74 @@ export class PaintApp extends Application {
         }
 
         this._setupDragAndDrop();
+    }
+
+    async _setWallpaper(canvas, mode) {
+        await import('./src/app-localization.js');
+        const localize = window.localize;
+        const { image_formats } = await import('./src/file-format-data.js');
+        const { write_image_file, update_title, update_from_saved_file } = await import('./src/functions.js');
+
+        const doSet = (path) => {
+            setItem(LOCAL_STORAGE_KEYS.WALLPAPER, path);
+            setItem(LOCAL_STORAGE_KEYS.WALLPAPER_MODE, mode);
+            document.dispatchEvent(new CustomEvent("wallpaper-changed"));
+        };
+
+        const isZenFSPath = (path) => typeof path === 'string' && path.startsWith('/');
+
+        if (window.saved && isZenFSPath(window.system_file_handle)) {
+            doSet(window.system_file_handle);
+            return;
+        }
+
+        if (isZenFSPath(window.system_file_handle)) {
+            // Dirty but has a ZenFS path. Save it automatically (like File > Save)
+            const extension = window.system_file_handle.split('.').pop().toLowerCase();
+            const format = image_formats.find(f => f.extensions.includes(extension)) || image_formats[0];
+
+            return new Promise((resolve) => {
+                write_image_file(canvas, format.mimeType, async (blob) => {
+                    const success = await window.systemHooks.writeBlobToHandle(window.system_file_handle, blob);
+                    if (success) {
+                        window.saved = true;
+                        update_title();
+                        doSet(window.system_file_handle);
+                    }
+                    resolve();
+                });
+            });
+        }
+
+        // Untitled or not in ZenFS. Show Save As dialog.
+        // This matches File > Save for untitled files.
+        const fileName = window.file_name || "wallpaper";
+        const defaultFileName = `${fileName.replace(/\.(bmp|dib|a?png|gif|jpe?g|jpe|jfif|tiff?|webp|raw)$/i, "") || "wallpaper"} wallpaper.png`;
+
+        window.systemHooks.showSaveFileDialog({
+            dialogTitle: localize("Save As"),
+            defaultFileName,
+            defaultFileFormatID: "image/png",
+            formats: image_formats,
+            getBlob: (new_file_type) => {
+                return new Promise((resolve) => {
+                    write_image_file(canvas, new_file_type, (blob) => {
+                        resolve(blob);
+                    });
+                });
+            },
+            savedCallbackUnreliable: ({ newFileName, newFileFormatID, newFileHandle, newBlob }) => {
+                if (newFileHandle) {
+                    window.saved = true;
+                    window.system_file_handle = newFileHandle;
+                    window.file_name = newFileName;
+                    window.file_format = newFileFormatID;
+                    update_title();
+                    update_from_saved_file(newBlob);
+                    doSet(newFileHandle);
+                }
+            },
+        });
     }
 
     _setupDragAndDrop() {
