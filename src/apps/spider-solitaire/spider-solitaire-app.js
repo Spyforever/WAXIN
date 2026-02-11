@@ -522,7 +522,6 @@ export class SpiderSolitaireApp extends Application {
   }
 
   handleStart(clientX, clientY, target, isTouch) {
-    this.wasDragged = false;
     const cardDiv = target.closest(".card");
     if (!cardDiv) return;
 
@@ -571,10 +570,7 @@ export class SpiderSolitaireApp extends Application {
       this.draggedElement.style.left = `${cardRect.left - containerRect.left}px`;
       this.draggedElement.style.top = `${cardRect.top - containerRect.top}px`;
 
-      if (isTouch) {
-        window.addEventListener("touchmove", this.boundOnTouchMove, { passive: false });
-        window.addEventListener("touchend", this.boundOnTouchEnd);
-      } else {
+      if (!isTouch) {
         window.addEventListener("mousemove", this.boundOnMouseMove);
         window.addEventListener("mouseup", this.boundOnMouseUp);
       }
@@ -661,6 +657,7 @@ export class SpiderSolitaireApp extends Application {
 
   onMouseDown(event) {
     if (event.button !== 0) return; // Only main button
+    this.wasDragged = false;
     this.handleStart(event.clientX, event.clientY, event.target, false);
   }
 
@@ -676,18 +673,27 @@ export class SpiderSolitaireApp extends Application {
     if (event.touches.length > 1) return;
     const touch = event.touches[0];
     this.initialTouchTarget = touch.target;
+    this.wasDragged = false;
+
+    window.addEventListener("touchmove", this.boundOnTouchMove, { passive: false });
+    window.addEventListener("touchend", this.boundOnTouchEnd);
+
     this.handleStart(touch.clientX, touch.clientY, touch.target, true);
     event.preventDefault();
   }
 
   onTouchMove(event) {
-    if (!this.isDragging) return;
     const touch = event.touches[0];
     this.handleMove(touch.clientX, touch.clientY);
-    event.preventDefault();
+    if (this.isDragging) {
+      event.preventDefault();
+    }
   }
 
   async onTouchEnd(event) {
+    window.removeEventListener("touchmove", this.boundOnTouchMove);
+    window.removeEventListener("touchend", this.boundOnTouchEnd);
+
     if (!this.wasDragged) {
       this.handleTap(this.initialTouchTarget);
     }
