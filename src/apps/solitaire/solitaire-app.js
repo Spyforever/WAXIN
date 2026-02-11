@@ -584,8 +584,6 @@ export class SolitaireApp extends Application {
   }
 
   handleStart(clientX, clientY, target, isTouch) {
-    this.wasDragged = false;
-
     const cardDiv = target.closest(".card");
     if (!cardDiv) return;
 
@@ -609,6 +607,7 @@ export class SolitaireApp extends Application {
           }
           this.render();
           this._updateMenuBar(this.win);
+          this.doubleTapHandled = true;
         }
       }
       this.lastClickTime = 0;
@@ -690,10 +689,7 @@ export class SolitaireApp extends Application {
       this.draggedElement.style.top = `${cardRect.top - containerRect.top}px`;
     }
 
-    if (isTouch) {
-      window.addEventListener("touchmove", this.boundOnTouchMove, { passive: false });
-      window.addEventListener("touchend", this.boundOnTouchEnd);
-    } else {
+    if (!isTouch) {
       window.addEventListener("mousemove", this.boundOnMouseMove);
       window.addEventListener("mouseup", this.boundOnMouseUp);
     }
@@ -836,6 +832,8 @@ export class SolitaireApp extends Application {
 
   onMouseDown(event) {
     if (event.button !== 0) return; // Only main button
+    this.wasDragged = false;
+    this.doubleTapHandled = false;
     this.handleStart(event.clientX, event.clientY, event.target, false);
   }
 
@@ -851,19 +849,29 @@ export class SolitaireApp extends Application {
     if (event.touches.length > 1) return;
     const touch = event.touches[0];
     this.initialTouchTarget = touch.target;
+    this.wasDragged = false;
+    this.doubleTapHandled = false;
+
+    window.addEventListener("touchmove", this.boundOnTouchMove, { passive: false });
+    window.addEventListener("touchend", this.boundOnTouchEnd);
+
     this.handleStart(touch.clientX, touch.clientY, touch.target, true);
     event.preventDefault();
   }
 
   onTouchMove(event) {
-    if (!this.isDragging) return;
     const touch = event.touches[0];
     this.handleMove(touch.clientX, touch.clientY);
-    event.preventDefault();
+    if (this.isDragging) {
+      event.preventDefault();
+    }
   }
 
   onTouchEnd(event) {
-    if (!this.wasDragged) {
+    window.removeEventListener("touchmove", this.boundOnTouchMove);
+    window.removeEventListener("touchend", this.boundOnTouchEnd);
+
+    if (!this.wasDragged && !this.doubleTapHandled) {
       this.handleTap(this.initialTouchTarget);
     }
     this.handleEnd(true);
