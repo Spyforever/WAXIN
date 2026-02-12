@@ -242,22 +242,6 @@ export async function initFileSystem(onProgress) {
       await fs.promises.mkdir(PINNED_PATH, { recursive: true });
     }
 
-    // Ensure About shortcut exists in PINNED_PATH
-    const aboutLnkPath = `${PINNED_PATH}/About.lnk.json`;
-    if (!(await existsAsync(aboutLnkPath))) {
-      await fs.promises.writeFile(
-        aboutLnkPath,
-        JSON.stringify(
-          {
-            type: "shortcut",
-            appId: "about",
-          },
-          null,
-          2,
-        ),
-      );
-    }
-
     if (!(await existsAsync(START_MENU_PATH))) {
       if (onProgress) onProgress("Populating Programs menu...");
       await refreshPrograms();
