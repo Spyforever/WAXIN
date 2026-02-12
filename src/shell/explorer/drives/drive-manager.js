@@ -9,6 +9,7 @@ import {
 import { FloppyManager } from './floppy-manager.js';
 import { CDManager } from './cd-manager.js';
 import { RemovableDiskManager } from './removable-disk-manager.js';
+import { saveDiskHandle, removeDiskHandle } from '../../../system/removable-disk-persistence.js';
 
 export class DriveManager {
   constructor(app) {
@@ -178,6 +179,7 @@ export class DriveManager {
         const diskFs = await WebAccess.create({ handle });
         mount(mountPoint, diskFs);
         RemovableDiskManager.mount(letter, handle.name);
+        await saveDiskHandle(letter, handle);
         document.dispatchEvent(new CustomEvent("removable-disk-change"));
       } finally {
         releaseBusyState(busyRequesterId, this.app.win.element);
@@ -200,6 +202,7 @@ export class DriveManager {
       try {
         umount(mountPoint);
         RemovableDiskManager.unmount(letter);
+        await removeDiskHandle(letter);
 
         try {
           if (fs.existsSync(mountPoint)) {

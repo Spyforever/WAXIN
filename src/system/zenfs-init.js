@@ -1,5 +1,5 @@
 import { resolveMountConfig, InMemory, fs } from "@zenfs/core";
-import { IndexedDB } from "@zenfs/dom";
+import { IndexedDB, WebAccess } from "@zenfs/dom";
 import {
   migrateToZenFS,
   refreshPrograms,
@@ -13,6 +13,8 @@ import { getStartupApps } from "./startup-manager.js";
 import { apps } from "../config/apps.js";
 import { existsAsync } from "./zenfs-utils.js";
 import { wallpapers } from "../config/wallpapers.js";
+import { getAllDiskHandles } from "./removable-disk-persistence.js";
+import { RemovableDiskManager } from "../shell/explorer/drives/removable-disk-manager.js";
 
 let isInitialized = false;
 
@@ -304,6 +306,27 @@ export async function initFileSystem(onProgress) {
       if (favoritesConfig && favoritesConfig.submenu) {
         await migrateToZenFS(favoritesConfig.submenu, FAVORITES_PATH);
       }
+    }
+
+    if (onProgress) onProgress("Restoring removable disks...");
+    try {
+      const savedHandles = await getAllDiskHandles();
+      for (const [letter, handle] of Object.entries(savedHandles)) {
+        try {
+          const mountPoint = `/${letter}:`;
+          if (!(await existsAsync(mountPoint))) {
+            await fs.promises.mkdir(mountPoint);
+          }
+          const diskFs = await WebAccess.create({ handle });
+          fs.mount(mountPoint, diskFs);
+          RemovableDiskManager.mount(letter, handle.name);
+          console.log(`Restored removable disk ${letter}: (${handle.name})`);
+        } catch (e) {
+          console.warn(`Failed to restore removable disk ${letter}:`, e);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load persisted removable disks:", e);
     }
 
     isInitialized = true;
