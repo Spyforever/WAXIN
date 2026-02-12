@@ -90,3 +90,28 @@ export function getDisplayName(path) {
     }
     return name || path;
 }
+
+/**
+ * Get the human-readable label for a drive without the drive letter
+ * @param {string} path - Path to get label for
+ * @returns {string|null} - Label if it's a drive, null otherwise
+ */
+export function getDriveLabel(path) {
+    if (!path) return null;
+    const name = getPathName(path);
+
+    if (!name || !name.match(/^[A-Z]:$/i) || path === "My Computer") return null;
+
+    if (name.match(/^A:$/i)) {
+        return FloppyManager.getLabel() || "3½ Floppy";
+    }
+    if (name.match(/^E:$/i)) {
+        return CDManager.getLabel() || "CD-ROM";
+    }
+    if (name.match(/^C:$/i)) {
+        return "Local Disk";
+    }
+
+    const letter = name.charAt(0).toUpperCase();
+    return RemovableDiskManager.getLabel(letter) || "Removable Disk";
+}

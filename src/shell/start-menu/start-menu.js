@@ -37,6 +37,7 @@ class StartMenu {
     this.isVisible = false;
     this.eventListeners = new Map();
     this.openSubmenus = [];
+    this.submenuCloseTimeout = null;
   }
 
   /**
@@ -134,11 +135,55 @@ class StartMenu {
     this.bindKeyboardEvents();
     this.bindOutsideClickEvents();
     this.bindMenuItems();
+    this.bindHoverDelay();
+  }
+
+  bindHoverDelay() {
+    const startMenu = document.querySelector(SELECTORS.START_MENU);
+    if (!startMenu) return;
+
+    this.addTrackedEventListener(startMenu, "pointerover", (e) => {
+      const menuItem = e.target.closest(".start-menu-item");
+      const hasSubmenu = menuItem?.classList.contains("has-submenu");
+
+      if (!menuItem || !hasSubmenu) {
+        // Trigger delayed close if there are open submenus
+        if (this.openSubmenus.length > 0 && !this.submenuCloseTimeout) {
+          this.submenuCloseTimeout = setTimeout(() => {
+            this.closeAllSubmenus();
+            this.submenuCloseTimeout = null;
+          }, 1000);
+        }
+      } else {
+        // We are hovering an item with a submenu.
+        // The item's own pointerenter will handle opening/clearing.
+        if (this.submenuCloseTimeout) {
+          clearTimeout(this.submenuCloseTimeout);
+          this.submenuCloseTimeout = null;
+        }
+      }
+    });
+
+    this.addTrackedEventListener(startMenu, "pointerleave", () => {
+      if (this.submenuCloseTimeout) {
+        clearTimeout(this.submenuCloseTimeout);
+        this.submenuCloseTimeout = null;
+      }
+    });
+  }
+
+  closeAllSubmenus() {
+    this.openSubmenus.forEach((menu) => {
+      menu.close();
+      if (menu.wrapperElement && menu.wrapperElement.parentElement) {
+        menu.wrapperElement.remove();
+      }
+    });
+    this.openSubmenus = [];
   }
 
   attachSubmenu(menuItem, submenuItems) {
     let activeMenu = null;
-    let closeTimeout;
 
     const closeAndCleanup = () => {
       if (!activeMenu) return;
@@ -156,19 +201,14 @@ class StartMenu {
     };
 
     const openMenu = () => {
-      clearTimeout(closeTimeout);
+      if (this.submenuCloseTimeout) {
+        clearTimeout(this.submenuCloseTimeout);
+        this.submenuCloseTimeout = null;
+      }
       if (activeMenu) return;
 
       // Close any other open submenus immediately
-      if (this.openSubmenus.length > 0) {
-        [...this.openSubmenus].forEach((menu) => {
-          menu.close();
-          if (menu.wrapperElement && menu.wrapperElement.parentElement) {
-            menu.wrapperElement.remove();
-          }
-        });
-        this.openSubmenus = [];
-      }
+      this.closeAllSubmenus();
 
       const menuWrapper = document.createElement("div");
       menuWrapper.className = "menu-popup-wrapper start-menu-popup";
@@ -220,7 +260,10 @@ class StartMenu {
       if (typeof window.playSound === "function") window.playSound("MenuPopup");
       this.openSubmenus.push(activeMenu);
       this.addTrackedEventListener(menuWrapper, "pointerenter", () => {
-        clearTimeout(closeTimeout);
+        if (this.submenuCloseTimeout) {
+          clearTimeout(this.submenuCloseTimeout);
+          this.submenuCloseTimeout = null;
+        }
       });
     };
 
@@ -229,7 +272,6 @@ class StartMenu {
 
   attachDynamicSubmenu(menuItem, getSubmenuItems) {
     let activeMenu = null;
-    let closeTimeout;
     let isLoading = false;
 
     const closeAndCleanup = () => {
@@ -248,19 +290,14 @@ class StartMenu {
     };
 
     const openMenu = async () => {
-      clearTimeout(closeTimeout);
+      if (this.submenuCloseTimeout) {
+        clearTimeout(this.submenuCloseTimeout);
+        this.submenuCloseTimeout = null;
+      }
       if (isLoading || activeMenu) return;
 
       isLoading = true;
-      if (this.openSubmenus.length > 0) {
-        [...this.openSubmenus].forEach((menu) => {
-          menu.close();
-          if (menu.wrapperElement && menu.wrapperElement.parentElement) {
-            menu.wrapperElement.remove();
-          }
-        });
-        this.openSubmenus = [];
-      }
+      this.closeAllSubmenus();
 
       let submenuItems;
       try {
@@ -322,7 +359,10 @@ class StartMenu {
       this.openSubmenus.push(activeMenu);
       isLoading = false;
       this.addTrackedEventListener(menuWrapper, "pointerenter", () => {
-        clearTimeout(closeTimeout);
+        if (this.submenuCloseTimeout) {
+          clearTimeout(this.submenuCloseTimeout);
+          this.submenuCloseTimeout = null;
+        }
       });
     };
 
@@ -513,13 +553,7 @@ class StartMenu {
     startButton.setAttribute("aria-pressed", "false");
     this.isVisible = false;
 
-    this.openSubmenus.forEach((menu) => {
-      menu.close();
-      if (menu.wrapperElement && menu.wrapperElement.parentElement) {
-        menu.wrapperElement.remove();
-      }
-    });
-    this.openSubmenus = [];
+    this.closeAllSubmenus();
   }
 
   /**

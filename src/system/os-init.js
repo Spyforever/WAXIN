@@ -1,12 +1,12 @@
 import splashBg from "../assets/img/splash.png";
-import { initDesktop } from '../shell/desktop/desktop.js';
-import { getItem, LOCAL_STORAGE_KEYS } from './local-storage.js';
-import { registerCustomApp } from './custom-app-manager.js';
-import { taskbar } from '../shell/taskbar/taskbar.js';
-import { ShowDialogWindow } from '../shared/components/dialog-window.js';
-import { playSound } from './sound-manager.js';
-import { setTheme, getCurrentTheme, setColorScheme } from './theme-manager.js';
-import { profiles } from '../config/profiles.js';
+import { initDesktop } from "../shell/desktop/desktop.js";
+import { getItem, LOCAL_STORAGE_KEYS } from "./local-storage.js";
+import { registerCustomApp } from "./custom-app-manager.js";
+import { taskbar } from "../shell/taskbar/taskbar.js";
+import { ShowDialogWindow } from "../shared/components/dialog-window.js";
+import { playSound } from "./sound-manager.js";
+import { setTheme, getCurrentTheme, setColorScheme } from "./theme-manager.js";
+import { profiles } from "../config/profiles.js";
 import {
   hideBootScreen,
   startBootProcessStep,
@@ -14,19 +14,19 @@ import {
   promptToContinue,
   showSetupScreen,
   prepareBootScreen,
-} from './boot-screen.js';
-import { preloadThemeAssets } from './asset-preloader.js';
-import { launchApp } from './app-manager.js';
-import { createMainUI } from '../shell/ui.js';
-import { initColorModeManager } from './color-mode-manager.js';
-import screensaver from './screensaver-utils.js';
-import { initScreenManager } from './screen-manager.js';
+} from "./boot-screen.js";
+import { preloadThemeAssets } from "./asset-preloader.js";
+import { launchApp } from "./app-manager.js";
+import { createMainUI } from "../shell/ui.js";
+import { initColorModeManager } from "./color-mode-manager.js";
+import screensaver from "./screensaver-utils.js";
+import { initScreenManager } from "./screen-manager.js";
 import { fs, mounts } from "@zenfs/core";
-import { initFileSystem } from './zenfs-init.js';
-import { existsAsync } from './zenfs-utils.js';
-import { RecycleBinManager } from '../shell/explorer/file-operations/recycle-bin-manager.js';
-import { appManager } from './app-manager.js';
-import { WindowManager } from './window-manager.js';
+import { initFileSystem } from "./zenfs-init.js";
+import { existsAsync } from "./zenfs-utils.js";
+import { RecycleBinManager } from "../shell/explorer/file-operations/recycle-bin-manager.js";
+import { appManager } from "./app-manager.js";
+import { WindowManager } from "./window-manager.js";
 
 export async function initializeOS() {
   const isMSDOSMode = window.location.hash === "#msdos";
@@ -35,9 +35,9 @@ export async function initializeOS() {
   window.System = new WindowManager();
 
   const path = window.location.pathname;
-  const profileName = path.startsWith('/win98-web/')
-    ? path.substring('/win98-web/'.length).split('/')[0]
-    : '';
+  const profileName = path.startsWith("/win98-web/")
+    ? path.substring("/win98-web/".length).split("/")[0]
+    : "";
 
   window.activeProfile = null;
   const ignoredProfiles = ["", "index.html", "404.html"];
@@ -118,7 +118,6 @@ export async function initializeOS() {
     }
 
     await executeBootStep(async () => {
-      playSound("Default"); // POST Beep
       document.body.classList.add("booting");
       document.getElementById("screen").classList.add("boot-mode");
       document.getElementById("initial-boot-message").style.display = "none";
@@ -188,7 +187,10 @@ export async function initializeOS() {
     await executeBootStep(async () => {
       const baseMsg = "Preloading default theme assets...";
       let logElement = startBootProcessStep(baseMsg);
-      const { onAssetStart, onAssetFinish } = createAssetLogCallbacks(logElement, baseMsg);
+      const { onAssetStart, onAssetFinish } = createAssetLogCallbacks(
+        logElement,
+        baseMsg,
+      );
 
       await preloadThemeAssets("default", onAssetStart, onAssetFinish);
 
@@ -203,13 +205,12 @@ export async function initializeOS() {
       if (currentTheme !== "default") {
         const baseMsg = `Preloading ${currentTheme} theme assets...`;
         let logElement = startBootProcessStep(baseMsg);
-        const { onAssetStart, onAssetFinish } = createAssetLogCallbacks(logElement, baseMsg);
-
-        await preloadThemeAssets(
-          currentTheme,
-          onAssetStart,
-          onAssetFinish,
+        const { onAssetStart, onAssetFinish } = createAssetLogCallbacks(
+          logElement,
+          baseMsg,
         );
+
+        await preloadThemeAssets(currentTheme, onAssetStart, onAssetFinish);
 
         if (logElement && logElement.firstChild) {
           logElement.firstChild.nodeValue = baseMsg;

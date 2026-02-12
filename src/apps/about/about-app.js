@@ -34,6 +34,31 @@ export class AboutApp extends Application {
         });
 
         win.$content.html(aboutContent);
+
+        this.checkVersion(win.$content.find('.version-status'));
+
         return win;
+    }
+
+    async checkVersion($status) {
+        try {
+            const response = await fetch('https://api.github.com/repos/azayrahmad/win98-web/releases/latest');
+            if (!response.ok) throw new Error('Failed to fetch version info');
+            const data = await response.json();
+
+            // Extract version number (e.g., "0.5.0" from "v0.5.0" or "win98-web-v0.5.0")
+            const versionMatch = data.tag_name.match(/(\d+\.\d+\.\d+)/);
+            const latestVersion = versionMatch ? versionMatch[1] : data.tag_name.replace(/^v/, '');
+            const currentVersion = import.meta.env.APP_VERSION;
+
+            if (latestVersion === currentVersion) {
+                $status.text('You are using the latest version.');
+            } else {
+                $status.html(`A new version is available: <b>${latestVersion}</b>`);
+            }
+        } catch (error) {
+            console.error('Version check failed:', error);
+            $status.text('Could not check for updates.');
+        }
     }
 }

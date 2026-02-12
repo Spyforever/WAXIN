@@ -116,7 +116,7 @@ export class Game {
 
   hasLegalMoves() {
     // 1. Check for moves to the foundation piles
-    if (this.findAllFoundationMoves().length > 0) {
+    if (this.findNextFoundationMove()) {
       return true;
     }
 
@@ -243,8 +243,12 @@ export class Game {
     return true;
   }
 
-  findAllFoundationMoves() {
-    const moves = [];
+  /**
+   * Finds the first available move to the foundation.
+   * By returning only one move at a time, we ensure that auto-moves
+   * are processed sequentially and each card finds its correct slot.
+   */
+  findNextFoundationMove() {
     const candidates = [];
 
     // Gather candidate cards from free cells
@@ -266,18 +270,17 @@ export class Game {
     for (const candidate of candidates) {
       for (let i = 0; i < this.foundationPiles.length; i++) {
         if (this.isFoundationMoveValid(candidate.card, this.foundationPiles[i])) {
-          moves.push({
+          return {
             card: candidate.card,
             from: candidate.from,
             toType: 'foundation',
             toIndex: i
-          });
-          break; // Move to the next candidate once a valid foundation is found
+          };
         }
       }
     }
 
-    return moves;
+    return null;
   }
 
   // --- Supermoves (moving a stack of cards) ---

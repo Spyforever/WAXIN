@@ -34,6 +34,7 @@ import { RecycleBinExtension } from './extensions/recycle-bin-extension.js';
 import { NetworkNeighborhoodExtension } from './extensions/network-neighborhood-extension.js';
 import { InternetExplorerExtension } from './extensions/internet-explorer-extension.js';
 import { isZenFSPath, getZenFSFileUrl } from '../../system/zenfs-utils.js';
+import { getMenuFromZenFS, FAVORITES_PATH } from '../start-menu/start-menu-utils.js';
 import "./explorer.css";
 
 // Initialize Shell Extensions
@@ -96,6 +97,8 @@ export class ZenExplorerApp extends Application {
     this.retroMode = true;
     this.blobUrl = null;
     this.isInWebMode = false;
+    this._favoritesCache = null;
+    this._favoritesLoading = false;
   }
 
   async launch(data = null) {
@@ -368,7 +371,7 @@ export class ZenExplorerApp extends Application {
     this.navigateTo(this.currentPath);
 
     // 9. Setup MenuBar (last, as it depends on status bar, icon manager, etc.)
-    this._updateMenuBar();
+    await this._updateMenuBar();
 
     return win;
   }
@@ -595,7 +598,7 @@ export class ZenExplorerApp extends Application {
     document.addEventListener("theme-changed", this._themeHandler);
   }
 
-  _updateMode() {
+  async _updateMode() {
     const isWeb = this.isInWebMode;
     const wasWeb = this.iframe.style.display === "block";
 
@@ -613,7 +616,7 @@ export class ZenExplorerApp extends Application {
       // The resize observer will handle "with-sidebar" class for non-web paths
     }
 
-    this._updateMenuBar();
+    await this._updateMenuBar();
     this._updateToolbar(isWeb !== wasWeb);
   }
 
@@ -623,7 +626,7 @@ export class ZenExplorerApp extends Application {
       isHistoryNav,
       skipMRU,
     );
-    this._updateMode();
+    await this._updateMode();
 
     if (this.iconContainer) {
       this.iconContainer.setAttribute("data-current-path", this.currentPath);
@@ -846,10 +849,21 @@ export class ZenExplorerApp extends Application {
     return this.driveManager.ejectCD();
   }
 
-  _updateMenuBar() {
+  async _updateMenuBar() {
     if (!this.win) return;
+
+    // Fetch favorites if not cached
+    if (!this._favoritesCache && !this._favoritesLoading) {
+      this._favoritesLoading = true;
+      getMenuFromZenFS(FAVORITES_PATH).then(items => {
+        this._favoritesCache = items;
+        this._favoritesLoading = false;
+        this._updateMenuBar();
+      });
+    }
+
     const menuBuilder = new MenuBarBuilder(this);
-    this.menuBar = menuBuilder.build();
+    this.menuBar = menuBuilder.build(this._favoritesCache || []);
     this.win.setMenuBar(this.menuBar);
 
     // Add Animated Logo
@@ -985,7 +999,10 @@ export class ZenExplorerApp extends Application {
   _onIframeLoad() {
     if (!this.iframe || !this.statusBar) return;
 
-    if (this.iframe.src.includes("/azay.rahmad/404.html")) {
+    if (
+      this.iframe.src.includes("/azay.rahmad/404.html") ||
+      this.iframe.src.includes("/internet-explorer/404.html")
+    ) {
       this.statusBar.setText("Page not found.");
       this._updateToolbar();
       return;
@@ -997,7 +1014,7 @@ export class ZenExplorerApp extends Application {
         iframeDoc.title.includes("Not Found") ||
         iframeDoc.body.innerHTML.includes("Wayback Machine doesn")
       ) {
-        this.iframe.src = "./azay.rahmad/404.html";
+        this.iframe.src = "./internet-explorer/404.html";
         this.statusBar.setText("Page not found.");
       } else {
         this.statusBar.setText("Done");
@@ -1088,11 +1105,40 @@ export class ZenExplorerApp extends Application {
           this.statusBar.setText("Failed to load local file.");
         });
     } else {
-      const targetUrl =
-        this.retroMode && !isLocal
-          ? `https://web.archive.org/web/1998/${finalUrl}`
-          : finalUrl;
-      loadIframe(targetUrl);
+      if (this.retroMode && !isLocal) {
+        const availabilityApiUrl = `https://archive.org/wayback/available?url=${encodeURIComponent(
+          finalUrl,
+        )}&timestamp=19980101`;
+
+        try {
+          const response = await fetch(availabilityApiUrl);
+
+          if (!response.ok) {
+            throw new Error(
+              `Wayback availability check failed with status ${response.status}`,
+            );
+          }
+
+          const data = await response.json();
+          const snapshot = data?.archived_snapshots?.closest;
+          const has1998Snapshot =
+            snapshot?.available === true &&
+            typeof snapshot?.timestamp === "string" &&
+            snapshot.timestamp.startsWith("1998");
+
+          if (!has1998Snapshot) {
+            loadIframe("./internet-explorer/404.html");
+            return;
+          }
+
+          loadIframe(`https://web.archive.org/web/1998/${finalUrl}`);
+        } catch (err) {
+          console.error("Failed to check Wayback availability:", err);
+          loadIframe("./internet-explorer/404.html");
+        }
+      } else {
+        loadIframe(finalUrl);
+      }
     }
   }
 }

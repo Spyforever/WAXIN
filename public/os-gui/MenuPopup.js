@@ -31,10 +31,52 @@
 
     this.element = menu_popup_el;
     let submenus = [];
+    let close_tid;
+
+    const close_submenus_at_this_level = () => {
+      for (const { submenu_popup, submenu_popup_el, item_el } of submenus) {
+        submenu_popup.close(false);
+        submenu_popup_el.classList.remove("open");
+        item_el.setAttribute("aria-expanded", "false");
+      }
+      menu_popup_el.focus({ preventScroll: true });
+    };
 
     menu_popup_el.addEventListener("keydown", options.handleKeyDown);
 
+    menu_popup_el.addEventListener("pointerover", (event) => {
+      const hovered_item_el = event.target.closest(".menu-item");
+      if (
+        hovered_item_el &&
+        hovered_item_el.classList.contains("has-submenu")
+      ) {
+        if (close_tid) {
+          clearTimeout(close_tid);
+          close_tid = null;
+        }
+        return;
+      }
+      // If we are over a non-submenu item, a separator, or the menu itself
+      if (!close_tid) {
+        const any_submenu_open = submenus.some((s) =>
+          s.submenu_popup_el.classList.contains("open"),
+        );
+        if (any_submenu_open) {
+          close_tid = setTimeout(() => {
+            if (!window.debugKeepMenusOpen) {
+              close_submenus_at_this_level();
+            }
+            close_tid = null;
+          }, 1000);
+        }
+      }
+    });
+
     menu_popup_el.addEventListener("pointerleave", () => {
+      if (close_tid) {
+        clearTimeout(close_tid);
+        close_tid = null;
+      }
       for (const submenu of submenus) {
         if (submenu.submenu_popup_el.classList.contains("open")) {
           this.highlight(submenu.item_el);
@@ -302,20 +344,7 @@
             submenu_popup_el,
             submenu_popup,
           });
-          function close_submenus_at_this_level() {
-            for (const {
-              submenu_popup,
-              submenu_popup_el,
-              item_el,
-            } of submenus) {
-              submenu_popup.close(false);
-              submenu_popup_el.classList.remove("open");
-              item_el.setAttribute("aria-expanded", "false");
-            }
-            menu_popup_el.focus({ preventScroll: true });
-          }
           let open_tid;
-          let close_tid;
           submenu_popup_el.addEventListener("pointerenter", () => {
             if (open_tid) {
               clearTimeout(open_tid);
@@ -341,26 +370,6 @@
             if (open_tid) {
               clearTimeout(open_tid);
               open_tid = null;
-            }
-          });
-          menu_popup_el.addEventListener("pointerenter", (event) => {
-            if (event.target.closest(".menu-item") === item_el) {
-              return;
-            }
-            if (!close_tid) {
-              if (submenu_popup_el.classList.contains("open")) {
-                close_tid = setTimeout(() => {
-                  if (!window.debugKeepMenusOpen) {
-                    close_submenus_at_this_level();
-                  }
-                }, 500);
-              }
-            }
-          });
-          menu_popup_el.addEventListener("pointerleave", () => {
-            if (close_tid) {
-              clearTimeout(close_tid);
-              close_tid = null;
             }
           });
           item_el.addEventListener("pointerdown", () => {

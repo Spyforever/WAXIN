@@ -69,9 +69,14 @@ export class SpiderSolitaireApp extends Application {
     this.dragOffsetX = 0;
     this.dragOffsetY = 0;
     this.hoveredTarget = null;
+    this.wasDragged = false;
 
     this.boundOnMouseMove = this.onMouseMove.bind(this);
     this.boundOnMouseUp = this.onMouseUp.bind(this);
+    this.boundOnMouseDown = this.onMouseDown.bind(this);
+    this.boundOnTouchStart = this.onTouchStart.bind(this);
+    this.boundOnTouchMove = this.onTouchMove.bind(this);
+    this.boundOnTouchEnd = this.onTouchEnd.bind(this);
 
     this.addEventListeners();
 
@@ -88,6 +93,7 @@ export class SpiderSolitaireApp extends Application {
       if (options.autoSaveOnExit) {
         this._performSave(true); // Suppress any UI/sound
       }
+      this.removeEventListeners();
     });
 
     return win;
@@ -477,10 +483,12 @@ export class SpiderSolitaireApp extends Application {
   }
 
   addEventListeners() {
-    this.container.addEventListener("mousedown", this.onMouseDown.bind(this));
+    this.container.addEventListener("mousedown", this.boundOnMouseDown);
+    this.boundOnStockClick = this.onStockClick.bind(this);
     this.container
       .querySelector(".stock-pile")
-      .addEventListener("click", this.onStockClick.bind(this));
+      .addEventListener("click", this.boundOnStockClick);
+    this.container.addEventListener("touchstart", this.boundOnTouchStart, { passive: false });
     this.win.element.addEventListener("keydown", (event) => {
       if (event.ctrlKey && event.key === "z") {
         event.preventDefault();
@@ -504,17 +512,23 @@ export class SpiderSolitaireApp extends Application {
     });
   }
 
-  onMouseDown(event) {
-    if (event.button !== 0) return; // Only main button
-    const cardDiv = event.target.closest(".card");
+  handleTap(target) {
+    if (!target) return;
+    const stockPileDiv = target.closest(".stock-pile");
+    if (stockPileDiv) {
+      this.onStockClick();
+      return;
+    }
+  }
+
+  handleStart(clientX, clientY, target, isTouch) {
+    const cardDiv = target.closest(".card");
     if (!cardDiv) return;
 
     const pileIndex = parseInt(cardDiv.dataset.pileIndex, 10);
     const cardIndex = parseInt(cardDiv.dataset.cardIndex, 10);
 
     if (this.game.isValidMoveStack(pileIndex, cardIndex)) {
-      event.preventDefault();
-
       this.isDragging = true;
       this.draggedCardsInfo = { pileIndex, cardIndex };
 
@@ -523,8 +537,8 @@ export class SpiderSolitaireApp extends Application {
 
       const containerRect = this.container.getBoundingClientRect();
       const cardRect = cardDiv.getBoundingClientRect();
-      this.dragOffsetX = event.clientX - cardRect.left;
-      this.dragOffsetY = event.clientY - cardRect.top;
+      this.dragOffsetX = clientX - cardRect.left;
+      this.dragOffsetY = clientY - cardRect.top;
 
       this.draggedElement = document.createElement("div");
       this.draggedElement.className = "dragged-stack";
@@ -556,16 +570,19 @@ export class SpiderSolitaireApp extends Application {
       this.draggedElement.style.left = `${cardRect.left - containerRect.left}px`;
       this.draggedElement.style.top = `${cardRect.top - containerRect.top}px`;
 
-      window.addEventListener("mousemove", this.boundOnMouseMove);
-      window.addEventListener("mouseup", this.boundOnMouseUp);
+      if (!isTouch) {
+        window.addEventListener("mousemove", this.boundOnMouseMove);
+        window.addEventListener("mouseup", this.boundOnMouseUp);
+      }
     }
   }
 
-  onMouseMove(event) {
+  handleMove(clientX, clientY) {
     if (!this.isDragging) return;
+    this.wasDragged = true;
     const containerRect = this.container.getBoundingClientRect();
-    this.draggedElement.style.left = `${event.clientX - containerRect.left - this.dragOffsetX}px`;
-    this.draggedElement.style.top = `${event.clientY - containerRect.top - this.dragOffsetY}px`;
+    this.draggedElement.style.left = `${clientX - containerRect.left - this.dragOffsetX}px`;
+    this.draggedElement.style.top = `${clientY - containerRect.top - this.dragOffsetY}px`;
 
     const draggedRect = this.draggedElement.getBoundingClientRect();
     const potentialTargets = this.container.querySelectorAll(
@@ -579,12 +596,17 @@ export class SpiderSolitaireApp extends Application {
     const toPileDiv = bestTarget;
   }
 
-  async onMouseUp(event) {
+  async handleEnd(isTouch) {
     if (!this.isDragging) return;
 
     this.isDragging = false;
-    window.removeEventListener("mousemove", this.boundOnMouseMove);
-    window.removeEventListener("mouseup", this.boundOnMouseUp);
+    if (isTouch) {
+      window.removeEventListener("touchmove", this.boundOnTouchMove);
+      window.removeEventListener("touchend", this.boundOnTouchEnd);
+    } else {
+      window.removeEventListener("mousemove", this.boundOnMouseMove);
+      window.removeEventListener("mouseup", this.boundOnMouseUp);
+    }
 
     this.container
       .querySelectorAll(".dragging")
@@ -631,6 +653,52 @@ export class SpiderSolitaireApp extends Application {
     }
 
     this.draggedCardsInfo = null;
+  }
+
+  onMouseDown(event) {
+    if (event.button !== 0) return; // Only main button
+    this.wasDragged = false;
+    this.handleStart(event.clientX, event.clientY, event.target, false);
+  }
+
+  onMouseMove(event) {
+    this.handleMove(event.clientX, event.clientY);
+  }
+
+  async onMouseUp(event) {
+    await this.handleEnd(false);
+  }
+
+  onTouchStart(event) {
+    if (event.touches.length > 1) return;
+    const touch = event.touches[0];
+    this.initialTouchTarget = touch.target;
+    this.wasDragged = false;
+
+    window.addEventListener("touchmove", this.boundOnTouchMove, { passive: false });
+    window.addEventListener("touchend", this.boundOnTouchEnd);
+
+    this.handleStart(touch.clientX, touch.clientY, touch.target, true);
+    event.preventDefault();
+  }
+
+  onTouchMove(event) {
+    const touch = event.touches[0];
+    this.handleMove(touch.clientX, touch.clientY);
+    if (this.isDragging) {
+      event.preventDefault();
+    }
+  }
+
+  async onTouchEnd(event) {
+    window.removeEventListener("touchmove", this.boundOnTouchMove);
+    window.removeEventListener("touchend", this.boundOnTouchEnd);
+
+    if (!this.wasDragged) {
+      this.handleTap(this.initialTouchTarget);
+    }
+    await this.handleEnd(true);
+    event.preventDefault();
   }
 
   async onStockClick() {
@@ -1013,6 +1081,20 @@ export class SpiderSolitaireApp extends Application {
     } else {
       this._performOpen();
     }
+  }
+
+  removeEventListeners() {
+    this.container.removeEventListener("mousedown", this.boundOnMouseDown);
+    if (this.boundOnStockClick) {
+      this.container
+        .querySelector(".stock-pile")
+        ?.removeEventListener("click", this.boundOnStockClick);
+    }
+    this.container.removeEventListener("touchstart", this.boundOnTouchStart);
+    window.removeEventListener("mousemove", this.boundOnMouseMove);
+    window.removeEventListener("mouseup", this.boundOnMouseUp);
+    window.removeEventListener("touchmove", this.boundOnTouchMove);
+    window.removeEventListener("touchend", this.boundOnTouchEnd);
   }
 
   _performOpen(isSilent = false) {

@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.6.0](https://github.com/azayrahmad/win98-web/compare/win98-web-v0.5.0...win98-web-v0.6.0) (2026-02-12)
+
+
+### Features
+
+* add authentic BSOD-style 404 page ([41bc8b7](https://github.com/azayrahmad/win98-web/commit/41bc8b7995b2ea2d2b9b52cab8065bb02c93356b))
+* add BSOD-style 404 page ([7211937](https://github.com/azayrahmad/win98-web/commit/7211937e0fabab959d7c94a45eef6307362a38d6))
+* add Favorites menu to Explorer menu bar ([cbc3586](https://github.com/azayrahmad/win98-web/commit/cbc3586a923ccca9949679c4123da29323469149))
+* add fullscreen mode support for games, starting with Doom ([aa61f26](https://github.com/azayrahmad/win98-web/commit/aa61f261eeeccd3f971efc98fcda9bc9f7bf7743))
+* automatically populate Start Menu on first boot ([68ad9d6](https://github.com/azayrahmad/win98-web/commit/68ad9d615b253102d28f22fc396ea8923f8356b1))
+* enable card drag and drop for touch devices in solitaire and spider solitaire ([c014e66](https://github.com/azayrahmad/win98-web/commit/c014e66310a1e195109077de596b0b907f14907a))
+* fix touch drag and tap interactions in solitaire games ([5f88b93](https://github.com/azayrahmad/win98-web/commit/5f88b935a6758804c1c37adc2ba130986f5a7e14))
+* fix touch drag and tap interactions in solitaire games ([df9c07f](https://github.com/azayrahmad/win98-web/commit/df9c07f26edee45a11a345b52e34ff7948a47221))
+* implement 1s delayed close for submenus in MenuPopup and StartMenu ([1897514](https://github.com/azayrahmad/win98-web/commit/1897514f070b1fb4da34f2a575cf71f7f1a3fa38))
+* improve start menu with category-based config and manual refresh ([7fc7bf8](https://github.com/azayrahmad/win98-web/commit/7fc7bf8b48ef96bfe339ff807d09b561a63c1dac))
+* improve start menu with category-based configuration ([640969e](https://github.com/azayrahmad/win98-web/commit/640969ea08fa709e3ec8d6e9ad1f1a2075832a4b))
+* make boot screen resolution dynamic for mobile responsiveness ([e8a00e4](https://github.com/azayrahmad/win98-web/commit/e8a00e40e2cdb5fc7afc5bb5f41fb9f1fedc5fc7))
+* redirect My Computer properties to About app and add version check ([ba5aad4](https://github.com/azayrahmad/win98-web/commit/ba5aad42846da561724b7307f3a2bd9d7cb9a4db))
+
+
+### Bug Fixes
+
+* add dedicated IE 404 page without changing custom site 404 ([97952cd](https://github.com/azayrahmad/win98-web/commit/97952cd41ff11b2665c909cea43223cb1f1c9cfe))
+* apply dos-shell update for dosbox ([6a3f808](https://github.com/azayrahmad/win98-web/commit/6a3f8087364ec1cba9e5d907e2e0f09092959c8d))
+* ensure maximized windows resize when screen resizes ([230ee5e](https://github.com/azayrahmad/win98-web/commit/230ee5e709deb908a97e72686fbcca299e4e1385))
+* **freecell:** prevent cards from overlapping in foundation during auto-moves ([e707b5e](https://github.com/azayrahmad/win98-web/commit/e707b5eb7d91d3488dac5aab37260c19acc05da3))
+* gate retro IE navigation to 1998 Wayback snapshots ([15106b2](https://github.com/azayrahmad/win98-web/commit/15106b2fab95f232d181be50c9e4804091e6f955))
+* remove default sound on boot ([0551e89](https://github.com/azayrahmad/win98-web/commit/0551e8958361405ecf05bdf23eb9b295c7231361))
+* replace explorer not-found page with IE-style 404 ([116f460](https://github.com/azayrahmad/win98-web/commit/116f46081ce2c70476519a2c123bc6487fcaeeb3))
+* **shell:** prevent Start Menu submenus from closing prematurely on touch ([785ccb4](https://github.com/azayrahmad/win98-web/commit/785ccb4e4ac1b6b4ab2070a81a369d09e1f0833d))
+* validate 1998 Wayback availability before loading retro IE pages ([bc124d1](https://github.com/azayrahmad/win98-web/commit/bc124d11a3a1a0d3190d06c8f14c12aa8803bc18))
+
 ## [0.5.0](https://github.com/azayrahmad/win98-web/compare/win98-web-v0.4.0...win98-web-v0.5.0) (2026-02-09)
 
 

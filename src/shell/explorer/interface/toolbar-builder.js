@@ -225,13 +225,20 @@ export function getToolbarItems(app) {
     {
       label: "Properties",
       iconName: "properties",
-      action: () => {
+      action: async () => {
         const paths = getSelectedPaths();
-        if (paths.length > 0) {
-          PropertiesManager.show(paths);
-        } else {
-          PropertiesManager.show([app.currentPath]);
+        const targets = paths.length > 0 ? paths : [app.currentPath];
+        const isMyComputerSelected = targets.some(
+          (p) => p === "/" || p === "/Desktop/My Computer",
+        );
+
+        if (isMyComputerSelected) {
+          const { launchApp } = await import("../../../system/app-manager.js");
+          launchApp("about");
+          return;
         }
+
+        PropertiesManager.show(targets);
       },
     },
     "divider",

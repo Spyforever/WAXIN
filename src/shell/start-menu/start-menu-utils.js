@@ -59,11 +59,15 @@ export async function loadLnk(path, iconSize = 16) {
         label: label,
         icon: app ? app.icon[iconSize] : ICONS.file[iconSize],
         action: () => launchApp(data.appId, data.args),
+        appId: data.appId,
+        args: data.args,
       };
     } else if (data.targetPath) {
       const targetName = data.targetPath.split("/").pop();
       let icon = ICONS.file[iconSize];
       let action = () => {};
+      let appId = "explorer";
+      let args = data.targetPath;
 
       try {
         const stats = await ShellManager.stat(data.targetPath);
@@ -73,11 +77,15 @@ export async function loadLnk(path, iconSize = 16) {
         } else {
           const association = getAssociation(targetName);
           if (association) {
+            appId = association.appId;
+            args = ShellManager.getRealPath(data.targetPath);
             icon = association.icon[iconSize];
-            action = () => launchApp(association.appId, ShellManager.getRealPath(data.targetPath));
+            action = () => launchApp(appId, args);
           } else {
+            appId = "notepad";
+            args = ShellManager.getRealPath(data.targetPath);
             icon = ICONS.file[iconSize];
-            action = () => launchApp("notepad", ShellManager.getRealPath(data.targetPath));
+            action = () => launchApp(appId, args);
           }
         }
       } catch (e) {
@@ -88,6 +96,9 @@ export async function loadLnk(path, iconSize = 16) {
         label: label,
         icon: icon,
         action: action,
+        appId,
+        args,
+        targetPath: data.targetPath,
       };
     }
 

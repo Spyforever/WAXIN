@@ -15,6 +15,8 @@ export class DosBoxApp extends Application {
       height: 480,
       resizable: true,
       maximizable: true,
+      allowFullscreen: true,
+      startFullscreen: true,
       isSingleton: false,
     },
     {
@@ -65,6 +67,8 @@ export class DosBoxApp extends Application {
       outerHeight: this.height,
       resizable: this.resizable,
       maximizable: this.maximizable,
+      allowFullscreen: this.config.allowFullscreen,
+      startFullscreen: this.config.startFullscreen,
       icons: this.icon,
     });
 
