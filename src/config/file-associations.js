@@ -200,7 +200,7 @@ export const fileAssociations = {
   // Flash files
   swf: {
     name: "Shockwave Flash Movie",
-    appId: "flashplayer",
+    appId: "flash-player",
     icon: ICONS.swfFile,
   },
   // DOS Executables
