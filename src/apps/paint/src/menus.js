@@ -251,7 +251,7 @@ const menus = {
 						// API contract is containing page can override window.close()
 						// Note that e.g. (()=>{}).bind().toString() gives "function () { [native code] }"
 						// so the window.close() must not use bind() (not that that's common practice anyway)
-						const close_overridden = frameElement && window.close && !/\{\s*\[native code\]\s*\}/.test(window.close.toString());
+						const close_overridden = window.close && !/\{\s*\[native code\]\s*\}/.test(window.close.toString());
 						if (close_overridden || window.is_electron_app) {
 							window.close();
 							return;
