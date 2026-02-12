@@ -61,6 +61,16 @@ export class ContextMenuBuilder {
         {
           label: "Properties",
           action: async () => {
+            const isMyComputerSelected = selectedPaths.some(
+              (p) => p === "/" || p === "/Desktop/My Computer",
+            );
+            if (isMyComputerSelected) {
+              const { launchApp } = await import(
+                "../../../system/app-manager.js"
+              );
+              launchApp("about");
+              return;
+            }
             const busyId = `properties-${Math.random()}`;
             requestBusyState(busyId, this.app.win.element);
             try {
@@ -190,6 +200,16 @@ export class ContextMenuBuilder {
         {
           label: "Properties",
           action: async () => {
+            const isMyComputerSelected = selectedPaths.some(
+              (p) => p === "/" || p === "/Desktop/My Computer",
+            );
+            if (isMyComputerSelected) {
+              const { launchApp } = await import(
+                "../../../system/app-manager.js"
+              );
+              launchApp("about");
+              return;
+            }
             const busyId = `properties-${Math.random()}`;
             requestBusyState(busyId, this.app.win.element);
             try {
@@ -285,6 +305,16 @@ export class ContextMenuBuilder {
       {
         label: "Properties",
         action: async () => {
+          if (
+            this.app.currentPath === "/" ||
+            this.app.currentPath === "/Desktop/My Computer"
+          ) {
+            const { launchApp } = await import(
+              "../../../system/app-manager.js"
+            );
+            launchApp("about");
+            return;
+          }
           const busyId = `properties-${Math.random()}`;
           requestBusyState(busyId, this.app.win.element);
           try {
