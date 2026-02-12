@@ -14,4 +14,8 @@ export const aboutContent = `
       <div class="version-status" style="margin-top: 16px; font-style: italic;">Checking for updates...</div>
     </div>
   </div>
+  <div class="about-buttons">
+    <button id="about-readme">README</button>
+    <button id="about-changelog">Changelog</button>
+  </div>
 `;
