@@ -6,7 +6,7 @@ import {
 import { ShowDialogWindow } from '../../../shared/components/dialog-window.js';
 import { showInputDialog } from '../interface/input-dialog.js';
 import { handleFileSystemError } from './error-handler.js';
-import { joinPath, normalizePath, getPathName, getParentPath } from '../navigation/path-utils.js';
+import { joinPath, normalizePath, getPathName, getParentPath, getDriveLabel } from '../navigation/path-utils.js';
 import { ShellManager } from '../extensions/shell-manager.js';
 import ClipboardManager from './clipboard-manager.js';
 import { RecycleBinManager } from './recycle-bin-manager.js';
@@ -197,6 +197,15 @@ export class FileOperations {
     }
 
     async getUniquePastePath(destPath, originalName, operation, sourcePath = null) {
+        let effectiveName = originalName;
+
+        if (operation !== "shortcut" && sourcePath) {
+            const driveLabel = getDriveLabel(sourcePath);
+            if (driveLabel) {
+                effectiveName = driveLabel;
+            }
+        }
+
         if (operation === "shortcut") {
             const cleanName = originalName.replace(".lnk.json", "").replace(".lnk", "");
             let candidateName = `Shortcut to ${cleanName}.lnk.json`;
@@ -215,7 +224,7 @@ export class FileOperations {
             } catch (e) { return checkPath; }
         }
 
-        let checkPath = normalizePath(joinPath(destPath, originalName));
+        let checkPath = normalizePath(joinPath(destPath, effectiveName));
 
         if (operation === "cut" && sourcePath && normalizePath(sourcePath) === normalizePath(checkPath)) {
             return checkPath;
@@ -227,14 +236,14 @@ export class FileOperations {
             return checkPath;
         }
         if (operation === "cut") {
-            let name = originalName;
+            let name = effectiveName;
             let counter = 1;
-            const extensionIndex = originalName.lastIndexOf('.');
+            const extensionIndex = effectiveName.lastIndexOf('.');
             const hasExtension = extensionIndex > 0;
-            const baseName = hasExtension ? originalName.substring(0, extensionIndex) : originalName;
-            const ext = hasExtension ? originalName.substring(extensionIndex) : '';
+            const baseName = hasExtension ? effectiveName.substring(0, extensionIndex) : effectiveName;
+            const ext = hasExtension ? effectiveName.substring(extensionIndex) : '';
             while (true) {
-                name = hasExtension ? `${baseName} (${counter})${ext}` : `${originalName} (${counter})`;
+                name = hasExtension ? `${baseName} (${counter})${ext}` : `${effectiveName} (${counter})`;
                 checkPath = normalizePath(joinPath(destPath, name));
                 try {
                     await fs.promises.stat(checkPath);
@@ -244,10 +253,10 @@ export class FileOperations {
         } else {
             const copyNOfRegex = /^Copy \((\d+)\) of (.*)$/;
             const copyOfRegex = /^Copy of (.*)$/;
-            let baseName = originalName;
+            let baseName = effectiveName;
             let match;
-            if ((match = originalName.match(copyNOfRegex))) baseName = match[2];
-            else if ((match = originalName.match(copyOfRegex))) baseName = match[1];
+            if ((match = effectiveName.match(copyNOfRegex))) baseName = match[2];
+            else if ((match = effectiveName.match(copyOfRegex))) baseName = match[1];
             let candidateName = `Copy of ${baseName}`;
             checkPath = normalizePath(joinPath(destPath, candidateName));
             try {
