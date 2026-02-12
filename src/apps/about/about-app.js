@@ -74,6 +74,38 @@ export class AboutApp extends Application {
             sunkenPanel.style.overflowY = 'auto';
             sunkenPanel.style.padding = '16px';
             sunkenPanel.style.backgroundColor = 'white';
+
+            // Ensure headings have IDs for anchor links
+            sunkenPanel.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(h => {
+                if (!h.id) {
+                    h.id = h.textContent.toLowerCase().replace(/[^\w]+/g, '-').replace(/^-+|-+$/g, '');
+                }
+            });
+
+            // Make external links open in new tab
+            sunkenPanel.querySelectorAll('a').forEach(a => {
+                const href = a.getAttribute('href');
+                if (href && /^https?:\/\//.test(href)) {
+                    a.target = '_blank';
+                    a.rel = 'noopener noreferrer';
+                }
+            });
+
+            // Handle anchor links scrolling within the panel
+            sunkenPanel.addEventListener('click', (e) => {
+                const link = e.target.closest('a');
+                if (link) {
+                    const href = link.getAttribute('href');
+                    if (href && href.startsWith('#')) {
+                        e.preventDefault();
+                        const id = href.substring(1);
+                        const targetEl = sunkenPanel.querySelector(`[id="${id}"], [name="${id}"]`);
+                        if (targetEl) {
+                            targetEl.scrollIntoView();
+                        }
+                    }
+                }
+            });
         }
 
         win.center();
