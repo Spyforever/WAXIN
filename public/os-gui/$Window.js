@@ -1647,7 +1647,26 @@ You can also disable this warning by passing {iframes: {ignoreCrossOrigin: true}
       $w.applyBounds();
     };
 
-    $G.on("resize", $w.bringTitleBarInBounds);
+    $w.onResize = () => {
+      $w.bringTitleBarInBounds();
+      if ($w.hasClass("maximized")) {
+        const screen = document.getElementById("desktop-area");
+        if (screen) {
+          const screenRect = screen.getBoundingClientRect();
+          $w.css({
+            width: screenRect.width,
+            height: screenRect.height,
+          });
+        }
+      }
+    };
+    $G.on("resize", $w.onResize);
+
+    const desktopArea = document.getElementById("desktop-area");
+    if (desktopArea && window.ResizeObserver) {
+      $w.desktopResizeObserver = new ResizeObserver($w.onResize);
+      $w.desktopResizeObserver.observe(desktopArea);
+    }
 
     /** @type {number} */
     var drag_offset_x;
@@ -2131,6 +2150,8 @@ You can also disable this warning by passing {iframes: {ignoreCrossOrigin: true}
 
       // MUST be after any events are triggered!
       $w.remove();
+      $G.off("resize", $w.onResize);
+      $w.desktopResizeObserver?.disconnect();
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
 
       // TODO: support modals, which should focus what was focused before the modal was opened.
