@@ -2,6 +2,10 @@ import { Application } from '../../system/application.js';
 import { aboutContent } from './about.js';
 import './about.css';
 import { ICONS } from '../../config/icons.js';
+import { renderHTML } from '../../shared/utils/dom-utils.js';
+
+import readmeMarkdown from '../../../README.md?raw';
+import changelogMarkdown from '../../../CHANGELOG.md?raw';
 
 export class AboutApp extends Application {
     static config = {
@@ -11,7 +15,7 @@ export class AboutApp extends Application {
         summary: "<b>azOS Second Edition</b><br>Copyright © 2024",
         icon: ICONS.windowsUpdate,
         width: 400,
-        height: 216,
+        height: 280,
         resizable: false,
         minimizeButton: false,
         maximizeButton: false,
@@ -37,7 +41,42 @@ export class AboutApp extends Application {
 
         this.checkVersion(win.$content.find('.version-status'));
 
+        win.$content.find('#about-readme').on('click', () => this.openFile(readmeMarkdown, 'README'));
+        win.$content.find('#about-changelog').on('click', () => this.openFile(changelogMarkdown, 'Changelog'));
+
         return win;
+    }
+
+    async openFile(markdown, title) {
+        const html = marked.parse(markdown);
+        const win = new $Window({
+            title: title,
+            width: 600,
+            height: 400,
+            resizable: true,
+            maximizeButton: true,
+            icons: ICONS.help,
+        });
+
+        const contentArea = document.createElement('div');
+        contentArea.className = 'about-file-content';
+        contentArea.style.height = '100%';
+        contentArea.style.padding = '8px';
+        contentArea.style.display = 'flex';
+        contentArea.style.flexDirection = 'column';
+
+        win.$content.append(contentArea);
+        renderHTML(contentArea, html, 'sunken-panel');
+
+        const sunkenPanel = contentArea.querySelector('.sunken-panel');
+        if (sunkenPanel) {
+            sunkenPanel.style.flexGrow = '1';
+            sunkenPanel.style.overflowY = 'auto';
+            sunkenPanel.style.padding = '16px';
+            sunkenPanel.style.backgroundColor = 'white';
+        }
+
+        win.center();
     }
 
     async checkVersion($status) {
