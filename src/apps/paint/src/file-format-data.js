@@ -111,26 +111,6 @@ const image_format_categories = (image_formats) => {
 };
 */
 
-/** @type {PaletteFileFormat[]} */
-const palette_formats = [];
-for (const [format_id, format] of Object.entries(AnyPalette.formats)) {
-	if (format.write) {
-		const inside_parens = format.fileExtensions.map((extension) => `*.${extension}`).join(";");
-		palette_formats.push({
-			formatID: format_id,
-			name: format.name,
-			nameWithExtensions: `${format.name} (${inside_parens})`,
-			extensions: format.fileExtensions,
-		});
-	}
-}
-palette_formats.sort((a, b) =>
-	// Order important formats first, starting with RIFF PAL format:
-	+(b.formatID === "RIFF_PALETTE") - +(a.formatID === "RIFF_PALETTE") ||
-	+(b.formatID === "GIMP_PALETTE") - +(a.formatID === "GIMP_PALETTE") ||
-	0
-);
-
-export { formats_unique_per_file_extension, image_formats, palette_formats };
+export { formats_unique_per_file_extension, image_formats };
 // Temporary globals until all dependent code is converted to ES Modules
 window.formats_unique_per_file_extension = formats_unique_per_file_extension; // used by electron-injected.js

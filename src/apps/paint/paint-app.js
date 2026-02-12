@@ -131,7 +131,7 @@ export class PaintApp extends Application {
             }
         }
 
-        const { open_from_file, load_image_from_uri } = await import('./src/functions.js');
+        const { open_from_file } = await import('./src/functions.js');
 
         if (file) {
             open_from_file(file, file);
@@ -145,12 +145,6 @@ export class PaintApp extends Application {
                     open_from_file(file, path);
                 } catch (e) {
                     console.error("Failed to open file from ZenFS", e);
-                }
-            } else {
-                try {
-                    load_image_from_uri(path);
-                } catch (e) {
-                    console.error("Failed to load image from URI", e);
                 }
             }
         }
@@ -368,12 +362,10 @@ export class PaintApp extends Application {
 
     async _loadDependencies() {
         const libs = [
-            '/win98-web/apps/paint/lib/gif.js/gif.js',
             '/win98-web/apps/paint/lib/pako-2.0.3.min.js',
             '/win98-web/apps/paint/lib/UPNG.js',
             '/win98-web/apps/paint/lib/UTIF.js',
             '/win98-web/apps/paint/lib/bmp.js',
-            '/win98-web/apps/paint/lib/anypalette-0.6.0.js',
             '/win98-web/apps/paint/lib/FileSaver.js',
             '/win98-web/apps/paint/lib/font-detective.js',
             '/win98-web/apps/paint/lib/libtess.min.js',

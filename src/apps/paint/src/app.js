@@ -10,7 +10,53 @@ import { Handles } from "./Handles.js";
 // import { get_direction, localize } from "./app-localization.js";
 import { default_palette, get_winter_palette } from "./color-data.js";
 import { image_formats } from "./file-format-data.js";
-import { $this_version_news, cancel, change_some_url_params, change_url_param, clear, confirm_overwrite_capability, delete_selection, deselect, edit_copy, edit_cut, edit_paste, file_new, file_open, file_save, file_save_as, get_tool_by_id, get_uris, image_attributes, image_flip_and_rotate, image_invert_colors, image_stretch_and_skew, load_image_from_uri, make_or_update_undoable, open_from_file, paste, paste_image_from_file, redo, render_history_as_gif, reset_canvas_and_history, reset_file, reset_selected_colors, resize_canvas_and_save_dimensions, resize_canvas_without_saving_dimensions, save_as_prompt, select_all, select_tool, select_tools, set_magnification, show_document_history, show_error_message, show_news, show_resource_load_error_message, toggle_grid, undo, update_canvas_rect, update_disable_aa, update_helper_layer, update_magnified_canvas_size, view_bitmap, write_image_file } from "./functions.js";
+import {
+	$this_version_news,
+	cancel,
+	change_some_url_params,
+	change_url_param,
+	clear,
+	confirm_overwrite_capability,
+	delete_selection,
+	deselect,
+	edit_copy,
+	edit_cut,
+	edit_paste,
+	file_new,
+	file_open,
+	file_save,
+	file_save_as,
+	get_tool_by_id,
+	image_attributes,
+	image_flip_and_rotate,
+	image_invert_colors,
+	image_stretch_and_skew,
+	make_or_update_undoable,
+	open_from_file,
+	paste,
+	paste_image_from_file,
+	redo,
+	reset_canvas_and_history,
+	reset_file,
+	reset_selected_colors,
+	resize_canvas_and_save_dimensions,
+	resize_canvas_without_saving_dimensions,
+	save_as_prompt,
+	select_all,
+	select_tool,
+	select_tools,
+	set_magnification,
+	show_error_message,
+	show_news,
+	toggle_grid,
+	undo,
+	update_canvas_rect,
+	update_disable_aa,
+	update_helper_layer,
+	update_magnified_canvas_size,
+	view_bitmap,
+	write_image_file,
+} from "./functions.js";
 import { show_help } from "./help.js";
 import { $G, E, TAU, get_file_extension, get_help_folder_icon, is_discord_embed, make_canvas, to_canvas_coords } from "./helpers.js";
 import { init_webgl_stuff, rotate } from "./image-manipulation.js";
@@ -841,17 +887,6 @@ $G.on("keydown", (e) => {
 			deselect();
 		}
 	}
-	if (
-		// Ctrl+Shift+Y for history window,
-		// chosen because it's related to the undo/redo shortcuts
-		// and it looks like a branching symbol.
-		(e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey &&
-		e.key.toUpperCase() === "Y"
-	) {
-		show_document_history();
-		e.preventDefault();
-		return;
-	}
 	// @TODO: return if menus/menubar focused or focus in dialog window
 	// or maybe there's a better way to do this that works more generally
 	// maybe it should only handle the event if document.activeElement is the body or html element?
@@ -1024,15 +1059,10 @@ $G.on("keydown", (e) => {
 				}
 				break;
 			case "Y":
-				// Ctrl+Shift+Y handled above
 				redo();
 				break;
 			case "G":
-				if (e.shiftKey) {
-					render_history_as_gif();
-				} else {
-					toggle_grid();
-				}
+				toggle_grid();
 				break;
 			case "F":
 				// @ts-ignore (repeat doesn't exist on jQuery.Event, I guess, but this is fine)
@@ -1191,21 +1221,7 @@ $G.on("cut copy paste", (e) => {
 		}
 	} else if (e.type === "paste") {
 		for (const item of cd.items) {
-			if (item.type.match(/^text\/(?:x-data-uri|uri-list|plain)|URL$/)) {
-				item.getAsString((text) => {
-					const uris = get_uris(text);
-					if (uris.length > 0) {
-						load_image_from_uri(uris[0]).then((info) => {
-							paste(info.image || make_canvas(info.image_data));
-						}, (error) => {
-							show_resource_load_error_message(error);
-						});
-					} else {
-						show_error_message("The information on the Clipboard can't be inserted into Paint.");
-					}
-				});
-				break;
-			} else if (item.type.match(/^image\//)) {
+			if (item.type.match(/^image\//)) {
 				paste_image_from_file(item.getAsFile());
 				break;
 			}
