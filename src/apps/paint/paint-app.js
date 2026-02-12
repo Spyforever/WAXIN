@@ -238,6 +238,7 @@ export class PaintApp extends Application {
             this._setupDragAndDrop();
             this.initialized = true;
             $(window).trigger("resize");
+            $(window).trigger("option-changed");
             this.win.focus();
             if (data) {
                 this.openFile(data);
