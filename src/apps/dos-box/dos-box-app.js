@@ -27,8 +27,15 @@ export class DosBoxApp extends Application {
       category: "Accessories/Games",
       width: 640,
       height: 480,
-      allowFullscreen: true,
-      startFullscreen: true,
+    },
+    {
+      id: "sky",
+      title: "Beneath a Steel Sky",
+      description: "Play Beneath a Steel Sky",
+      icon: ICONS.msdos,
+      category: "Accessories/Games",
+      width: 640,
+      height: 480,
     }
   ];
 
@@ -45,6 +52,8 @@ export class DosBoxApp extends Application {
   async _createWindow(data) {
     if (this.id === 'wolf3d') {
       this.executablePath = "/C:/Games/WOLF3D/WOLF3D.EXE";
+    } else if (this.id === 'sky') {
+      this.executablePath = "/C:/Games/SKY/SKY.EXE";
     } else if (typeof data === 'string') {
       this.executablePath = data;
     } else if (data && data.path) {
