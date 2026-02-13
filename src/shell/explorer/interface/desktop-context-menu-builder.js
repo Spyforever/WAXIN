@@ -23,6 +23,7 @@ import {
 } from "../../../system/local-storage.js";
 import { launchApp } from "../../../system/app-manager.js";
 import ClipboardManager from "../file-operations/clipboard-manager.js";
+import { launchDisplayPropertiesApp } from "../../display-properties/index.js";
 
 export class DesktopContextMenuBuilder extends ContextMenuBuilder {
   buildBackgroundMenu(e) {
@@ -240,7 +241,7 @@ export class DesktopContextMenuBuilder extends ContextMenuBuilder {
       "MENU_DIVIDER",
       {
         label: "Properties",
-        action: () => launchApp("display-properties"),
+        action: () => launchDisplayPropertiesApp(),
       },
     ];
 
