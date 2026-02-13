@@ -1,5 +1,6 @@
 import { fs } from "@zenfs/core";
 import { getParentPath } from '../navigation/path-utils.js';
+import { DriveService } from '../../../system/drive-service.js';
 
 /**
  * VirtualStats - Mock fs.Stats for shell extensions
@@ -67,9 +68,19 @@ export class ShellManager {
   static async stat(path) {
     const ext = this.getExtensionForPath(path);
     if (ext) {
-      return ext.stat(path);
+      try {
+        return await ext.stat(path);
+      } catch (e) {
+        await DriveService.handleDriveError(path, e);
+        throw e;
+      }
     }
-    return fs.promises.stat(path);
+    try {
+      return await fs.promises.stat(path);
+    } catch (e) {
+      await DriveService.handleDriveError(path, e);
+      throw e;
+    }
   }
 
   /**
@@ -82,7 +93,8 @@ export class ShellManager {
     try {
       files = await fs.promises.readdir(path);
     } catch (e) {
-      // Path might be virtual only
+      // Path might be virtual only or an inaccessible drive
+      await DriveService.handleDriveError(path, e);
     }
 
     for (const ext of this.extensions) {

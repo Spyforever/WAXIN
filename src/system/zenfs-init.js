@@ -13,8 +13,9 @@ import { getStartupApps } from "./startup-manager.js";
 import { apps } from "../config/apps.js";
 import { existsAsync } from "./zenfs-utils.js";
 import { wallpapers } from "../config/wallpapers.js";
-import { getAllDiskHandles } from "./removable-disk-persistence.js";
+import { getAllDiskHandles, removeDiskHandle } from "./removable-disk-persistence.js";
 import { RemovableDiskManager } from "../shell/explorer/drives/removable-disk-manager.js";
+import { DriveService } from "./drive-service.js";
 
 let isInitialized = false;
 
@@ -312,17 +313,36 @@ export async function initFileSystem(onProgress) {
     try {
       const savedHandles = await getAllDiskHandles();
       for (const [letter, handle] of Object.entries(savedHandles)) {
+        const mountPoint = `/${letter}:`;
         try {
-          const mountPoint = `/${letter}:`;
           if (!(await existsAsync(mountPoint))) {
             await fs.promises.mkdir(mountPoint);
           }
           const diskFs = await WebAccess.create({ handle });
           fs.mount(mountPoint, diskFs);
+
+          // Accessibility check
+          await fs.promises.readdir(mountPoint);
+
           RemovableDiskManager.mount(letter, handle.name);
           console.log(`Restored removable disk ${letter}: (${handle.name})`);
         } catch (e) {
           console.warn(`Failed to restore removable disk ${letter}:`, e);
+          // Clean up if it failed to mount or is inaccessible
+          try {
+            if (mounts.has(mountPoint)) {
+              fs.umount(mountPoint);
+            }
+          } catch (umountErr) {}
+
+          try {
+            if (await existsAsync(mountPoint)) {
+              await fs.promises.rmdir(mountPoint);
+            }
+          } catch (rmdirErr) {}
+
+          await removeDiskHandle(letter);
+          RemovableDiskManager.unmount(letter);
         }
       }
     } catch (e) {
