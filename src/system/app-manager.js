@@ -58,8 +58,23 @@ export async function launchApp(appId, data = null) {
 
     try {
         if (appConfig.appClass) {
-            const appInstance = new appConfig.appClass({ ...appConfig, id: appId });
-            // The instance will register itself in runningApps during launch using its unique instanceKey
+            let AppClass = appConfig.appClass;
+
+            // Handle lazy loading if appClass is a loader function
+            if (typeof AppClass === "function" && !AppClass.prototype) {
+                const module = await AppClass();
+                AppClass =
+                    Object.values(module).find(
+                        (exp) => typeof exp === "function" && exp.config,
+                    ) || module.default;
+            }
+
+            if (!AppClass) {
+                throw new Error(`Application class not found for app ID: ${appId}`);
+            }
+
+            const appInstance = new AppClass({ ...appConfig, id: appId });
+            // The instance will register itself in runningApps during launch into its unique instanceKey
             await appInstance.launch(data);
             document.dispatchEvent(new CustomEvent('app-launched', { detail: { appId } }));
             return appInstance;

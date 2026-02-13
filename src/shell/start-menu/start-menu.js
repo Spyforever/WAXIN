@@ -16,6 +16,7 @@ import { playSound } from '../../system/sound-manager.js';
 import { ShowDialogWindow } from '../../shared/components/dialog-window.js';
 import { createShutdownDialogContent } from '../shutdown-dialog.js';
 import { showShutdownScreen } from '../shutdown-screen.js';
+import { launchAboutApp } from '../about/index.js';
 
 // Constants
 const SELECTORS = {
@@ -621,7 +622,7 @@ class StartMenu {
    * Handle home action
    */
   handleHome() {
-    launchApp("about");
+    launchAboutApp();
     this.hide();
   }
 

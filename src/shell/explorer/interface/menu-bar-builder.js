@@ -1,17 +1,17 @@
-import { ShowDialogWindow } from '../../../shared/components/dialog-window.js';
+import { ShowDialogWindow } from "../../../shared/components/dialog-window.js";
 import { mounts } from "@zenfs/core";
 import {
   requestBusyState,
   releaseBusyState,
-} from '../../../system/busy-state-manager.js';
-import { getDisplayName, getParentPath } from '../navigation/path-utils.js';
-import ClipboardManager from '../file-operations/clipboard-manager.js';
-import { PropertiesManager } from '../file-operations/properties-manager.js';
-import UndoManager from '../file-operations/undo-manager.js';
-import { RemovableDiskManager } from '../drives/removable-disk-manager.js';
-import { RecycleBinManager } from '../file-operations/recycle-bin-manager.js';
-import { FAVORITES_PATH } from '../../start-menu/start-menu-utils.js';
-import { launchApp } from '../../../system/app-manager.js';
+} from "../../../system/busy-state-manager.js";
+import { getDisplayName, getParentPath } from "../navigation/path-utils.js";
+import ClipboardManager from "../file-operations/clipboard-manager.js";
+import { PropertiesManager } from "../file-operations/properties-manager.js";
+import UndoManager from "../file-operations/undo-manager.js";
+import { RemovableDiskManager } from "../drives/removable-disk-manager.js";
+import { RecycleBinManager } from "../file-operations/recycle-bin-manager.js";
+import { FAVORITES_PATH } from "../../start-menu/start-menu-utils.js";
+import { launchApp } from "../../../system/app-manager.js";
 
 export class MenuBarBuilder {
   constructor(app) {
@@ -41,10 +41,10 @@ export class MenuBarBuilder {
         "&Help": this._getHelpMenuItems(),
       });
     } catch (e) {
-        console.error("Failed to build MenuBar:", e);
-        return new window.MenuBar({
-            "&Go": this._getGoMenuItems()
-        });
+      console.error("Failed to build MenuBar:", e);
+      return new window.MenuBar({
+        "&Go": this._getGoMenuItems(),
+      });
     }
   }
 
@@ -57,7 +57,9 @@ export class MenuBarBuilder {
       (p) => getParentPath(p) === "/",
     );
     const isRoot = this.app.currentPath === "/";
-    const isRecycleBin = RecycleBinManager.isRecycleBinPath(this.app.currentPath);
+    const isRecycleBin = RecycleBinManager.isRecycleBinPath(
+      this.app.currentPath,
+    );
 
     return [
       {
@@ -92,7 +94,11 @@ export class MenuBarBuilder {
       {
         label: "Paste &Shortcut",
         action: () => this.app.fileOps.pasteShortcuts(this.app.currentPath),
-        enabled: () => !ClipboardManager.isEmpty() && ClipboardManager.operation === "copy" && !isRoot && !isRecycleBin,
+        enabled: () =>
+          !ClipboardManager.isEmpty() &&
+          ClipboardManager.operation === "copy" &&
+          !isRoot &&
+          !isRecycleBin,
       },
     ];
   }
@@ -106,8 +112,12 @@ export class MenuBarBuilder {
       (p) => getParentPath(p) === "/",
     );
     const isRoot = this.app.currentPath === "/";
-    const isRecycleBin = RecycleBinManager.isRecycleBinPath(this.app.currentPath);
-    const anyRecycledItem = selectedPaths.some(p => RecycleBinManager.isRecycledItemPath(p));
+    const isRecycleBin = RecycleBinManager.isRecycleBinPath(
+      this.app.currentPath,
+    );
+    const anyRecycledItem = selectedPaths.some((p) =>
+      RecycleBinManager.isRecycledItemPath(p),
+    );
 
     const items = [];
 
@@ -130,7 +140,9 @@ export class MenuBarBuilder {
       items.push("MENU_DIVIDER");
     }
 
-    const mruEntries = this.app.navHistory ? this.app.navHistory.getMRUFolders() : [];
+    const mruEntries = this.app.navHistory
+      ? this.app.navHistory.getMRUFolders()
+      : [];
 
     return [
       ...items,
@@ -222,10 +234,14 @@ export class MenuBarBuilder {
           value: entry.id,
         })),
         getValue: () => {
-          return this.app.navHistory ? this.app.navHistory.getSelectedMRUId() : null;
+          return this.app.navHistory
+            ? this.app.navHistory.getSelectedMRUId()
+            : null;
         },
         setValue: (id) => {
-          const entry = this.app.navHistory.getMRUFolders().find((e) => e.id === id);
+          const entry = this.app.navHistory
+            .getMRUFolders()
+            .find((e) => e.id === id);
           if (entry) {
             this.app.navHistory.markAsManuallySelectedById(id);
             this.app.navigateTo(entry.path, false, true);
@@ -248,7 +264,8 @@ export class MenuBarBuilder {
           );
 
           if (isMyComputerSelected) {
-            launchApp("about");
+            const { launchAboutApp } = await import("../../about/index.js");
+            launchAboutApp();
             return;
           }
 
@@ -350,13 +367,15 @@ export class MenuBarBuilder {
     return [
       {
         label: "New &Retro Window",
-        action: () =>
-          window.System.launchApp("explorer", "azay.rahmad"),
+        action: () => window.System.launchApp("explorer", "azay.rahmad"),
       },
       {
         label: "New &Live Window",
         action: () =>
-          window.System.launchApp("explorer", { path: "azay.rahmad", retroMode: false }),
+          window.System.launchApp("explorer", {
+            path: "azay.rahmad",
+            retroMode: false,
+          }),
       },
       "MENU_DIVIDER",
       {
@@ -459,11 +478,14 @@ export class MenuBarBuilder {
   }
 
   _patchFavoriteActions(items) {
-    return items.map(item => {
+    return items.map((item) => {
       const newItem = { ...item };
       if (newItem.submenu) {
         newItem.submenu = this._patchFavoriteActions(newItem.submenu);
-      } else if (newItem.appId === "explorer" || newItem.appId === "internet-explorer") {
+      } else if (
+        newItem.appId === "explorer" ||
+        newItem.appId === "internet-explorer"
+      ) {
         newItem.action = () => {
           if (newItem.args) {
             this.app.navigateTo(newItem.args);
@@ -471,7 +493,9 @@ export class MenuBarBuilder {
             this.app.navigateTo(newItem.targetPath);
           } else {
             // Default explorer or IE launch, just let it be or navigate to root/home
-            this.app.navigateTo(newItem.appId === "internet-explorer" ? "azay.rahmad" : "/");
+            this.app.navigateTo(
+              newItem.appId === "internet-explorer" ? "azay.rahmad" : "/",
+            );
           }
         };
       }
