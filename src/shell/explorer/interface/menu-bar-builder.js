@@ -247,10 +247,10 @@ export class MenuBarBuilder {
           );
 
           if (isMyComputerSelected) {
-            const { launchApp } = await import(
-              "../../../system/app-manager.js"
+            const { launchAboutApp } = await import(
+              "../../about/index.js"
             );
-            launchApp("about");
+            launchAboutApp();
             return;
           }
 

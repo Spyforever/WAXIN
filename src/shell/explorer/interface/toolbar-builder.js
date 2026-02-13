@@ -233,8 +233,8 @@ export function getToolbarItems(app) {
         );
 
         if (isMyComputerSelected) {
-          const { launchApp } = await import("../../../system/app-manager.js");
-          launchApp("about");
+          const { launchAboutApp } = await import("../../about/index.js");
+          launchAboutApp();
           return;
         }
 

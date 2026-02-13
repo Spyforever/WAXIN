@@ -65,10 +65,10 @@ export class ContextMenuBuilder {
               (p) => p === "/" || p === "/Desktop/My Computer",
             );
             if (isMyComputerSelected) {
-              const { launchApp } = await import(
-                "../../../system/app-manager.js"
+              const { launchAboutApp } = await import(
+                "../../about/index.js"
               );
-              launchApp("about");
+              launchAboutApp();
               return;
             }
             const busyId = `properties-${Math.random()}`;
@@ -204,10 +204,10 @@ export class ContextMenuBuilder {
               (p) => p === "/" || p === "/Desktop/My Computer",
             );
             if (isMyComputerSelected) {
-              const { launchApp } = await import(
-                "../../../system/app-manager.js"
+              const { launchAboutApp } = await import(
+                "../../about/index.js"
               );
-              launchApp("about");
+              launchAboutApp();
               return;
             }
             const busyId = `properties-${Math.random()}`;
@@ -309,10 +309,10 @@ export class ContextMenuBuilder {
             this.app.currentPath === "/" ||
             this.app.currentPath === "/Desktop/My Computer"
           ) {
-            const { launchApp } = await import(
-              "../../../system/app-manager.js"
+            const { launchAboutApp } = await import(
+              "../../about/index.js"
             );
-            launchApp("about");
+            launchAboutApp();
             return;
           }
           const busyId = `properties-${Math.random()}`;
