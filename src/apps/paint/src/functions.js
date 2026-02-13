@@ -12,16 +12,9 @@ import { default_palette } from "./color-data.js";
 import { image_formats } from "./file-format-data.js";
 import { $G, E, TAU, debounce, from_canvas_coords, get_help_folder_icon, get_icon_for_tool, get_rgba_from_color, is_discord_embed, is_pride_month, make_canvas, render_access_key, to_canvas_coords } from "./helpers.js";
 import { apply_image_transformation, draw_grid, draw_selection_box, flip_horizontal, flip_vertical, invert_monochrome, invert_rgb, rotate, stretch_and_skew, threshold_black_and_white } from "./image-manipulation.js";
-import { show_imgur_uploader } from "./imgur.js";
 import { showMessageBox } from "./msgbox.js";
 import { localStore } from "./storage.js";
 import { TOOL_CURVE, TOOL_FREE_FORM_SELECT, TOOL_POLYGON, TOOL_SELECT, TOOL_TEXT, tools } from "./tools.js";
-// `sessions.js` must be loaded after `app.js`
-// This would cause it to be loaded earlier, and error trying to access `undos`
-// I'm surprised I haven't been bitten by this sort of bug, and I've
-// mostly converted the whole app to ES Modules!
-// TODO: make sessions.js export function to initialize it
-// import { new_local_session } from "./sessions.js";
 
 // expresses order in the URL as well as type
 const param_types = {
@@ -37,16 +30,9 @@ const param_types = {
 	"compare-reference": "bool",
 	"compare-reference-tool-windows": "bool",
 	"force-open-project-news": "bool",
-	// sessions
-	"local": "string",
-	"session": "string",
-	"load": "string",
 };
 
 const exclusive_params = [
-	"local",
-	"session",
-	"load",
 ];
 
 function get_all_url_params() {
@@ -776,213 +762,14 @@ function update_title() {
 }
 
 /**
- * Parse text/uri-list format
- * @param {string} text
- * @returns {string[]} URLs
- */
-function get_uris(text) {
-	// get lines, discarding comments
-	const lines = text.split(/[\n\r]+/).filter((line) => line[0] !== "#" && line);
-	// discard text with too many lines (likely pasted HTML or something) - may want to revisit this
-	if (lines.length > 15) {
-		return [];
-	}
-	// parse URLs, discarding anything that parses as a relative URL
-	const uris = [];
-	for (let i = 0; i < lines.length; i++) {
-		// Relative URLs will throw when no base URL is passed to the URL constructor.
-		try {
-			const url = new URL(lines[i]);
-			uris.push(url.href);
-		} catch (_error) { /* ignore */ }
-	}
-	return uris;
-}
-/**
- * Load an image file from a URL by any means necessary.
- * For basic image loading, see `load_image_simple` instead.
- * @param {string} uri
- * @returns {Promise<ImageInfo>}
- * @throws {Error & { code?: string }}
- */
-async function load_image_from_uri(uri) {
-
-	// Cases to consider:
-	// - data URI
-	// - blob URI
-	//   - blob URI from another domain
-	// - file URI
-	// - http URI
-	// - https URI
-	// - unsupported protocol, e.g. "ftp://example.com/image.png"
-	// - invalid URI
-	//   - no protocol specified, e.g. "example.com/image.png"
-	//     --> We can fix these up!
-	//   - The user may be just trying to paste text, not an image.
-	// - non-CORS-enabled URI
-	//   --> Use a CORS proxy! :)
-	//   - In electron, using a CORS proxy 1. is silly, 2. maybe isn't working.
-	//     --> Either proxy requests to the main process,
-	//         or configure headers in the main process to make requests work.
-	//         Probably the latter. @TODO
-	//         https://stackoverflow.com/questions/51254618/how-do-you-handle-cors-in-an-electron-app
-	// - invalid image / unsupported image format
-	// - image is no longer available on the live web
-	//   --> try loading from WayBack Machine :)
-	//   - often swathes of URLs are redirected to a new site, and do not give a 404.
-	//     --> make sure the flow of fallbacks accounts for this, and doesn't just see it as an unsupported file format.
-	// - localhost URI, e.g. "http://127.0.0.1/" or "http://localhost/"
-	//   --> Don't try to proxy these, as it will just fail.
-	//   - Some domain extensions are reserved, e.g. .localdomain (how official is this?)
-	//   - There can also be arbitrary hostnames mapped to local servers, which we can't test for
-	// - already a proxy URI, e.g. "https://cors.bridged.cc/https://example.com/image.png"
-	// - file already downloaded
-	//   --> maybe should cache downloads? maybe HTTP caching is good enough? maybe uncommon enough that it doesn't matter.
-	// - Pasting (Edit > Paste or Ctrl+V) vs Opening (drag & drop, File > Open, Ctrl+O, or File > Load From URL)
-	//   --> make wording generic or specific to the context
-
-	const is_blob_uri = uri.match(/^blob:/i);
-	const is_download = !uri.match(/^(blob|data|file):/i);
-	const is_localhost = uri.match(/^(http|https):\/\/((127\.0\.0\.1|localhost)|.*(\.(local|localdomain|domain|lan|home|host|corp|invalid)))\b/i);
-
-	if (is_blob_uri && uri.indexOf(`blob:${location.origin}`) === -1) {
-		const error = new Error("can't load blob: URI from another domain");
-		// @ts-ignore
-		error.code = "cross-origin-blob-uri";
-		throw error;
-	}
-
-	const uris_to_try = (is_download && !is_localhost) ? [
-		uri,
-		// work around CORS headers not sent by whatever server
-		`https://cors.bridged.cc/${uri}`,
-		`https://jspaint-cors-proxy.herokuapp.com/${uri}`,
-		// if the image isn't available on the live web, see if it's archived
-		`https://web.archive.org/${uri}`,
-	] : [uri];
-	const fails = [];
-
-	for (let index_to_try = 0; index_to_try < uris_to_try.length; index_to_try += 1) {
-		const uri_to_try = uris_to_try[index_to_try];
-		try {
-			if (is_download) {
-				$status_text.text("Downloading picture...");
-			}
-
-			const show_progress = ({ loaded, total }) => {
-				if (is_download) {
-					$status_text.text(`Downloading picture... (${Math.round(loaded / total * 100)}%)`);
-				}
-			};
-
-			if (is_download) {
-				console.log(`Try loading image from URI (${index_to_try + 1}/${uris_to_try.length}): "${uri_to_try}"`);
-			}
-
-			const original_response = await fetch(uri_to_try);
-			let response_to_read = original_response;
-			if (!original_response.ok) {
-				fails.push({ status: original_response.status, statusText: original_response.statusText, url: uri_to_try });
-				continue;
-			}
-			if (!original_response.body) {
-				if (is_download) {
-					console.log("ReadableStream not yet supported in this browser. Progress won't be shown for image requests.");
-				}
-			} else {
-				// to access headers, server must send CORS header "Access-Control-Expose-Headers: content-encoding, content-length x-file-size"
-				// server must send custom x-file-size header if gzip or other content-encoding is used
-				const contentEncoding = original_response.headers.get("content-encoding");
-				const contentLength = original_response.headers.get(contentEncoding ? "x-file-size" : "content-length");
-				if (contentLength === null) {
-					if (is_download) {
-						console.log("Response size header unavailable. Progress won't be shown for this image request.");
-					}
-				} else {
-					const total = parseInt(contentLength, 10);
-					let loaded = 0;
-					response_to_read = new Response(
-						new ReadableStream({
-							start(controller) {
-								const reader = original_response.body.getReader();
-
-								read();
-								function read() {
-									reader.read().then(({ done, value }) => {
-										if (done) {
-											controller.close();
-											return;
-										}
-										loaded += value.byteLength;
-										show_progress({ loaded, total });
-										controller.enqueue(value);
-										read();
-									}).catch((error) => {
-										console.error(error);
-										controller.error(error);
-									});
-								}
-							},
-						})
-					);
-				}
-			}
-
-			const blob = await response_to_read.blob();
-			if (is_download) {
-				console.log("Download complete.");
-				$status_text.text("Download complete.");
-			}
-			// @TODO: use headers to detect HTML, since a doctype is not guaranteed
-			// @TODO: fall back to WayBack Machine still for decode errors,
-			// since a website might start redirecting swathes of URLs regardless of what they originally pointed to,
-			// at which point they would likely point to a web page instead of an image.
-			// (But still show an error about it not being an image, if WayBack also fails.)
-			const info = await new Promise((resolve, reject) => {
-				read_image_file(blob, (error, info) => {
-					if (error) {
-						reject(error);
-					} else {
-						resolve(info);
-					}
-				});
-			});
-			return info;
-		} catch (error) {
-			fails.push({ url: uri_to_try, error });
-		}
-	}
-	if (is_download) {
-		$status_text.text("Failed to download picture.");
-	}
-	const error = new Error(`failed to fetch image from any of ${uris_to_try.length} URI(s):\n  ${fails.map((fail) =>
-		(fail.statusText ? `${fail.status} ${fail.statusText} ` : "") + fail.url + (fail.error ? `\n    ${fail.error}` : "")
-	).join("\n  ")}`);
-	// @ts-ignore
-	error.code = "access-failure";
-	// @ts-ignore
-	error.fails = fails;
-	throw error;
-}
-
-/**
  * @param {ImageInfo} info
  * @param {() => void} [callback]
  * @param {() => void} [canceled]
- * @param {boolean} [into_existing_session]
- * @param {boolean} [from_session_load]
  */
-function open_from_image_info(info, callback, canceled, into_existing_session, from_session_load) {
-	are_you_sure(({ canvas_modified_while_loading } = {}) => {
+function open_from_image_info(info, callback, canceled) {
+	are_you_sure(() => {
 		deselect();
 		cancel();
-
-		if (!into_existing_session) {
-			$G.triggerHandler("session-update"); // autosave old session
-			if (typeof new_local_session !== "undefined") {
-				new_local_session();
-			}
-		}
 
 		reset_file();
 		reset_selected_colors();
@@ -998,14 +785,6 @@ function open_from_image_info(info, callback, canceled, into_existing_session, f
 		current_history_node.image_data = main_ctx.getImageData(0, 0, main_canvas.width, main_canvas.height);
 		current_history_node.icon = get_help_folder_icon("p_open.png");
 
-		if (canvas_modified_while_loading || !from_session_load) {
-			// normally we don't want to autosave if we're loading a session,
-			// as this is redundant, but if the user has modified the canvas while loading a session,
-			// right now how it works is the session would be overwritten, so if you reloaded, it'd be lost,
-			// so we'd better save it.
-			// (and we want to save if this is a new session being initialized with an image)
-			$G.triggerHandler("session-update"); // autosave
-		}
 		$G.triggerHandler("history-update"); // update history view
 
 		if (info.source_blob instanceof File) {
@@ -1021,7 +800,7 @@ function open_from_image_info(info, callback, canceled, into_existing_session, f
 		update_title();
 
 		callback?.();
-	}, canceled, from_session_load);
+	}, canceled);
 }
 
 // Note: This function is part of the API.
@@ -1036,7 +815,7 @@ function open_from_file(file, source_file_handle) {
 	// And the File Access API currently doesn't let us automatically append a file extension,
 	// so the user is likely to end up with files with no extension.
 	// It's better to look at the file content to determine file type.
-	// We do this for image files in read_image_file, and palette files in AnyPalette.js.
+	// We do this for image files in read_image_file.
 
 	if (file instanceof File && file.name.match(/\.theme(pack)?$/i)) {
 		file.text().then(load_theme_from_text, (error) => {
@@ -1044,18 +823,10 @@ function open_from_file(file, source_file_handle) {
 		});
 		return;
 	}
-	// Try loading as an image file first, then as a palette file, but show a combined error message if both fail.
+	// Try loading as an image file.
 	read_image_file(file, (as_image_error, image_info) => {
 		if (as_image_error) {
-			AnyPalette.loadPalette(file, (as_palette_error, new_palette) => {
-				if (as_palette_error) {
-					show_file_format_errors({ as_image_error, as_palette_error });
-					return;
-				}
-				palette = new_palette.map((color) => color.toString());
-				$colorbox.rebuild_palette();
-				window.console?.log(`Loaded palette: ${palette.map(() => "%c█").join("")}`, ...palette.map((color) => `color: ${color};`));
-			});
+			show_file_format_errors({ as_image_error });
 			return;
 		}
 		image_info.source_file_handle = source_file_handle;
@@ -1109,17 +880,10 @@ function file_new() {
 		deselect();
 		cancel();
 
-		$G.triggerHandler("session-update"); // autosave old session
-		if (typeof new_local_session !== "undefined") {
-			new_local_session();
-		}
-
 		reset_file();
 		reset_selected_colors();
 		reset_canvas_and_history(); // (with newly reset colors)
 		set_magnification(default_magnification);
-
-		$G.triggerHandler("session-update"); // autosave
 	});
 }
 
@@ -1128,48 +892,6 @@ async function file_open() {
 	open_from_file(file, fileHandle);
 }
 
-/** @type {OSGUI$Window} */
-let $file_load_from_url_window;
-function file_load_from_url() {
-	if ($file_load_from_url_window) {
-		$file_load_from_url_window.close();
-	}
-
-	const content = document.createElement("div");
-	content.style.padding = "10px";
-	content.innerHTML = `
-		<label style="display: block; margin-bottom: 5px;" for="url-input">Paste or type the web address of an image:</label>
-		<input type="url" required value="" id="url-input" class="inset-deep" style="width: 300px;"/></label>
-	`;
-	const $input = $(content).find("#url-input");
-
-	const $w = ShowDialogWindow({
-		title: "Load from URL",
-		content,
-		buttons: [
-			{
-				label: localize("Open"),
-				isDefault: true,
-				action: () => {
-					const uris = get_uris(String($input.val()));
-					if (uris.length > 0) {
-						change_url_param("load", uris[0]);
-					} else {
-						show_error_message("Invalid URL. It must include a protocol (https:// or http://)");
-						return false; // Don't close
-					}
-				}
-			},
-			{
-				label: localize("Cancel"),
-				action: () => { }
-			}
-		]
-	});
-
-	$file_load_from_url_window = $w;
-	$input[0].focus();
-}
 
 // Native FS API / File Access API allows you to overwrite files, but people are not used to it.
 // So we ask them to confirm it the first time.
@@ -1285,53 +1007,12 @@ function file_print() {
 
 /**
  * Prompts the user to save changes to the document.
- * @param {(info?: { canvas_modified_while_loading?: boolean }) => void} action
+ * @param {() => void} action
  * @param {() => void} [canceled]
- * @param {boolean} [from_session_load]
  */
-function are_you_sure(action, canceled, from_session_load) {
+function are_you_sure(action, canceled) {
 	if (saved) {
 		action();
-	} else if (from_session_load) {
-		// @FIXME: this dialog is confusingly worded in the best case.
-		// It's intended for when the user edits the document while the initial document is loading,
-		// which is hard to do, at least for local sessions on my fast new computer.
-		// However it's also shown inappropriately if you edit the document and then either:
-		// - type a #load: URL into the address bar such as
-		//   http://127.0.0.1:1999/#load:https://i.imgur.com/M5zcPuk.jpeg
-		// - click an Open link in the Manage Storage dialog in the Electron app
-		showMessageBox({
-			message: localize("You've modified the document while an existing document was loading.\nSave the new document?", file_name),
-			buttons: [
-				{
-					// label: localize("Save"),
-					label: localize("Yes"),
-					value: "save",
-					default: true,
-				},
-				{
-					// label: "Discard",
-					label: localize("No"),
-					value: "discard",
-				},
-			],
-			// @TODO: not closable with Escape or close button
-		}).then((result) => {
-			if (result === "save") {
-				file_save(() => {
-					action();
-				}, false);
-			} else if (result === "discard") {
-				action({ canvas_modified_while_loading: true });
-			} else {
-				// should not ideally happen
-				// but prefer to preserve the previous document,
-				// as the user has only (probably) as small window to make changes while loading,
-				// whereas there could be any amount of work put into the document being loaded.
-				// @TODO: could show dialog again, but making it un-cancelable would be better.
-				action();
-			}
-		});
 	} else {
 		showMessageBox({
 			message: localize("Save changes to %1?", file_name),
@@ -1440,73 +1121,11 @@ function show_error_message(message, error) {
 	}
 }
 
-// @TODO: close are_you_sure windows and these Error windows when switching sessions
-// because it can get pretty confusing
-/** @param {Error & {code: string, fails?: {status: number, statusText: string, url: string}[]}} error */
-function show_resource_load_error_message(error) {
-	const { $window, $message } = showMessageBox({});
-	const firefox = navigator.userAgent.toLowerCase().indexOf("firefox") > -1;
-	// @TODO: copy & paste vs download & open, more specific guidance
-	if (error.code === "cross-origin-blob-uri") {
-		$message.html(`
-			<p>Can't load image from address starting with "blob:".</p>
-			${firefox ?
-				`<p>Try "Copy Image" instead of "Copy Image Location".</p>` :
-				`<p>Try "Copy image" instead of "Copy image address".</p>`
-			}
-		`);
-	} else if (error.code === "html-not-image") {
-		$message.html(`
-			<p>Address points to a web page, not an image file.</p>
-			<p>Try copying and pasting an image instead of a URL.</p>
-		`);
-	} else if (error.code === "decoding-failure") {
-		$message.html(`
-			<p>Address doesn't point to an image file of a supported format.</p>
-			<p>Try copying and pasting an image instead of a URL.</p>
-		`);
-	} else if (error.code === "access-failure") {
-		if (navigator.onLine) {
-			$message.html(`
-				<p>Failed to download image.</p>
-				<p>Try copying and pasting an image instead of a URL.</p>
-			`);
-			if (error.fails) {
-				$("<ul>").append(error.fails.map(({ status, statusText, url }) =>
-					$("<li>").text(url).prepend($("<b>").text(`${status || ""} ${statusText || "Failed"} `))
-				)).appendTo($message);
-			}
-		} else {
-			$message.html(`
-				<p>Failed to download image.</p>
-				<p>You're offline. Connect to the internet and try again.</p>
-				<p>Or copy and paste an image instead of a URL, if possible.</p>
-			`);
-		}
-	} else {
-		// TODO: what to do in Electron? also most users don't know how to check the console
-		$message.html(`
-			<p>Failed to load image from URL.</p>
-			<p>Check your browser's devtools for details.</p>
-		`);
-	}
-	$message.css({ maxWidth: "500px" });
-	$window.center(); // after adding content
-}
 /**
- * @typedef {object} PaletteErrorGroup
- * @property {string} message
- * @property {PaletteErrorObject[]} errors
- *
- * @typedef {object} PaletteErrorObject
- * @property {Error} error
- * @property {{name: string}} __PATCHED_LIB_TO_ADD_THIS__format
- *
  * @param {object} options
  * @param {Error=} options.as_image_error
- * @param {Error|PaletteErrorGroup=} options.as_palette_error
  */
-function show_file_format_errors({ as_image_error, as_palette_error }) {
+function show_file_format_errors({ as_image_error }) {
 	let html = `
 		<p>${localize("Paint cannot open this file.")}</p>
 	`;
@@ -1516,44 +1135,6 @@ function show_file_format_errors({ as_image_error, as_palette_error }) {
 			<details>
 				<summary>${localize("Bitmap Image")}</summary>
 				<p>${localize("This is not a valid bitmap file, or its format is not currently supported.")}</p>
-			</details>
-		`;
-	}
-	var entity_map = {
-		"&": "&amp;",
-		"<": "&lt;",
-		">": "&gt;",
-		'"': "&quot;",
-		"'": "&#39;",
-		"/": "&#x2F;",
-		"`": "&#x60;",
-		"=": "&#x3D;",
-	};
-	const escape_html = (string) => String(string).replace(/[&<>"'`=/]/g, (s) => entity_map[s]);
-	const uppercase_first = (string) => string.charAt(0).toUpperCase() + string.slice(1);
-
-	const only_palette_error = as_palette_error && !as_image_error; // update me if there are more error types
-	if (as_palette_error) {
-		let details = "";
-		if ("errors" in as_palette_error) {
-			details = `<ul dir="ltr">${as_palette_error.errors.map((error) => {
-				const format = error.__PATCHED_LIB_TO_ADD_THIS__format;
-				if (format && error.error) {
-					return `<li><b>${escape_html(`${format.name}`)}</b>: ${escape_html(uppercase_first(error.error.message))}</li>`;
-				}
-				// Fallback for unknown errors
-				// @ts-ignore
-				return `<li>${escape_html(error.message || error)}</li>`;
-			}).join("\n")}</ul>`;
-		} else {
-			// Fallback for unknown errors
-			details = `<p>${escape_html(as_palette_error.message || as_palette_error)}</p>`;
-		}
-		html += `
-			<details>
-				<summary>${only_palette_error ? "Details" : localize("Palette|*.pal|").split("|")[0]}</summary>
-				<p>${localize("Unexpected file format.")}</p>
-				${details}
 			</details>
 		`;
 	}
@@ -1921,136 +1502,6 @@ function paste(img_or_canvas) {
 	}
 }
 
-function render_history_as_gif() {
-	const content = document.createElement("div");
-	content.style.padding = "5px";
-	const $output = $(content);
-	const $progress = $(E("progress")).appendTo($output).addClass("inset-deep");
-	const $progress_percent = $(E("span")).appendTo($output).css({
-		width: "2.3em",
-		display: "inline-block",
-		textAlign: "center",
-	});
-
-	let gif;
-	const $win = ShowDialogWindow({
-		title: "Rendering GIF",
-		content,
-		buttons: [
-			{
-				label: "Cancel",
-				action: () => {
-					gif?.abort();
-				}
-			}
-		]
-	});
-
-	try {
-		const width = main_canvas.width;
-		const height = main_canvas.height;
-		gif = new GIF({
-			//workers: Math.min(5, Math.floor(undos.length/50)+1),
-			workerScript: "/win98-web/apps/paint/lib/gif.js/gif.worker.js",
-			width,
-			height,
-		});
-
-		gif.on("progress", (p) => {
-			$progress.val(p);
-			$progress_percent.text(`${~~(p * 100)}%`);
-		});
-
-		gif.on("finished", (blob) => {
-			$win.title("Rendered GIF");
-			const blob_url = URL.createObjectURL(blob);
-			$output.empty().append(
-				$(E("div")).addClass("inset-deep").append(
-					$(E("img")).attr({
-						src: blob_url,
-						width,
-						height,
-					}).css({
-						display: "block", // prevent margin below due to inline display (vertical-align can also be used)
-					}),
-				).css({
-					overflow: "auto",
-					maxHeight: "70vh",
-					maxWidth: "70vw",
-				})
-			);
-
-			$win.onClosed(() => {
-				// revoking on image load(+error) breaks right click > "Save image as" and "Open image in new tab"
-				URL.revokeObjectURL(blob_url);
-			});
-
-			// Update buttons
-			const $buttonContainer = $win.find(".dialog-buttons");
-			$buttonContainer.empty();
-
-			const addButton = (label, action, isDefault) => {
-				const btn = document.createElement("button");
-				btn.textContent = label;
-				if (isDefault) btn.classList.add("default");
-				btn.onclick = action;
-				$buttonContainer.append(btn);
-				return btn;
-			};
-
-			addButton("Upload to Imgur", () => {
-				$win.close();
-				sanity_check_blob(blob, () => {
-					show_imgur_uploader(blob);
-				});
-			});
-
-			addButton(localize("Save"), () => {
-				$win.close();
-				sanity_check_blob(blob, () => {
-					const suggested_file_name = `${file_name.replace(/\.(bmp|dib|a?png|gif|jpe?g|jpe|jfif|tiff?|webp|raw)$/i, "")} history.gif`;
-					systemHooks.showSaveFileDialog({
-						dialogTitle: localize("Save As"), // localize("Save Animation As"),
-						getBlob: () => blob,
-						defaultFileName: suggested_file_name,
-						defaultPath: typeof system_file_handle === "string" ? `${system_file_handle.replace(/[/\\][^/\\]*/, "")}/${suggested_file_name}` : null,
-						defaultFileFormatID: "image/gif",
-						formats: [{
-							formatID: "image/gif",
-							mimeType: "image/gif",
-							name: localize("Animated GIF (*.gif)").replace(/\s+\([^(]+$/, ""),
-							nameWithExtensions: localize("Animated GIF (*.gif)"),
-							extensions: ["gif"],
-						}],
-					});
-				});
-			});
-
-			addButton("Cancel", () => {
-				$win.close();
-			});
-
-			$win.center();
-		});
-
-		const gif_canvas = make_canvas(width, height);
-		const frame_history_nodes = [...undos, current_history_node];
-		for (const frame_history_node of frame_history_nodes) {
-			gif_canvas.ctx.clearRect(0, 0, gif_canvas.width, gif_canvas.height);
-			gif_canvas.ctx.putImageData(frame_history_node.image_data, 0, 0);
-			if (frame_history_node.selection_image_data) {
-				const selection_canvas = make_canvas(frame_history_node.selection_image_data);
-				gif_canvas.ctx.drawImage(selection_canvas, frame_history_node.selection_x, frame_history_node.selection_y);
-			}
-			gif.addFrame(gif_canvas, { delay: 200, copy: true });
-		}
-		gif.render();
-
-	} catch (err) {
-		$win.close();
-		show_error_message("Failed to render GIF.", err);
-	}
-}
 
 /**
  * @param {HistoryNode} target_history_node
@@ -2304,164 +1755,6 @@ function get_history_ancestors(node) {
 	return ancestors;
 }
 
-/** @type {OSGUI$Window} */
-let $document_history_window;
-// setTimeout(show_document_history, 100);
-function show_document_history() {
-	if ($document_history_prompt_window) {
-		$document_history_prompt_window.close();
-	}
-	if ($document_history_window) {
-		$document_history_window.close();
-	}
-
-	const content = document.createElement("div");
-	content.className = "history-window squish";
-	content.innerHTML = `
-		<label>
-			<select id="history-view-mode" class="inset-deep">
-				<option value="linear">Linear timeline</option>
-				<option value="tree">Tree</option>
-			</select>
-		</label>
-		<div class="history-view" tabIndex="0"></div>
-	`;
-
-	const $history_view = $(content).find(".history-view");
-
-	const $w = ShowDialogWindow({
-		title: "Document History",
-		content,
-		buttons: [
-			{
-				label: localize("OK"),
-				action: () => { }
-			}
-		]
-	});
-	$document_history_window = $w;
-	$history_view.focus();
-
-	let previous_scroll_position = 0;
-
-	let rendered_$entries = [];
-	let current_$entry;
-
-	let $mode_select = $w.$content.find("#history-view-mode");
-	$mode_select.css({
-		margin: "10px",
-	});
-	let mode = $mode_select.val();
-	$mode_select.on("change", () => {
-		mode = $mode_select.val();
-		render_tree();
-	});
-
-	/**
-	 * @param {HistoryNode} node
-	 */
-	function render_tree_from_node(node) {
-		const $entry = $(`
-			<div class="history-entry">
-				<div class="history-entry-icon-area"></div>
-				<div class="history-entry-name"></div>
-			</div>
-		`);
-		// $entry.find(".history-entry-name").text((node.name || "Unknown") + (node.soft ? " (soft)" : ""));
-		$entry.find(".history-entry-name").text((node.name || "Unknown") + (node === root_history_node ? " (Start of History)" : ""));
-		$entry.find(".history-entry-icon-area").append(node.icon);
-		if (mode === "tree") {
-			let dist_to_root = 0;
-			for (let ancestor = node.parent; ancestor; ancestor = ancestor.parent) {
-				dist_to_root++;
-			}
-			$entry.css({
-				marginInlineStart: `${dist_to_root * 8}px`,
-			});
-		}
-		if (node === current_history_node) {
-			$entry.addClass("current");
-			current_$entry = $entry;
-			requestAnimationFrame(() => {
-				// scrollIntoView causes <html> to scroll when the window is partially offscreen,
-				// despite overflow: hidden on html and body, so it's not an option.
-				$history_view[0].scrollTop =
-					Math.min(
-						$entry[0].offsetTop,
-						Math.max(
-							previous_scroll_position,
-							$entry[0].offsetTop - $history_view[0].clientHeight + $entry.outerHeight()
-						)
-					);
-			});
-		} else {
-			const history_ancestors = get_history_ancestors(current_history_node);
-			if (history_ancestors.indexOf(node) > -1) {
-				$entry.addClass("ancestor-of-current");
-			}
-		}
-		for (const sub_node of node.futures) {
-			render_tree_from_node(sub_node);
-		}
-		$entry.on("click", () => {
-			go_to_history_node(node);
-		});
-		// @ts-ignore  (TODO: maybe don't tack properties onto objects so much!)
-		$entry.history_node = node;
-		rendered_$entries.push($entry);
-	}
-	const render_tree = () => {
-		previous_scroll_position = $history_view.scrollTop();
-		$history_view.empty();
-		rendered_$entries = [];
-		render_tree_from_node(root_history_node);
-		if (mode === "linear") {
-			rendered_$entries.sort(($a, $b) => {
-				if ($a.history_node.timestamp < $b.history_node.timestamp) {
-					return -1;
-				}
-				if ($b.history_node.timestamp < $a.history_node.timestamp) {
-					return +1;
-				}
-				return 0;
-			});
-		} else {
-			rendered_$entries.reverse();
-		}
-		rendered_$entries.forEach(($entry) => {
-			$history_view.append($entry);
-		});
-	};
-	render_tree();
-
-	// This is different from Ctrl+Z/Ctrl+Shift+Z because it goes over all branches of the history tree, chronologically,
-	// not just one branch.
-	const go_by = (index_delta) => {
-		const from_index = rendered_$entries.indexOf(current_$entry);
-		const to_index = from_index + index_delta;
-		if (rendered_$entries[to_index]) {
-			rendered_$entries[to_index].click();
-		}
-	};
-	$history_view.on("keydown", (event) => {
-		if (!event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey) {
-			if (event.key === "ArrowDown" || event.key === "Down") {
-				go_by(1);
-				event.preventDefault();
-			} else if (event.key === "ArrowUp" || event.key === "Up") {
-				go_by(-1);
-				event.preventDefault();
-			}
-		}
-	});
-
-	$G.on("history-update", render_tree);
-	$w.on("close", () => {
-		$G.off("history-update", render_tree);
-	});
-
-	$w.center();
-}
 
 /**
  * Cancel the current tool gesture, if any.
@@ -4315,12 +3608,92 @@ function show_multi_user_setup_dialog(from_current_document) {
 
 export {
 	$this_version_news,
-	apply_file_format_and_palette_info, are_you_sure, cancel, change_some_url_params, change_url_param, choose_file_to_paste, cleanup_bitmap_view, clear, confirm_overwrite_capability, delete_selection, deselect, detect_monochrome,
-	edit_copy, edit_cut, edit_paste, exit_fullscreen_if_ios, file_load_from_url, file_new, file_open, file_print, file_save,
-	file_save_as, getSelectionText, get_all_url_params, get_history_ancestors, get_tool_by_id, get_uris, get_url_param, go_to_history_node, handle_keyshortcuts, has_any_transparency, image_attributes, image_flip_and_rotate, image_invert_colors, image_stretch_and_skew, load_image_from_uri, load_theme_from_text, make_history_node, make_monochrome_palette, make_monochrome_pattern, make_opaque, make_or_update_undoable, make_stripe_pattern, meld_selection_into_canvas,
-	meld_textbox_into_canvas, open_from_file, open_from_image_info, paste, paste_image_from_file, please_enter_a_number, read_image_file, redo, render_canvas_view, render_history_as_gif, reset_canvas_and_history, reset_file, reset_selected_colors, resize_canvas_and_save_dimensions, resize_canvas_without_saving_dimensions, sanity_check_blob, save_as_prompt, save_selection_to_file, select_all, select_tool, select_tools, set_all_url_params, set_magnification, show_about_paint, show_convert_to_black_and_white, show_custom_zoom_window, show_document_history, show_error_message, show_file_format_errors, show_multi_user_setup_dialog, show_news, show_resource_load_error_message, switch_to_polychrome_palette, toggle_grid,
-	toggle_thumbnail, try_exec_command, undo, undoable, update_canvas_rect, update_css_classes_for_conditional_messages, update_disable_aa, update_from_saved_file, update_helper_layer,
-	update_helper_layer_immediately, update_magnified_canvas_size, update_title, view_bitmap, write_image_file
+	apply_file_format_and_palette_info,
+	are_you_sure,
+	cancel,
+	change_some_url_params,
+	change_url_param,
+	choose_file_to_paste,
+	cleanup_bitmap_view,
+	clear,
+	confirm_overwrite_capability,
+	delete_selection,
+	deselect,
+	detect_monochrome,
+	edit_copy,
+	edit_cut,
+	edit_paste,
+	exit_fullscreen_if_ios,
+	file_new,
+	file_open,
+	file_print,
+	file_save,
+	file_save_as,
+	getSelectionText,
+	get_all_url_params,
+	get_history_ancestors,
+	get_tool_by_id,
+	get_url_param,
+	go_to_history_node,
+	handle_keyshortcuts,
+	has_any_transparency,
+	image_attributes,
+	image_flip_and_rotate,
+	image_invert_colors,
+	image_stretch_and_skew,
+	load_theme_from_text,
+	make_history_node,
+	make_monochrome_palette,
+	make_monochrome_pattern,
+	make_opaque,
+	make_or_update_undoable,
+	make_stripe_pattern,
+	meld_selection_into_canvas,
+	meld_textbox_into_canvas,
+	open_from_file,
+	open_from_image_info,
+	paste,
+	paste_image_from_file,
+	please_enter_a_number,
+	read_image_file,
+	redo,
+	render_canvas_view,
+	reset_canvas_and_history,
+	reset_file,
+	reset_selected_colors,
+	resize_canvas_and_save_dimensions,
+	resize_canvas_without_saving_dimensions,
+	sanity_check_blob,
+	save_as_prompt,
+	save_selection_to_file,
+	select_all,
+	select_tool,
+	select_tools,
+	set_all_url_params,
+	set_magnification,
+	show_about_paint,
+	show_convert_to_black_and_white,
+	show_custom_zoom_window,
+	show_error_message,
+	show_file_format_errors,
+	show_multi_user_setup_dialog,
+	show_news,
+	switch_to_polychrome_palette,
+	toggle_grid,
+	toggle_thumbnail,
+	try_exec_command,
+	undo,
+	undoable,
+	update_canvas_rect,
+	update_css_classes_for_conditional_messages,
+	update_disable_aa,
+	update_from_saved_file,
+	update_helper_layer,
+	update_helper_layer_immediately,
+	update_magnified_canvas_size,
+	update_title,
+	view_bitmap,
+	write_image_file,
 };
 // Temporary globals until all dependent code is converted to ES Modules
 window.make_history_node = make_history_node; // used by app-state.js

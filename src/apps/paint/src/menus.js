@@ -3,12 +3,42 @@
 /* global $canvas_area, $colorbox, $status_area, $toolbox, available_languages, get_iso_language_name, get_language, get_language_emoji, get_language_endonym, localize, magnification, main_canvas, menu_bar, MENU_DIVIDER, redos, selection, set_language, show_grid, show_thumbnail, systemHooks, undos */
 // import { available_languages, get_iso_language_name, get_language, get_language_emoji, get_language_endonym, localize, set_language } from "./app-localization.js";
 import { show_edit_colors_window } from "./edit-colors.js";
-import { palette_formats } from "./file-format-data.js";
-import { are_you_sure, change_url_param, choose_file_to_paste, clear, delete_selection, deselect, edit_copy, edit_cut, edit_paste, file_load_from_url, file_new, file_open, file_print, file_save, file_save_as, image_attributes, image_flip_and_rotate, image_invert_colors, image_stretch_and_skew, redo, render_history_as_gif, sanity_check_blob, save_selection_to_file, select_all, set_magnification, show_about_paint, show_custom_zoom_window, show_document_history, show_file_format_errors, show_multi_user_setup_dialog, show_news, toggle_grid, toggle_thumbnail, undo, view_bitmap } from "./functions.js";
+import {
+	are_you_sure,
+	change_url_param,
+	choose_file_to_paste,
+	clear,
+	delete_selection,
+	deselect,
+	edit_copy,
+	edit_cut,
+	edit_paste,
+	file_new,
+	file_open,
+	file_print,
+	file_save,
+	file_save_as,
+	image_attributes,
+	image_flip_and_rotate,
+	image_invert_colors,
+	image_stretch_and_skew,
+	redo,
+	sanity_check_blob,
+	save_selection_to_file,
+	select_all,
+	set_magnification,
+	show_about_paint,
+	show_custom_zoom_window,
+	show_file_format_errors,
+	show_multi_user_setup_dialog,
+	show_news,
+	toggle_grid,
+	toggle_thumbnail,
+	undo,
+	view_bitmap,
+} from "./functions.js";
 import { show_help } from "./help.js";
 import { $G, get_rgba_from_color, is_discord_embed } from "./helpers.js";
-import { show_imgur_uploader } from "./imgur.js";
-import { manage_storage } from "./manage-storage.js";
 import { showMessageBox } from "./msgbox.js";
 import { simulateRandomGesturesPeriodically, simulatingGestures, stopSimulatingGestures } from "./simulate-random-gestures.js";
 import { speech_recognition_active, speech_recognition_available } from "./speech-recognition.js";
@@ -74,75 +104,6 @@ const menus = {
 			],
 			action: () => { file_save_as(); },
 			description: localize("Saves the active document with a new name."),
-		},
-		MENU_DIVIDER,
-		{
-			label: localize("&Load From URL"),
-			// shortcut: "", // no shortcut: Ctrl+L is taken, and you can paste a URL with Ctrl+V, so it's not really needed
-			speech_recognition: [
-				"load from url",
-				"load from a url",
-				"load from address",
-				"load from an address",
-				"load from a web address",
-				// this is ridiculous
-				// this would be really simple in JSGF format
-				"load an image from a URL",
-				"load an image from an address",
-				"load an image from a web address",
-				"load image from a URL",
-				"load image from an address",
-				"load image from a web address",
-				"load an image from URL",
-				"load an image from address",
-				"load an image from web address",
-				"load image from URL",
-				"load image from address",
-				"load image from web address",
-
-				"load an picture from a URL",
-				"load an picture from an address",
-				"load an picture from a web address",
-				"load picture from a URL",
-				"load picture from an address",
-				"load picture from a web address",
-				"load an picture from URL",
-				"load an picture from address",
-				"load an picture from web address",
-				"load picture from URL",
-				"load picture from address",
-				"load picture from web address",
-			],
-			action: () => { file_load_from_url(); },
-			description: localize("Opens an image from the web."),
-		},
-		{
-			label: localize("&Upload To Imgur"),
-			speech_recognition: [
-				"upload to imgur", "upload image to imgur", "upload picture to imgur",
-			],
-			action: () => {
-				// include the selection in the saved image
-				deselect();
-
-				main_canvas.toBlob((blob) => {
-					sanity_check_blob(blob, () => {
-						show_imgur_uploader(blob);
-					});
-				});
-			},
-			description: localize("Uploads the active document to Imgur"),
-		},
-		MENU_DIVIDER,
-		{
-			label: localize("Manage Storage"),
-			speech_recognition: [
-				"manage storage", "show storage", "open storage window", "manage sessions", "show sessions", "show local sessions", "local sessions", "storage manager", "show storage manager", "open storage manager",
-				"show autosaves", "show saves", "show saved documents", "show saved files", "show saved pictures", "show saved images", "show local storage",
-				"autosaves", "autosave", "saved documents", "saved files", "saved pictures", "saved images", "local storage",
-			],
-			action: () => { manage_storage(); },
-			description: localize("Manages storage of previously created or opened pictures."),
 		},
 		MENU_DIVIDER,
 		{
@@ -290,15 +251,6 @@ const menus = {
 			enabled: () => redos.length >= 1,
 			action: () => { redo(); },
 			description: localize("Redoes the previously undone action."),
-		},
-		{
-			label: localize("&History"),
-			...shortcut("Ctrl+Shift+Y"),
-			speech_recognition: [
-				"show history", "history",
-			],
-			action: () => { show_document_history(); },
-			description: localize("Shows the document history and lets you navigate to states not accessible with Undo or Repeat."),
 		},
 		MENU_DIVIDER,
 		{
@@ -711,59 +663,6 @@ const menus = {
 				show_edit_colors_window();
 			},
 			description: localize("Creates a new color."),
-		},
-		{
-			label: localize("&Get Colors"),
-			speech_recognition: [
-				"get colors", "load colors", "load color palette", "load palette", "load color palette file", "load palette file", "load list of colors",
-			],
-			action: async () => {
-				const { file } = await systemHooks.showOpenFileDialog({ formats: palette_formats });
-				AnyPalette.loadPalette(file, (error, new_palette) => {
-					if (error) {
-						show_file_format_errors({ as_palette_error: error });
-					} else {
-						palette = new_palette.map((color) => color.toString());
-						$colorbox.rebuild_palette();
-						window.console?.log(`Loaded palette: ${palette.map(() => "%c█").join("")}`, ...palette.map((color) => `color: ${color};`));
-					}
-				});
-			},
-			description: localize("Uses a previously saved palette of colors."),
-		},
-		{
-			label: localize("&Save Colors"),
-			speech_recognition: [
-				"save colors", "save list of colors", "save color palette", "save palette", "save color palette file", "save palette file",
-			],
-			action: () => {
-				const ap = new AnyPalette.Palette();
-				ap.name = "JS Paint Saved Colors";
-				ap.numberOfColumns = 16; // 14?
-				for (const color of palette) {
-					const [r, g, b] = get_rgba_from_color(color);
-					ap.push(new AnyPalette.Color({
-						red: r / 255,
-						green: g / 255,
-						blue: b / 255,
-					}));
-				}
-				systemHooks.showSaveFileDialog({
-					dialogTitle: localize("Save Colors"),
-					defaultFileName: localize("untitled.pal"),
-					formats: palette_formats,
-					getBlob: (format_id) => {
-						const file_content = AnyPalette.writePalette(ap, AnyPalette.formats[format_id]);
-						const blob = new Blob([file_content], { type: "text/plain" });
-						return new Promise((resolve) => {
-							sanity_check_blob(blob, () => {
-								resolve(blob);
-							});
-						});
-					},
-				});
-			},
-			description: localize("Saves the current palette of colors to a file."),
 		},
 	],
 	[localize("&Help")]: [
