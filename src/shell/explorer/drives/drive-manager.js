@@ -10,6 +10,7 @@ import { FloppyManager } from './floppy-manager.js';
 import { CDManager } from './cd-manager.js';
 import { RemovableDiskManager } from './removable-disk-manager.js';
 import { saveDiskHandle, removeDiskHandle } from '../../../system/removable-disk-persistence.js';
+import { DriveService } from '../../../system/drive-service.js';
 
 export class DriveManager {
   constructor(app) {
@@ -65,16 +66,12 @@ export class DriveManager {
    * Eject floppy
    */
   async ejectFloppy() {
-    if (mounts.has("/A:")) {
-      const busyId = "floppy-eject";
-      requestBusyState(busyId, this.app.win.element);
-      try {
-        umount("/A:");
-        FloppyManager.clear();
-        document.dispatchEvent(new CustomEvent("floppy-change"));
-      } finally {
-        releaseBusyState(busyId, this.app.win.element);
-      }
+    const busyId = "floppy-eject";
+    requestBusyState(busyId, this.app.win.element);
+    try {
+      await DriveService.ejectDrive("A");
+    } finally {
+      releaseBusyState(busyId, this.app.win.element);
     }
   }
 
@@ -140,16 +137,12 @@ export class DriveManager {
    * Eject CD
    */
   async ejectCD() {
-    if (mounts.has("/E:")) {
-      const busyId = "cd-eject";
-      requestBusyState(busyId, this.app.win.element);
-      try {
-        umount("/E:");
-        CDManager.clear();
-        document.dispatchEvent(new CustomEvent("cd-change"));
-      } finally {
-        releaseBusyState(busyId, this.app.win.element);
-      }
+    const busyId = "cd-eject";
+    requestBusyState(busyId, this.app.win.element);
+    try {
+      await DriveService.ejectDrive("E");
+    } finally {
+      releaseBusyState(busyId, this.app.win.element);
     }
   }
 
@@ -195,27 +188,12 @@ export class DriveManager {
    * Eject Removable Disk
    */
   async ejectRemovableDisk(letter) {
-    const mountPoint = `/${letter}:`;
-    if (mounts.has(mountPoint)) {
-      const busyId = `removable-eject-${letter}`;
-      requestBusyState(busyId, this.app.win.element);
-      try {
-        umount(mountPoint);
-        RemovableDiskManager.unmount(letter);
-        await removeDiskHandle(letter);
-
-        try {
-          if (fs.existsSync(mountPoint)) {
-            await fs.promises.rmdir(mountPoint);
-          }
-        } catch (err) {
-          console.warn(`Failed to remove mount point ${mountPoint}:`, err);
-        }
-
-        document.dispatchEvent(new CustomEvent("removable-disk-change"));
-      } finally {
-        releaseBusyState(busyId, this.app.win.element);
-      }
+    const busyId = `removable-eject-${letter}`;
+    requestBusyState(busyId, this.app.win.element);
+    try {
+      await DriveService.ejectDrive(letter);
+    } finally {
+      releaseBusyState(busyId, this.app.win.element);
     }
   }
 }
