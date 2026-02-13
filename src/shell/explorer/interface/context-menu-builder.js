@@ -12,6 +12,7 @@ import ClipboardManager from '../file-operations/clipboard-manager.js';
 import { ShellManager } from '../extensions/shell-manager.js';
 import { ShowDialogWindow } from '../../../shared/components/dialog-window.js';
 import { playSound } from '../../../system/sound-manager.js';
+import { launchApp } from '../../../system/app-manager.js';
 
 export class ContextMenuBuilder {
   constructor(app) {
@@ -65,9 +66,6 @@ export class ContextMenuBuilder {
               (p) => p === "/" || p === "/Desktop/My Computer",
             );
             if (isMyComputerSelected) {
-              const { launchApp } = await import(
-                "../../../system/app-manager.js"
-              );
               launchApp("about");
               return;
             }
@@ -204,9 +202,6 @@ export class ContextMenuBuilder {
               (p) => p === "/" || p === "/Desktop/My Computer",
             );
             if (isMyComputerSelected) {
-              const { launchApp } = await import(
-                "../../../system/app-manager.js"
-              );
               launchApp("about");
               return;
             }
@@ -309,9 +304,6 @@ export class ContextMenuBuilder {
             this.app.currentPath === "/" ||
             this.app.currentPath === "/Desktop/My Computer"
           ) {
-            const { launchApp } = await import(
-              "../../../system/app-manager.js"
-            );
             launchApp("about");
             return;
           }

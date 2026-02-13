@@ -11,6 +11,7 @@ import UndoManager from '../file-operations/undo-manager.js';
 import { RemovableDiskManager } from '../drives/removable-disk-manager.js';
 import { RecycleBinManager } from '../file-operations/recycle-bin-manager.js';
 import { FAVORITES_PATH } from '../../start-menu/start-menu-utils.js';
+import { launchApp } from '../../../system/app-manager.js';
 
 export class MenuBarBuilder {
   constructor(app) {
@@ -247,9 +248,6 @@ export class MenuBarBuilder {
           );
 
           if (isMyComputerSelected) {
-            const { launchApp } = await import(
-              "../../../system/app-manager.js"
-            );
             launchApp("about");
             return;
           }

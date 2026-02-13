@@ -133,7 +133,6 @@ const systemApps = [
                 action: async () => {
                   if (window.RecycleBinManager) {
                     await window.RecycleBinManager.emptyAllRecycleBins();
-                    const { playSound } = await import('../system/sound-manager.js');
                     playSound("EmptyRecycleBin");
                   }
                 },
