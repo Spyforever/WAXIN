@@ -4,6 +4,8 @@ import {
     releaseBusyState,
 } from '../../../system/busy-state-manager.js';
 import { ShowDialogWindow } from '../../../shared/components/dialog-window.js';
+import { ProgressBarShowDialogWindow } from '../interface/progress-bar-dialog-window.js';
+import { playSound } from '../../../system/sound-manager.js';
 import { showInputDialog } from '../interface/input-dialog.js';
 import { handleFileSystemError } from './error-handler.js';
 import { joinPath, normalizePath, getPathName, getParentPath, getDriveLabel } from '../navigation/path-utils.js';
@@ -82,7 +84,6 @@ export class FileOperations {
         if (items.length === 0) return;
 
         if (RecycleBinManager.isRecycleBinPath(destinationPath)) {
-            const { ProgressBarShowDialogWindow } = await import('../interface/progress-bar-dialog-window.js');
             const totalSize = await this.getTotalSize(items);
             const dialog = new ProgressBarShowDialogWindow("recycle", items.length, totalSize);
             try {
@@ -100,7 +101,6 @@ export class FileOperations {
             return;
         }
 
-        const { ProgressBarShowDialogWindow } = await import('../interface/progress-bar-dialog-window.js');
         const totalSize = await this.getTotalSize(items);
         const dialog = new ProgressBarShowDialogWindow(operation, items.length, totalSize);
 
@@ -120,7 +120,6 @@ export class FileOperations {
         const { items, operation } = ClipboardManager.get();
         if (items.length === 0 || operation === "cut") return;
 
-        const { ProgressBarShowDialogWindow } = await import('../interface/progress-bar-dialog-window.js');
         const dialog = new ProgressBarShowDialogWindow("shortcut", items.length, 0);
 
         try {
@@ -372,7 +371,6 @@ export class FileOperations {
                     action: async () => {
                         const busyId = `delete-${Math.random()}`;
                         requestBusyState(busyId, this.app.win.element);
-                        const { ProgressBarShowDialogWindow } = await import('../interface/progress-bar-dialog-window.js');
                         const totalSize = await this.getTotalSize(paths);
                         const dialog = new ProgressBarShowDialogWindow(isPermanent ? "delete" : "recycle", paths.length, totalSize);
                         try {
@@ -500,7 +498,6 @@ export class FileOperations {
         if (paths.length === 0) return;
         const busyId = `restore-${Math.random()}`;
         requestBusyState(busyId, this.app.win.element);
-        const { ProgressBarShowDialogWindow } = await import('../interface/progress-bar-dialog-window.js');
         const totalSize = await this.getTotalSize(paths);
         const dialog = new ProgressBarShowDialogWindow("restore", paths.length, totalSize);
         try {
@@ -519,7 +516,6 @@ export class FileOperations {
         if (paths.length === 0) return;
         const busyId = `move-from-recycle-${Math.random()}`;
         requestBusyState(busyId, this.app.win.element);
-        const { ProgressBarShowDialogWindow } = await import('../interface/progress-bar-dialog-window.js');
         const totalSize = await this.getTotalSize(paths);
         const dialog = new ProgressBarShowDialogWindow("move", paths.length, totalSize);
         try {
@@ -559,12 +555,10 @@ export class FileOperations {
                         const metadata = await RecycleBinManager.getMetadata(recyclePath);
                         const ids = Object.keys(metadata);
                         const paths = ids.map(id => joinPath(recyclePath, id));
-                        const { ProgressBarShowDialogWindow } = await import('../interface/progress-bar-dialog-window.js');
                         const totalSize = await this.getTotalSize(paths);
                         const dialog = new ProgressBarShowDialogWindow("empty", ids.length, totalSize);
                         try {
                             await RecycleBinManager.emptyRecycleBin(recyclePath, dialog);
-                            const { playSound } = await import('../../../system/sound-manager.js');
                             playSound("EmptyRecycleBin");
                         } catch (e) {
                             handleFileSystemError("delete", e, "items");

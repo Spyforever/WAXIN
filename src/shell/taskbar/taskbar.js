@@ -6,6 +6,7 @@
 // Vite handles these imports automatically and will optimize them
 import { ICONS } from "../../config/icons.js";
 import StartMenu from "../start-menu/start-menu.js";
+import { refreshPrograms } from "../start-menu/start-menu-utils.js";
 import { showClippyContextMenu } from "../../apps/clippy/clippy.js";
 import { launchApp } from "../../system/app-manager.js";
 
@@ -206,9 +207,6 @@ class Taskbar {
         {
           label: "Refresh Start Menu items",
           action: async () => {
-            const { refreshPrograms } = await import(
-              "../start-menu/start-menu-utils.js"
-            );
             await refreshPrograms();
           },
         },

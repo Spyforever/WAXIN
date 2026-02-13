@@ -14,6 +14,7 @@ import {
   promptToContinue,
   showSetupScreen,
   prepareBootScreen,
+  getTerminal,
 } from "./boot-screen.js";
 import { preloadThemeAssets } from "./asset-preloader.js";
 import { launchApp } from "./app-manager.js";
@@ -21,6 +22,7 @@ import { createMainUI } from "../shell/ui.js";
 import { initColorModeManager } from "./color-mode-manager.js";
 import screensaver from "./screensaver-utils.js";
 import { initScreenManager } from "./screen-manager.js";
+import { DOSShell } from "./dos-shell.js";
 import { fs, mounts } from "@zenfs/core";
 import { initFileSystem } from "./zenfs-init.js";
 import { existsAsync } from "./zenfs-utils.js";
@@ -266,8 +268,6 @@ export async function initializeOS() {
     window.removeEventListener("keydown", handleKeyDown);
 
     if (isMSDOSMode) {
-      const { DOSShell } = await import("./dos-shell.js");
-      const { getTerminal } = await import("./boot-screen.js");
       const term = getTerminal();
       if (term) {
         term.write("\x1b[r"); // Reset scrolling region
