@@ -2,7 +2,7 @@
 import fs from 'fs';
 import path from 'path';
 
-const appsDir = 'src/apps';
+const appsDirs = ['src/apps', 'src/shell'];
 const registryPath = 'src/config/app-registry.js';
 
 function extractConfig(content) {
@@ -15,23 +15,30 @@ function extractConfig(content) {
 
 function generateRegistry() {
     const rawMetadata = {};
-    const dirs = fs.readdirSync(appsDir);
 
-    for (const dir of dirs) {
-        const dirPath = path.join(appsDir, dir);
-        if (!fs.statSync(dirPath).isDirectory()) continue;
+    for (const appsDir of appsDirs) {
+        const dirs = fs.readdirSync(appsDir);
 
-        const files = fs.readdirSync(dirPath);
-        const appFile = files.find(f => f.endsWith('-app.js'));
+        for (const dir of dirs) {
+            const dirPath = path.join(appsDir, dir);
+            if (!fs.statSync(dirPath).isDirectory()) continue;
 
-        if (appFile) {
-            const content = fs.readFileSync(path.join(dirPath, appFile), 'utf-8');
-            const config = extractConfig(content);
-            if (config) {
-                rawMetadata[dir] = {
-                    config,
-                    file: `../apps/${dir}/${appFile}`
-                };
+            // Skip explorer in shell dir as it is eagerly loaded
+            if (appsDir === 'src/shell' && dir === 'explorer') continue;
+
+            const files = fs.readdirSync(dirPath);
+            const appFile = files.find(f => f.endsWith('-app.js'));
+
+            if (appFile) {
+                const content = fs.readFileSync(path.join(dirPath, appFile), 'utf-8');
+                const config = extractConfig(content);
+                if (config) {
+                    const relativePath = appsDir.replace('src/', '../');
+                    rawMetadata[dir] = {
+                        config,
+                        file: `${relativePath}/${dir}/${appFile}`
+                    };
+                }
             }
         }
     }
