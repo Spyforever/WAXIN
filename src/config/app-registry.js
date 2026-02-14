@@ -18,7 +18,7 @@ export const appRegistry = {
     maximizeButton: false,
     isSingleton: true,
   },
-    importApp: () => import("../apps/about/about-app.js")
+    importApp: () => import("../shell/about/about-app.js")
   },
   "app-maker": {
     config: {
@@ -168,7 +168,7 @@ export const appRegistry = {
     resizable: false,
     isSingleton: true,
   },
-    importApp: () => import("../apps/display-properties/display-properties-app.js")
+    importApp: () => import("../shell/display-properties/display-properties-app.js")
   },
   "doom": {
     config: {
