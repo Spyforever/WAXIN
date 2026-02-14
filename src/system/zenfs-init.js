@@ -239,6 +239,46 @@ export async function initFileSystem(onProgress) {
       }
     }
 
+    // Install SimCity 2000 Demo to C:\Games\SC2000 if it doesn't exist
+    if (!(await existsAsync("/C:/Games/SC2000"))) {
+      if (onProgress) onProgress("Installing SimCity 2000 Demo...");
+      await fs.promises.mkdir("/C:/Games/SC2000", { recursive: true });
+      const sc2kFiles = [
+        "DEMOCITY.SC2", "INFO.EXE", "INSTALL.EXE", "INSTALL.MXS",
+        "MAXIS.CIM", "MW_ATIUP.EXE", "POSTCARD.CIM", "README.TXT",
+        "SC2000.CFG", "SC2000.DAT", "SC2000.EXE", "START.COM",
+        "VDETECT.EXE",
+        "VESA/ATI/READ.ME", "VESA/ATI/VVESA1.COM", "VESA/ATI/VVESA2.COM",
+        "VESA/CIRRUS/CLVESA.COM", "VESA/CIRRUS/CRUSVESA.COM", "VESA/CIRRUS/README.DOC",
+        "VESA/COMPAQ/CPQVESA.EXE", "VESA/COMPAQ/README.VSA",
+        "VESA/DIAMOND/24XVESA.EXE", "VESA/DIAMOND/READ.ME", "VESA/DIAMOND/VESA.EXE",
+        "VESA/HEADLAND/HTVESA.COM", "VESA/HEADLAND/READ.ME",
+        "VESA/IBM/READ.ME", "VESA/IBM/VESA.EXE", "VESA/IBM/XGAVESA.EXE",
+        "VESA/OAK/67VESA.COM", "VESA/OAK/OAK-37.COM", "VESA/OAK/OAK-77.COM",
+        "VESA/OAK/OTIVBE.COM", "VESA/OAK/OTIVESA.COM", "VESA/OAK/README.DOC",
+        "VESA/PARADISE/PARADISE.EXE", "VESA/PARADISE/READ.ME", "VESA/PARADISE/VESA.EXE",
+        "VESA/PARADISE/VESA1A1B.EXE", "VESA/PARADISE/VESA1C.EXE", "VESA/PARADISE/VESA1D.EXE", "VESA/PARADISE/VESAX.EXE",
+        "VESA/TRIDENT/READ.ME", "VESA/TRIDENT/VESA.EXE",
+        "VESA/TSENG/TLIVESA.COM", "VESA/TSENG/TLIVESA.DOC", "VESA/TSENG/TLIVESA1.COM",
+        "VESA/UNIVESA/COPYRIGH", "VESA/UNIVESA/UNIVESA.DOC", "VESA/UNIVESA/UNIVESA.EXE",
+        "VESA/VIDEO7/READ.ME", "VESA/VIDEO7/V7VESA.COM", "VESA/VIDEO7/V7WVGA.COM"
+      ];
+      for (const file of sc2kFiles) {
+        try {
+          const response = await fetch(`games/dos/simcity2000/${file}`);
+          const buffer = await response.arrayBuffer();
+          const targetPath = `/C:/Games/SC2000/${file}`;
+          const targetDir = targetPath.substring(0, targetPath.lastIndexOf("/"));
+          if (!(await existsAsync(targetDir))) {
+            await fs.promises.mkdir(targetDir, { recursive: true });
+          }
+          await fs.promises.writeFile(targetPath, new Uint8Array(buffer));
+        } catch (e) {
+          console.error(`Failed to install ${file}:`, e);
+        }
+      }
+    }
+
     if (onProgress) onProgress("Initializing Start Menu...");
     // Ensure PINNED_PATH exists (C:/WINDOWS/Start Menu)
     if (!(await existsAsync(PINNED_PATH))) {
