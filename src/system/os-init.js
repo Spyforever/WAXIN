@@ -136,9 +136,19 @@ export async function initializeOS() {
     }
 
     await executeBootStep(async () => {
-      let logElement = startBootProcessStep("Detecting keyboard...");
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      finalizeBootProcessStep(logElement, "OK");
+      let logElement = startBootProcessStep("Detecting mouse...");
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      const hasMouse = window.matchMedia("(any-pointer: fine)").matches;
+      finalizeBootProcessStep(logElement, hasMouse ? "OK" : "FAILED");
+    });
+
+    await executeBootStep(async () => {
+      let logElement = startBootProcessStep("Detecting touch support...");
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      const hasTouch =
+        window.matchMedia("(any-pointer: coarse)").matches ||
+        navigator.maxTouchPoints > 0;
+      finalizeBootProcessStep(logElement, hasTouch ? "OK" : "FAILED");
     });
 
     await executeBootStep(async () => {
