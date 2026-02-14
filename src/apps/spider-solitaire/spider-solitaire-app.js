@@ -732,8 +732,6 @@ export class SpiderSolitaireApp extends Application {
         this.container.style.pointerEvents = "auto";
       }
     } else if (result.reason === "EMPTY_PILE") {
-      const { ShowDialogWindow } =
-        await import('../../shared/components/dialog-window.js');
       ShowDialogWindow({
         title: "Invalid Move",
         text: "You cannot deal from the stock while a tableau pile is empty.",
@@ -956,8 +954,6 @@ export class SpiderSolitaireApp extends Application {
 
   async showWinDialog() {
     this.statistics.recordWin();
-    const { ShowDialogWindow } =
-      await import('../../shared/components/dialog-window.js');
     ShowDialogWindow({
       title: "Game Over",
       text: "Congratulations, you won!\nDo you want to start another game?",

@@ -18,7 +18,7 @@ import {
   parseCssVariables,
   applyThemeToPreview,
   applyPropertiesToPreview,
-} from '../display-properties/theme-preview.js';
+} from '../../shell/display-properties/theme-preview.js';
 import { getItem, LOCAL_STORAGE_KEYS } from '../../system/local-storage.js';
 import { ShowDialogWindow } from '../../shared/components/dialog-window.js';
 import {

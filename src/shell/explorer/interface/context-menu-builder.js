@@ -1,17 +1,18 @@
 import { mounts } from "@zenfs/core";
-import { ICONS } from '../../../config/icons.js';
+import { ICONS } from "../../../config/icons.js";
 import {
   requestBusyState,
   releaseBusyState,
-} from '../../../system/busy-state-manager.js';
-import { RecycleBinManager } from '../file-operations/recycle-bin-manager.js';
-import { PropertiesManager } from '../file-operations/properties-manager.js';
-import { RemovableDiskManager } from '../drives/removable-disk-manager.js';
-import { getParentPath, getPathName } from '../navigation/path-utils.js';
-import ClipboardManager from '../file-operations/clipboard-manager.js';
-import { ShellManager } from '../extensions/shell-manager.js';
-import { ShowDialogWindow } from '../../../shared/components/dialog-window.js';
-import { playSound } from '../../../system/sound-manager.js';
+} from "../../../system/busy-state-manager.js";
+import { RecycleBinManager } from "../file-operations/recycle-bin-manager.js";
+import { PropertiesManager } from "../file-operations/properties-manager.js";
+import { RemovableDiskManager } from "../drives/removable-disk-manager.js";
+import { getParentPath, getPathName } from "../navigation/path-utils.js";
+import ClipboardManager from "../file-operations/clipboard-manager.js";
+import { ShellManager } from "../extensions/shell-manager.js";
+import { ShowDialogWindow } from "../../../shared/components/dialog-window.js";
+import { playSound } from "../../../system/sound-manager.js";
+import { launchApp } from "../../../system/app-manager.js";
 
 export class ContextMenuBuilder {
   constructor(app) {
@@ -22,22 +23,26 @@ export class ContextMenuBuilder {
     const path = icon.getAttribute("data-path");
     const type = icon.getAttribute("data-type");
     const selectedIcons = [...this.app.iconManager.selectedIcons];
-    const selectedPaths = selectedIcons.map((i) =>
-      i.getAttribute("data-path"),
-    );
+    const selectedPaths = selectedIcons.map((i) => i.getAttribute("data-path"));
     const isRootItem = selectedPaths.some((p) => getParentPath(p) === "/");
-    const anyVirtual = selectedIcons.some(i => i.getAttribute("data-is-virtual") === "true");
-    const isOnReadOnlyDrive = selectedPaths.some(p => p.startsWith("/E:"));
+    const anyVirtual = selectedIcons.some(
+      (i) => i.getAttribute("data-is-virtual") === "true",
+    );
+    const isOnReadOnlyDrive = selectedPaths.some((p) => p.startsWith("/E:"));
     const isFloppy = path === "/A:";
     const isFloppyMounted = mounts.has("/A:");
     const isCD = path === "/E:";
     const isCDMounted = mounts.has("/E:");
     const driveLetterMatch = path.match(/^\/([A-Z]):$/);
-    const driveLetter = driveLetterMatch ? driveLetterMatch[1].toUpperCase() : null;
-    const isRemovableDiskMounted = driveLetter && RemovableDiskManager.isMounted(driveLetter);
+    const driveLetter = driveLetterMatch
+      ? driveLetterMatch[1].toUpperCase()
+      : null;
+    const isRemovableDiskMounted =
+      driveLetter && RemovableDiskManager.isMounted(driveLetter);
     const isRecycledItem = RecycleBinManager.isRecycledItemPath(path);
     const isRecycleBin = RecycleBinManager.isRecycleBinPath(path);
-    const isGlobalRecycleBin = path === "/Recycle Bin" || path === "/Desktop/Recycle Bin";
+    const isGlobalRecycleBin =
+      path === "/Recycle Bin" || path === "/Desktop/Recycle Bin";
 
     let menuItems = [];
 
@@ -65,10 +70,8 @@ export class ContextMenuBuilder {
               (p) => p === "/" || p === "/Desktop/My Computer",
             );
             if (isMyComputerSelected) {
-              const { launchApp } = await import(
-                "../../../system/app-manager.js"
-              );
-              launchApp("about");
+              const { launchAboutApp } = await import("../../about/index.js");
+              launchAboutApp();
               return;
             }
             const busyId = `properties-${Math.random()}`;
@@ -135,12 +138,12 @@ export class ContextMenuBuilder {
       }
 
       if (isRecycleBin) {
-          menuItems.push({
-              label: "Empty Recycle Bin",
-              action: () => this.app.fileOps.emptyRecycleBin(path),
-              enabled: () => RecycleBinManager.isFullSync(path)
-          });
-          menuItems.push("MENU_DIVIDER");
+        menuItems.push({
+          label: "Empty Recycle Bin",
+          action: () => this.app.fileOps.emptyRecycleBin(path),
+          enabled: () => RecycleBinManager.isFullSync(path),
+        });
+        menuItems.push("MENU_DIVIDER");
       }
 
       menuItems.push(
@@ -152,7 +155,11 @@ export class ContextMenuBuilder {
             {
               label: "Desktop (create shortcut)",
               icon: ICONS.desktop_old[16],
-              action: () => this.app.fileOps.createShortcuts(selectedPaths, "/C:/WINDOWS/Desktop"),
+              action: () =>
+                this.app.fileOps.createShortcuts(
+                  selectedPaths,
+                  "/C:/WINDOWS/Desktop",
+                ),
             },
           ],
         },
@@ -170,14 +177,15 @@ export class ContextMenuBuilder {
         {
           label: "Paste",
           action: () => this.app.fileOps.pasteItems(path),
-          enabled: () =>
-            !ClipboardManager.isEmpty() && type === "directory",
+          enabled: () => !ClipboardManager.isEmpty() && type === "directory",
         },
         {
           label: "Paste Shortcut",
           action: () => this.app.fileOps.pasteShortcuts(path),
           enabled: () =>
-            !ClipboardManager.isEmpty() && ClipboardManager.operation === "copy" && type === "directory",
+            !ClipboardManager.isEmpty() &&
+            ClipboardManager.operation === "copy" &&
+            type === "directory",
         },
         {
           label: "Create Shortcut",
@@ -188,13 +196,17 @@ export class ContextMenuBuilder {
         {
           label: "Delete",
           action: () => this.app.fileOps.deleteItems(selectedPaths),
-          enabled: () => !isRootItem && !isRecycleBin && !isOnReadOnlyDrive && !anyVirtual,
+          enabled: () =>
+            !isRootItem && !isRecycleBin && !isOnReadOnlyDrive && !anyVirtual,
         },
         {
           label: "Rename",
           action: () => this.app.fileOps.renameItem(path),
           enabled: () =>
-            !isRootItem && selectedPaths.length === 1 && !isRecycleBin && !anyVirtual,
+            !isRootItem &&
+            selectedPaths.length === 1 &&
+            !isRecycleBin &&
+            !anyVirtual,
         },
         "MENU_DIVIDER",
         {
@@ -204,10 +216,8 @@ export class ContextMenuBuilder {
               (p) => p === "/" || p === "/Desktop/My Computer",
             );
             if (isMyComputerSelected) {
-              const { launchApp } = await import(
-                "../../../system/app-manager.js"
-              );
-              launchApp("about");
+              const { launchAboutApp } = await import("../../about/index.js");
+              launchAboutApp();
               return;
             }
             const busyId = `properties-${Math.random()}`;
@@ -231,12 +241,12 @@ export class ContextMenuBuilder {
     const menuItems = [];
 
     if (isGlobalRecycleBin) {
-        menuItems.push({
-            label: "Empty Recycle Bin",
-            action: () => this.app.fileOps.emptyRecycleBin("/Recycle Bin"),
-            enabled: () => RecycleBinManager.isFullSync("/Recycle Bin")
-        });
-        menuItems.push("MENU_DIVIDER");
+      menuItems.push({
+        label: "Empty Recycle Bin",
+        action: () => this.app.fileOps.emptyRecycleBin("/Recycle Bin"),
+        enabled: () => RecycleBinManager.isFullSync("/Recycle Bin"),
+      });
+      menuItems.push("MENU_DIVIDER");
     }
 
     menuItems.push(
@@ -278,12 +288,19 @@ export class ContextMenuBuilder {
       {
         label: "Paste",
         action: () => this.app.fileOps.pasteItems(this.app.currentPath),
-        enabled: () => !ClipboardManager.isEmpty() && ((!isRoot || isVirtualDesktop) && !isGlobalRecycleBin),
+        enabled: () =>
+          !ClipboardManager.isEmpty() &&
+          (!isRoot || isVirtualDesktop) &&
+          !isGlobalRecycleBin,
       },
       {
         label: "Paste Shortcut",
         action: () => this.app.fileOps.pasteShortcuts(this.app.currentPath),
-        enabled: () => !ClipboardManager.isEmpty() && ClipboardManager.operation === "copy" && ((!isRoot || isVirtualDesktop) && !isGlobalRecycleBin),
+        enabled: () =>
+          !ClipboardManager.isEmpty() &&
+          ClipboardManager.operation === "copy" &&
+          (!isRoot || isVirtualDesktop) &&
+          !isGlobalRecycleBin,
       },
       "MENU_DIVIDER",
       {
@@ -309,10 +326,8 @@ export class ContextMenuBuilder {
             this.app.currentPath === "/" ||
             this.app.currentPath === "/Desktop/My Computer"
           ) {
-            const { launchApp } = await import(
-              "../../../system/app-manager.js"
-            );
-            launchApp("about");
+            const { launchAboutApp } = await import("../../about/index.js");
+            launchAboutApp();
             return;
           }
           const busyId = `properties-${Math.random()}`;

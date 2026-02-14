@@ -84,7 +84,8 @@ export function getDisplayName(path) {
     if (name && name.match(/^[A-Z]:$/i)) {
         const letter = name.charAt(0).toUpperCase();
         if (RemovableDiskManager.isMounted(letter)) {
-            return `Removable Disk (${letter}:)`;
+            const label = RemovableDiskManager.getLabel(letter);
+            return label ? `${label} (${letter}:)` : `Removable Disk (${letter}:)`;
         }
         return `(${name.toUpperCase()})`;
     }

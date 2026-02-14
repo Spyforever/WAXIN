@@ -120,7 +120,7 @@ export async function renderFileIcon(fileName, fullPath, isDir, options = {}) {
     iconObj = ICONS.startMenuFolder;
   }
 
-  if (isDir && fullPath.endsWith("/WINDOWS/Favorites")) {
+  if (isDir && fullPath.toLowerCase().includes("/windows/favorites")) {
     iconObj = ICONS.favoritesFolder;
   }
 
@@ -142,6 +142,9 @@ export async function renderFileIcon(fileName, fullPath, isDir, options = {}) {
           const app = apps.find((a) => a.id === data.appId);
           if (app) {
             iconObj = app.icon;
+          }
+          if (data.appId === "internet-explorer" && fullPath.toLowerCase().includes("favorites")) {
+            iconObj = ICONS.htmlFile;
           }
         } else if (data.targetPath) {
           iconObj = ShellManager.getIconObj(data.targetPath);

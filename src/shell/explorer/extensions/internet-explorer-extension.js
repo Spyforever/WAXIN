@@ -64,7 +64,7 @@ export class InternetExplorerExtension {
    */
   getIconObj(path) {
     if (this.handlesPath(path)) {
-      return ICONS["internet-explorer"];
+      return ICONS.htmlFile;
     }
     return null;
   }

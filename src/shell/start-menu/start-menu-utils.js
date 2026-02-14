@@ -55,9 +55,15 @@ export async function loadLnk(path, iconSize = 16) {
 
     if (data.appId) {
       const app = apps.find((a) => a.id === data.appId);
+      let icon = app ? app.icon[iconSize] : ICONS.file[iconSize];
+
+      if (data.appId === "internet-explorer" && path.toLowerCase().includes("favorites")) {
+        icon = ICONS.htmlFile[iconSize];
+      }
+
       return {
         label: label,
-        icon: app ? app.icon[iconSize] : ICONS.file[iconSize],
+        icon: icon,
         action: () => launchApp(data.appId, data.args),
         appId: data.appId,
         args: data.args,

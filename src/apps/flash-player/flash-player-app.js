@@ -1,6 +1,8 @@
 import { Application } from '../../system/application.js';
 import { ICONS } from '../../config/icons.js';
 import { ShowDialogWindow } from '../../shared/components/dialog-window.js';
+import { ShowFilePicker } from "../../shared/utils/file-picker.js";
+import { SPECIAL_FOLDER_PATHS } from "../../config/special-folders.js";
 import "./flashplayer.css";
 import { isZenFSPath, getZenFSFileAsBlob } from '../../system/zenfs-utils.js';
 
@@ -72,17 +74,18 @@ export class FlashPlayerApp extends Application {
     }
   }
 
-  openFile() {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".swf";
-    input.onchange = (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        this.loadSwf(file);
-      }
-    };
-    input.click();
+  async openFile() {
+    const path = await ShowFilePicker({
+      initialPath: SPECIAL_FOLDER_PATHS["my-documents"],
+      fileTypes: [
+        { label: "Flash Movies (*.swf)", extensions: ["swf"] },
+        { label: "All Files (*.*)", extensions: ["*"] },
+      ],
+    });
+
+    if (path) {
+      this.loadSwf(path);
+    }
   }
 
   loadSwf(fileData) {

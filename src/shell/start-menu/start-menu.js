@@ -620,8 +620,9 @@ class StartMenu {
   /**
    * Handle home action
    */
-  handleHome() {
-    launchApp("about");
+  async handleHome() {
+    const { showUpdateConfirmation } = await import("../../system/update-manager.js");
+    await showUpdateConfirmation();
     this.hide();
   }
 
