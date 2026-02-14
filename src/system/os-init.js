@@ -15,6 +15,7 @@ import {
   showSetupScreen,
   prepareBootScreen,
   getTerminal,
+  writeBootError,
 } from "./boot-screen.js";
 import { preloadThemeAssets } from "./asset-preloader.js";
 import { launchApp } from "./app-manager.js";
@@ -67,9 +68,33 @@ export async function initializeOS() {
   window.addEventListener("keydown", handleKeyDown);
 
   const executeBootStep = async (func) => {
-    if (setupEntered) throw new Error("Setup interrupted");
-    await func();
+    if (setupEntered) return;
+    try {
+      await func();
+    } catch (error) {
+      if (error.message === "Setup interrupted") {
+        setupEntered = true;
+        return;
+      }
+      console.error("Boot step failed:", error);
+      writeBootError(error.message);
+    }
   };
+
+  const bootErrorHandler = (event) => {
+    const message = event.error ? event.error.message : event.message;
+    writeBootError(message);
+  };
+
+  const bootRejectionHandler = (event) => {
+    const message = event.reason
+      ? event.reason.message || event.reason
+      : "Unhandled Rejection";
+    writeBootError(message);
+  };
+
+  window.addEventListener("error", bootErrorHandler);
+  window.addEventListener("unhandledrejection", bootRejectionHandler);
 
   try {
     let splashScreenVisible = false;
@@ -137,44 +162,64 @@ export async function initializeOS() {
 
     await executeBootStep(async () => {
       let logElement = startBootProcessStep("Detecting mouse...");
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      const hasMouse = window.matchMedia("(any-pointer: fine)").matches;
-      finalizeBootProcessStep(logElement, hasMouse ? "OK" : "FAILED");
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        const hasMouse = window.matchMedia("(any-pointer: fine)").matches;
+        finalizeBootProcessStep(logElement, hasMouse ? "OK" : "FAILED");
+      } catch (e) {
+        finalizeBootProcessStep(logElement, "FAILED", e);
+      }
     });
 
     await executeBootStep(async () => {
       let logElement = startBootProcessStep("Detecting touch support...");
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      const hasTouch =
-        window.matchMedia("(any-pointer: coarse)").matches ||
-        navigator.maxTouchPoints > 0;
-      finalizeBootProcessStep(logElement, hasTouch ? "OK" : "FAILED");
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        const hasTouch =
+          window.matchMedia("(any-pointer: coarse)").matches ||
+          navigator.maxTouchPoints > 0;
+        finalizeBootProcessStep(logElement, hasTouch ? "OK" : "FAILED");
+      } catch (e) {
+        finalizeBootProcessStep(logElement, "FAILED", e);
+      }
     });
 
     await executeBootStep(async () => {
       let logElement = startBootProcessStep("Connecting to network...");
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      finalizeBootProcessStep(logElement, navigator.onLine ? "OK" : "FAILED");
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        finalizeBootProcessStep(logElement, navigator.onLine ? "OK" : "FAILED");
+      } catch (e) {
+        finalizeBootProcessStep(logElement, "FAILED", e);
+      }
     });
 
     await executeBootStep(async () => {
       const baseMsg = "Initializing file system...";
       let logElement = startBootProcessStep(baseMsg);
-      await initFileSystem((subStep) => {
+      try {
+        await initFileSystem((subStep) => {
+          if (logElement && logElement.firstChild) {
+            logElement.firstChild.nodeValue = `${baseMsg} ${subStep}`;
+          }
+        });
         if (logElement && logElement.firstChild) {
-          logElement.firstChild.nodeValue = `${baseMsg} ${subStep}`;
+          logElement.firstChild.nodeValue = baseMsg;
         }
-      });
-      if (logElement && logElement.firstChild) {
-        logElement.firstChild.nodeValue = baseMsg;
+        finalizeBootProcessStep(logElement, "OK");
+      } catch (e) {
+        finalizeBootProcessStep(logElement, "FAILED", e);
       }
-      finalizeBootProcessStep(logElement, "OK");
     });
 
     await executeBootStep(async () => {
       let logElement = startBootProcessStep("Initializing Recycle Bin...");
-      await RecycleBinManager.init();
-      finalizeBootProcessStep(logElement, "OK");
+      try {
+        await RecycleBinManager.init();
+        finalizeBootProcessStep(logElement, "OK");
+      } catch (e) {
+        finalizeBootProcessStep(logElement, "FAILED", e);
+      }
     });
 
     const createAssetLogCallbacks = (logElement, baseMessage) => {
@@ -204,12 +249,16 @@ export async function initializeOS() {
         baseMsg,
       );
 
-      await preloadThemeAssets("default", onAssetStart, onAssetFinish);
+      try {
+        await preloadThemeAssets("default", onAssetStart, onAssetFinish);
 
-      if (logElement && logElement.firstChild) {
-        logElement.firstChild.nodeValue = baseMsg;
+        if (logElement && logElement.firstChild) {
+          logElement.firstChild.nodeValue = baseMsg;
+        }
+        finalizeBootProcessStep(logElement, "OK");
+      } catch (e) {
+        finalizeBootProcessStep(logElement, "FAILED", e);
       }
-      finalizeBootProcessStep(logElement, "OK");
     });
 
     await executeBootStep(async () => {
@@ -222,20 +271,28 @@ export async function initializeOS() {
           baseMsg,
         );
 
-        await preloadThemeAssets(currentTheme, onAssetStart, onAssetFinish);
+        try {
+          await preloadThemeAssets(currentTheme, onAssetStart, onAssetFinish);
 
-        if (logElement && logElement.firstChild) {
-          logElement.firstChild.nodeValue = baseMsg;
+          if (logElement && logElement.firstChild) {
+            logElement.firstChild.nodeValue = baseMsg;
+          }
+          finalizeBootProcessStep(logElement, "OK");
+        } catch (e) {
+          finalizeBootProcessStep(logElement, "FAILED", e);
         }
-        finalizeBootProcessStep(logElement, "OK");
       }
     });
 
     await executeBootStep(async () => {
       let logElement = startBootProcessStep("Loading custom applications...");
-      await new Promise((resolve) => setTimeout(resolve, 50));
-      loadCustomApps();
-      finalizeBootProcessStep(logElement, "OK");
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        loadCustomApps();
+        finalizeBootProcessStep(logElement, "OK");
+      } catch (e) {
+        finalizeBootProcessStep(logElement, "FAILED", e);
+      }
     });
 
     await executeBootStep(async () => {
@@ -245,28 +302,40 @@ export async function initializeOS() {
     if (!isMSDOSMode) {
       await executeBootStep(async () => {
         let logElement = startBootProcessStep("Creating main UI...");
-        showSplashScreen();
-        await new Promise((resolve) => setTimeout(resolve, 50));
-        createMainUI();
-        initColorModeManager(document.body);
-        finalizeBootProcessStep(logElement, "OK");
+        try {
+          showSplashScreen();
+          await new Promise((resolve) => setTimeout(resolve, 50));
+          createMainUI();
+          initColorModeManager(document.body);
+          finalizeBootProcessStep(logElement, "OK");
+        } catch (e) {
+          finalizeBootProcessStep(logElement, "FAILED", e);
+        }
       });
     }
 
     if (!isMSDOSMode) {
       await executeBootStep(async () => {
         let logElement = startBootProcessStep("Initializing taskbar...");
-        await new Promise((resolve) => setTimeout(resolve, 50));
-        taskbar.init();
-        finalizeBootProcessStep(logElement, "OK");
+        try {
+          await new Promise((resolve) => setTimeout(resolve, 50));
+          taskbar.init();
+          finalizeBootProcessStep(logElement, "OK");
+        } catch (e) {
+          finalizeBootProcessStep(logElement, "FAILED", e);
+        }
       });
 
       await executeBootStep(async () => {
         let logElement = startBootProcessStep("Setting up desktop...");
-        await new Promise((resolve) => setTimeout(resolve, 50));
-        await initDesktop(window.activeProfile);
-        document.dispatchEvent(new CustomEvent("desktop-refresh"));
-        finalizeBootProcessStep(logElement, "OK");
+        try {
+          await new Promise((resolve) => setTimeout(resolve, 50));
+          await initDesktop(window.activeProfile);
+          document.dispatchEvent(new CustomEvent("desktop-refresh"));
+          finalizeBootProcessStep(logElement, "OK");
+        } catch (e) {
+          finalizeBootProcessStep(logElement, "FAILED", e);
+        }
       });
     }
 
@@ -329,6 +398,10 @@ export async function initializeOS() {
   } catch (error) {
     if (error.message !== "Setup interrupted") {
       console.error("An error occurred during boot:", error);
+      writeBootError(error.message);
     }
+  } finally {
+    window.removeEventListener("error", bootErrorHandler);
+    window.removeEventListener("unhandledrejection", bootRejectionHandler);
   }
 }
