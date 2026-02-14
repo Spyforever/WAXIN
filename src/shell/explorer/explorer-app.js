@@ -214,7 +214,7 @@ export class ZenExplorerApp extends Application {
           return this.navHistory.history.map((url) => ({
             name: url,
             path: url,
-            icon: ICONS["internet-explorer"][16],
+            icon: ICONS.htmlFile[16],
             indent: 0,
           }));
         }
