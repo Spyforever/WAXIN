@@ -227,6 +227,21 @@ const systemApps = [
       },
     },
   },
+  {
+    id: "windows-update",
+    title: "Windows Update",
+    description: "Update the web app to the latest version.",
+    get icon() {
+      return getIcon("windowsUpdate");
+    },
+    action: {
+      type: "function",
+      handler: async () => {
+        const { showUpdateConfirmation } = await import("../system/update-manager.js");
+        await showUpdateConfirmation();
+      },
+    },
+  },
 ];
 
 // --- Combine and Export ---

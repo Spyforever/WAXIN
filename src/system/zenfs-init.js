@@ -245,20 +245,30 @@ export async function initFileSystem(onProgress) {
       await fs.promises.mkdir(PINNED_PATH, { recursive: true });
     }
 
-    // Ensure About shortcut exists in PINNED_PATH
-    const aboutLnkPath = `${PINNED_PATH}/About.lnk.json`;
-    if (!(await existsAsync(aboutLnkPath))) {
+    // Ensure Windows Update shortcut exists in PINNED_PATH
+    const updateLnkPath = `${PINNED_PATH}/Windows Update.lnk.json`;
+    if (!(await existsAsync(updateLnkPath))) {
       await fs.promises.writeFile(
-        aboutLnkPath,
+        updateLnkPath,
         JSON.stringify(
           {
             type: "shortcut",
-            appId: "about",
+            appId: "windows-update",
           },
           null,
           2,
         ),
       );
+    }
+
+    // Cleanup old About shortcut
+    const aboutLnkPath = `${PINNED_PATH}/About.lnk.json`;
+    if (await existsAsync(aboutLnkPath)) {
+      try {
+        await fs.promises.unlink(aboutLnkPath);
+      } catch (e) {
+        console.warn("Failed to remove old About shortcut:", e);
+      }
     }
 
     if (!(await existsAsync(START_MENU_PATH))) {
