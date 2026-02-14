@@ -110,7 +110,6 @@ const systemApps = [
                 action: async () => {
                   if (window.RecycleBinManager) {
                     await window.RecycleBinManager.emptyAllRecycleBins();
-                    const { playSound } = await import('../system/sound-manager.js');
                     playSound("EmptyRecycleBin");
                   }
                 },
@@ -225,6 +224,21 @@ const systemApps = [
           },
           buttons: [{ label: "OK", isDefault: true }],
         });
+      },
+    },
+  },
+  {
+    id: "windows-update",
+    title: "Windows Update",
+    description: "Update the web app to the latest version.",
+    get icon() {
+      return getIcon("windowsUpdate");
+    },
+    action: {
+      type: "function",
+      handler: async () => {
+        const { showUpdateConfirmation } = await import("../system/update-manager.js");
+        await showUpdateConfirmation();
       },
     },
   },

@@ -1,7 +1,8 @@
-import ClipboardManager from '../file-operations/clipboard-manager.js';
-import UndoManager from '../file-operations/undo-manager.js';
-import { getParentPath, getDisplayName } from '../navigation/path-utils.js';
-import { PropertiesManager } from '../file-operations/properties-manager.js';
+import ClipboardManager from "../file-operations/clipboard-manager.js";
+import UndoManager from "../file-operations/undo-manager.js";
+import { getParentPath, getDisplayName } from "../navigation/path-utils.js";
+import { PropertiesManager } from "../file-operations/properties-manager.js";
+import { launchApp } from "../../../system/app-manager.js";
 
 /**
  * ToolbarBuilder - Constructs toolbar items for ZenExplorer
@@ -114,15 +115,18 @@ export function getToolbarItems(app) {
   const getBackSubmenu = () => {
     const history = app.navHistory.history;
     const index = app.navHistory.historyIndex;
-    return history.slice(0, index).reverse().map((path, i) => ({
-      label: getDisplayName(path),
-      action: () => {
-        const steps = i + 1;
-        for (let s = 0; s < steps; s++) {
-          app.goBack();
-        }
-      },
-    }));
+    return history
+      .slice(0, index)
+      .reverse()
+      .map((path, i) => ({
+        label: getDisplayName(path),
+        action: () => {
+          const steps = i + 1;
+          for (let s = 0; s < steps; s++) {
+            app.goBack();
+          }
+        },
+      }));
   };
 
   const getForwardSubmenu = () => {

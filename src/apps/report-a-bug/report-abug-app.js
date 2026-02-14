@@ -1,4 +1,5 @@
 import { Application } from '../../system/application.js';
+import { ShowDialogWindow } from '../../shared/components/dialog-window.js';
 import { ICONS } from '../../config/icons.js';
 import "./reportabug.css";
 
@@ -56,9 +57,6 @@ export default class ReportABugApp extends Application {
   }
 
   async handleSend() {
-    const { ShowDialogWindow } =
-      await import('../../shared/components/dialog-window.js');
-
     if (!this.textarea.value.trim()) {
       ShowDialogWindow({
         title: "Error",
