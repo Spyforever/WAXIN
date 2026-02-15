@@ -10,6 +10,21 @@ This document outlines the gradual migration of the Windows 98 Web Edition proje
 
 ---
 
+## Comparison: Current vs. Bun
+
+| Feature | Current Stack | Bun Ecosystem |
+| :--- | :--- | :--- |
+| **Runtime** | Node.js | Bun |
+| **Package Manager** | NPM | Bun (`bun install`) |
+| **Lockfile** | `package-lock.json` (JSON) | `bun.lock` (Text-based) |
+| **Bundler** | Vite (Rollup) | `Bun.build` (Native) |
+| **Dev Server** | Vite | `Bun.serve` (Native) |
+| **Test Runner** | Playwright Test | Bun Test (`bun:test`) |
+| **Performance** | Standard | Significantly faster (native C++ implementation) |
+| **Dependency Tree** | Large (due to Vite/NPM) | Extremely lean |
+
+---
+
 ## Phase 1: Package Management (NPM to Bun)
 **Objective**: Use Bun as the primary package manager and script runner.
 
