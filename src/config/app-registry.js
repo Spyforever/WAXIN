@@ -189,6 +189,15 @@ export const appRegistry = {
       category: "Accessories/Games",
       width: 640,
       height: 480,
+    },
+    {
+      id: "sim-city-2000",
+      title: "SimCity 2000 Demo",
+      description: "Play SimCity 2000 Demo",
+      icon: ICONS.msdos,
+      category: "Accessories/Games",
+      width: 640,
+      height: 480,
     }
   ],
     importApp: () => import("../apps/dos-box/dos-box-app.js")
@@ -415,20 +424,6 @@ export const appRegistry = {
     resizable: false,
   },
     importApp: () => import("../apps/report-a-bug/report-abug-app.js")
-  },
-  "sim-city-2000": {
-    config: {
-    id: "sim-city-2000",
-    title: "SimCity 2000 Demo",
-    description: "Play the SimCity 2000 demo.",
-    icon: ICONS.simcity2000, category: "",
-    gameUrl: "games/dos/simcity2000/index.html",
-    width: 640,
-    height: 480,
-    resizable: true,
-    maximizable: true,
-  },
-    importApp: () => import("../apps/sim-city-2000/sim-city2000-app.js")
   },
   "solitaire": {
     config: {

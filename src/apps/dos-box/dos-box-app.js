@@ -36,6 +36,15 @@ export class DosBoxApp extends Application {
       category: "Accessories/Games",
       width: 640,
       height: 480,
+    },
+    {
+      id: "sim-city-2000",
+      title: "SimCity 2000 Demo",
+      description: "Play SimCity 2000 Demo",
+      icon: ICONS.msdos,
+      category: "Accessories/Games",
+      width: 640,
+      height: 480,
     }
   ];
 
@@ -54,6 +63,8 @@ export class DosBoxApp extends Application {
       this.executablePath = "/C:/Games/WOLF3D/WOLF3D.EXE";
     } else if (this.id === 'sky') {
       this.executablePath = "/C:/Games/SKY/SKY.EXE";
+    } else if (this.id === 'sim-city-2000') {
+      this.executablePath = "/C:/Games/SC2000/SC2000.EXE";
     } else if (typeof data === 'string') {
       this.executablePath = data;
     } else if (data && data.path) {

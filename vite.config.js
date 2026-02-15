@@ -26,6 +26,7 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, "index.html"),
         404: resolve(__dirname, "404.html"),
+        about: resolve(__dirname, "about.html"),
       },
       output: {
         manualChunks: {
