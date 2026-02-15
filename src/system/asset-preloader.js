@@ -24,13 +24,32 @@ export async function preloadImage(src) {
   }
 }
 
+const audioPreloadMap = new Map();
+
 async function preloadAudio(src) {
-  return new Promise((resolve, reject) => {
-    const audio = new Audio();
-    audio.src = src;
-    audio.addEventListener('canplaythrough', resolve, { once: true });
-    audio.onerror = reject;
-  });
+  if (audioPreloadMap.has(src)) return audioPreloadMap.get(src);
+
+  const preloadPromise = (async () => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+    try {
+      const response = await fetch(src, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      // Consume the body to ensure it's fully downloaded into the HTTP cache
+      await response.arrayBuffer();
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error(`Preload timed out for audio: ${src}`);
+      }
+      throw error;
+    }
+  })();
+
+  audioPreloadMap.set(src, preloadPromise);
+  return preloadPromise;
 }
 
 async function preloadCursor(src) {
