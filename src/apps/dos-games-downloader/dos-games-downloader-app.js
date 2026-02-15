@@ -119,6 +119,33 @@ export class DosGamesDownloaderApp extends Application {
     }
   }
 
+  async _fetchWithProxy(url, title, statusMsg) {
+    const proxies = [
+      (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+      (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+      (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+    ];
+
+    for (let i = 0; i < proxies.length; i++) {
+      const proxiedUrl = proxies[i](url);
+      try {
+        console.log(`Attempting download with proxy ${i + 1}: ${proxiedUrl}`);
+        const response = await fetch(proxiedUrl);
+        if (response.ok) return response;
+        console.warn(`Proxy ${i + 1} failed with status ${response.status}`);
+      } catch (e) {
+        console.warn(`Proxy ${i + 1} failed with error:`, e);
+      }
+
+      if (i < proxies.length - 1) {
+        statusMsg.text(`Download failed with proxy ${i+1}, retrying with fallback...`);
+        await new Promise(r => setTimeout(r, 1000));
+      }
+    }
+
+    throw new Error("All download proxies failed. Archive.org might be temporarily blocking access.");
+  }
+
   async _downloadAndInstall(identifier, title) {
     if (this.isDownloading) return;
     this.isDownloading = true;
@@ -138,11 +165,10 @@ export class DosGamesDownloaderApp extends Application {
       if (!zipFile) throw new Error("No ZIP file found for this game.");
 
       const downloadUrl = `https://archive.org/download/${identifier}/${zipFile.name}`;
-      const proxiedUrl = `https://corsproxy.io/?${encodeURIComponent(downloadUrl)}`;
 
       // 2. Download the ZIP
-      const zipResponse = await fetch(proxiedUrl);
-      if (!zipResponse.ok) throw new Error("Failed to download ZIP.");
+      const zipResponse = await this._fetchWithProxy(downloadUrl, title, statusMsg);
+      statusMsg.text(`Downloading ${title}...`); // Restore message after fallback notification
 
       const buffer = await zipResponse.arrayBuffer();
 
