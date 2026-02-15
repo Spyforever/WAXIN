@@ -21,25 +21,16 @@ import { iconSchemes } from '../../../config/icon-schemes.js';
 export function getThemedIconObj(specialType, isEmpty = true) {
   const schemeName = getIconSchemeName();
   const scheme = iconSchemes[schemeName] || iconSchemes.default;
-  const defaultScheme = iconSchemes.default;
 
   switch (specialType) {
     case "computer":
-      return scheme.myComputer || defaultScheme.myComputer || ICONS.computer;
+      return scheme.getIconObj("myComputer") || ICONS.computer;
     case "recycle":
       return isEmpty
-        ? scheme.recycleBinEmpty ||
-            defaultScheme.recycleBinEmpty ||
-            ICONS.recycleBinEmpty
-        : scheme.recycleBinFull ||
-            defaultScheme.recycleBinFull ||
-            ICONS.recycleBinFull;
+        ? scheme.getIconObj("recycleBinEmpty") || ICONS.recycleBinEmpty
+        : scheme.getIconObj("recycleBinFull") || ICONS.recycleBinFull;
     case "network":
-      return (
-        scheme.networkNeighborhood ||
-        defaultScheme.networkNeighborhood ||
-        ICONS.networkNeighborhood
-      );
+      return scheme.getIconObj("networkNeighborhood") || ICONS.networkNeighborhood;
     default:
       return null;
   }

@@ -33,17 +33,22 @@ export function generatePlusFiles() {
 
   // Process sound schemes
   for (const scheme of Object.values(soundSchemes)) {
-    for (const soundUrl of Object.values(scheme)) {
-      addFileFromUrl(soundUrl);
+    if (scheme.sounds) {
+      for (const soundItem of Object.values(scheme.sounds)) {
+        const path = typeof soundItem === "string" ? soundItem : soundItem.path;
+        addFileFromUrl(path);
+      }
     }
   }
 
   // Process icon schemes
   for (const scheme of Object.values(iconSchemes)) {
-    for (const iconSet of Object.values(scheme)) {
-      if (iconSet && typeof iconSet === "object") {
-        if (iconSet["16"]) addFileFromUrl(iconSet["16"]);
-        if (iconSet["32"]) addFileFromUrl(iconSet["32"]);
+    if (scheme.icons) {
+      for (const iconItem of Object.values(scheme.icons)) {
+        if (iconItem && typeof iconItem === "object") {
+          if (iconItem["16"]) addFileFromUrl(iconItem["16"]);
+          if (iconItem["32"]) addFileFromUrl(iconItem["32"]);
+        }
       }
     }
   }
@@ -55,8 +60,11 @@ export function generatePlusFiles() {
 
   // Process cursors
   for (const scheme of Object.values(cursors)) {
-    for (const cursorUrl of Object.values(scheme)) {
-      addFileFromUrl(cursorUrl);
+    if (scheme.cursors) {
+      for (const cursorItem of Object.values(scheme.cursors)) {
+        const path = typeof cursorItem === "string" ? cursorItem : cursorItem.path;
+        addFileFromUrl(path);
+      }
     }
   }
 

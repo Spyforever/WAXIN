@@ -593,10 +593,8 @@ export class DesktopThemesApp extends Application {
 
   updatePreviewIcons(schemeId = "default") {
     const scheme = iconSchemes[schemeId] || iconSchemes.default;
-    const defaultScheme = iconSchemes.default;
 
-    const getIconPath = (iconName) =>
-      scheme[iconName]?.[32] || defaultScheme[iconName]?.[32];
+    const getIconPath = (iconName) => scheme.getIcon(iconName, 32);
 
     const computerIcon = this.previewContainer.querySelector(
       '[data-icon="my-computer"] img',

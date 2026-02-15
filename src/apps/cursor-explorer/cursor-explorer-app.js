@@ -123,9 +123,12 @@ export class CursorExplorerApp extends Application {
     container.innerHTML = "";
     const cursorSet = cursors[scheme];
 
-    if (!cursorSet) return;
+    if (!cursorSet || !cursorSet.cursors) return;
 
-    Object.entries(cursorSet).forEach(([name, url]) => {
+    Object.entries(cursorSet.cursors).forEach(([name, cursorItem]) => {
+      const url = cursorItem.path;
+      if (!url) return;
+
       const item = document.createElement("div");
       item.className = "cursor-list-item";
 
@@ -145,8 +148,8 @@ export class CursorExplorerApp extends Application {
         this._applyAniCursorPreview(preview, url, `${scheme}-${name}`);
       } else {
         preview.style.backgroundImage = `url(${url})`;
-        preview.style.backgroundRepeat = 'no-repeat';
-        preview.style.backgroundPosition = 'center';
+        preview.style.backgroundRepeat = "no-repeat";
+        preview.style.backgroundPosition = "center";
       }
     });
   }

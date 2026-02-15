@@ -10,12 +10,9 @@ export function playSound(eventName) {
   return new Promise((resolve) => {
     const schemeName = getSoundSchemeName();
     const currentScheme = soundSchemes[schemeName];
-    const defaultScheme = soundSchemes["Default"];
 
-    // Determine the sound file url with fallbacks
-    const soundUrl =
-      (currentScheme && currentScheme[eventName]) ||
-      (defaultScheme && defaultScheme[eventName]);
+    // Determine the sound file url using the class method which handles fallbacks
+    const soundUrl = currentScheme?.getSound(eventName) || soundSchemes.Default?.getSound(eventName);
 
     // If no sound was found after all checks, resolve immediately.
     if (!soundUrl) {
