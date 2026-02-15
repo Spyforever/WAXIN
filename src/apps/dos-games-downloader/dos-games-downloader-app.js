@@ -180,6 +180,8 @@ export class DosGamesDownloaderApp extends Application {
       }
 
       const zipFs = await Zip.create({ data: new Uint8Array(buffer) });
+      await zipFs.ready();
+
       const mountPoint = `/mnt/zip-${identifier}`;
       if (!(await existsAsync("/mnt"))) await fs.promises.mkdir("/mnt");
       if (!(await existsAsync(mountPoint))) await fs.promises.mkdir(mountPoint);
