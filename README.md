@@ -184,7 +184,7 @@ Clippy is reintroduced as an optional, AI-powered assistant that provides contex
 ### Core Technologies
 * **Frontend**: Vanilla JavaScript (ES6+), HTML5, and CSS3.
 * **Runtime & Package Manager**: [Bun](https://bun.sh/) for lightning-fast development.
-* **Build Tool**: [Vite](https://vitejs.dev/) (migrating to Bun native).
+* **Build Tool**: [Vite](https://vitejs.dev/) (optimized with Bun).
 * **Virtual File System**: [ZenFS](https://zenfs.dev/) for persistent storage.
 
 ### UI & Styling

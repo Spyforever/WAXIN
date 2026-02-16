@@ -19,9 +19,9 @@ test.describe('Desktop Component', () => {
     const myComputerIcon = page.locator('.desktop .explorer-icon[data-name="My Computer"]');
     await myComputerIcon.dblclick();
 
-    // It should launch ZenExplorer at /
-    await page.waitForSelector('.window[data-app-id="zenexplorer"]');
-    const addressBar = page.locator('.window[data-app-id="zenexplorer"] .address-bar input');
+    // It should launch Explorer at /
+    await page.waitForSelector('.window[data-app-id="explorer"]');
+    const addressBar = page.locator('.window[data-app-id="explorer"] .address-bar input');
     await expect(addressBar).toHaveValue('My Computer');
   });
 

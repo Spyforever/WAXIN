@@ -42,23 +42,19 @@ This document outlines the gradual migration of the Windows 98 Web Edition proje
 5.  **Verification**:
     - Ensure `bun run dev` and `bun run build` work correctly using the existing Vite configuration.
 
-## Phase 2: Build Tooling (Vite to Bun)
-**Objective**: Leverage Bun's native bundler and server to remove dependency on Vite.
+## Phase 2: Bun-Vite Optimization
+**Objective**: Optimize Vite by running it on Bun's high-performance runtime while maintaining full feature parity.
 
-1.  **Implement Bun Build Script**:
-    - Create a custom build script (e.g., `scripts/build.js`) using `Bun.build`.
-    - Configure entry points: `index.html`, `404.html`, `about.html`.
-    - Handle asset loading for `.ani`, `.mp3`, and other static files.
-    - Implement a mechanism to copy the `public/` directory to `dist/`.
-2.  **PWA Support**:
-    - Replace `vite-plugin-pwa` with a custom Service Worker generation step or a compatible Bun-native approach.
-3.  **Native Dev Server**:
-    - Implement a development server using `Bun.serve` with static file serving.
-    - Note: Bun's native HMR is primarily for its own bundler; implementing a compatible HMR for the existing browser-side logic might require a custom WebSocket bridge if full feature parity with Vite is desired.
-4.  **Dependency Cleanup**:
-    - Remove `vite`, `vite-plugin-pwa`, and related Vite dependencies.
-5.  **Verification**:
-    - Compare `dist/` output with the Vite-produced build to ensure no regression in asset paths or functionality.
+1.  **Run Vite with Bun Runtime**:
+    - Update `package.json` scripts to use `bun --bun vite`. This forces Vite to use Bun's engine instead of Node.js.
+2.  **Dependency Updates**:
+    - Update `vite` and `vite-plugin-pwa` to their latest versions to ensure best compatibility with Bun.
+3.  **Plugin Verification**:
+    - Ensure `vite-plugin-pwa` correctly generates the manifest and service worker when executed via Bun.
+4.  **HMR and Dev Server**:
+    - Verify that Hot Module Replacement (HMR) and the development server remain fully functional.
+5.  **Performance Verification**:
+    - Measure and confirm improvements in build and dev server start times.
 
 ## Phase 3: Testing (Playwright to Bun Test)
 **Objective**: Migrate E2E tests to use `bun test`.
