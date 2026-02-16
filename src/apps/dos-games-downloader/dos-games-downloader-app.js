@@ -4,6 +4,7 @@ import { fs, mount, umount } from "@zenfs/core";
 import { Zip } from "@zenfs/archives";
 import { existsAsync } from "../../system/zenfs-utils.js";
 import { ShowDialogWindow } from '../../shared/components/dialog-window.js';
+import { DosGamesDownloaderProgressDialog } from './dos-games-downloader-progress-dialog.js';
 import { getIcon } from '../../shared/utils/icon-resolver.js';
 import "./dos-games-downloader.css";
 
@@ -71,12 +72,6 @@ export class DosGamesDownloaderApp extends Application {
         </div>
         <div class="results-container inset-deep">
           <div class="results-list"></div>
-          <div class="status-overlay hidden">
-             <div class="status-message">Downloading...</div>
-             <div class="progress-bar-container">
-                <div class="progress-bar"></div>
-             </div>
-          </div>
         </div>
       </div>
     `);
@@ -152,26 +147,27 @@ export class DosGamesDownloaderApp extends Application {
     }
   }
 
-  async _fetchWithProxy(url, title, statusMsg) {
+  async _fetchWithProxy(url, title, dialog, signal) {
     const proxies = [
+      (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
       (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
       (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-      (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
     ];
 
     for (let i = 0; i < proxies.length; i++) {
       const proxiedUrl = proxies[i](url);
       try {
         console.log(`Attempting download with proxy ${i + 1}: ${proxiedUrl}`);
-        const response = await fetch(proxiedUrl);
+        const response = await fetch(proxiedUrl, { signal });
         if (response.ok) return response;
         console.warn(`Proxy ${i + 1} failed with status ${response.status}`);
       } catch (e) {
+        if (e.name === 'AbortError') throw e;
         console.warn(`Proxy ${i + 1} failed with error:`, e);
       }
 
       if (i < proxies.length - 1) {
-        statusMsg.text(`Download failed with proxy ${i+1}, retrying with fallback...`);
+        if (dialog) dialog.update(`Proxy ${i+1} failed, retrying with fallback...`);
         await new Promise(r => setTimeout(r, 1000));
       }
     }
@@ -183,15 +179,22 @@ export class DosGamesDownloaderApp extends Application {
     if (this.isDownloading) return;
     this.isDownloading = true;
 
-    const overlay = this.win.$content.find(".status-overlay");
-    const statusMsg = this.win.$content.find(".status-message");
-    overlay.removeClass("hidden");
-    statusMsg.text(`Downloading ${title}...`);
+    const abortController = new AbortController();
+    const installDir = `/C:/Games/${identifier}`;
+
+    const dialog = new DosGamesDownloaderProgressDialog({
+      title: "Installing Game",
+      parentWindow: this.win,
+      onCancel: () => {
+        abortController.abort();
+      }
+    });
 
     try {
       // 1. Get metadata to find the zip file
+      dialog.update(`Fetching metadata for ${title}...`, "Archive.org", installDir);
       const metaUrl = `https://archive.org/metadata/${identifier}`;
-      const metaResponse = await fetch(metaUrl);
+      const metaResponse = await fetch(metaUrl, { signal: abortController.signal });
       const metaData = await metaResponse.json();
 
       const zipFile = metaData.files.find(f => f.name.toLowerCase().endsWith(".zip"));
@@ -199,20 +202,40 @@ export class DosGamesDownloaderApp extends Application {
 
       const downloadUrl = `https://archive.org/download/${identifier}/${zipFile.name}`;
 
-      // 2. Download the ZIP
-      const zipResponse = await this._fetchWithProxy(downloadUrl, title, statusMsg);
-      statusMsg.text(`Downloading ${title}...`); // Restore message after fallback notification
+      // 2. Download the ZIP with progress
+      const zipResponse = await this._fetchWithProxy(downloadUrl, title, dialog, abortController.signal);
 
-      const buffer = await zipResponse.arrayBuffer();
+      const contentLength = zipResponse.headers.get('content-length');
+      const totalDownloadSize = contentLength ? parseInt(contentLength, 10) : 0;
+      dialog.setTotalSize(totalDownloadSize);
+      dialog.update(`Downloading ${title}...`, downloadUrl, installDir);
+
+      const reader = zipResponse.body.getReader();
+      let downloadedSize = 0;
+      const chunks = [];
+
+      while(true) {
+        const {done, value} = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        downloadedSize += value.length;
+        dialog.update(null, null, null, downloadedSize);
+      }
+
+      const buffer = new Uint8Array(downloadedSize);
+      let offset = 0;
+      for (const chunk of chunks) {
+        buffer.set(chunk, offset);
+        offset += chunk.length;
+      }
 
       // 3. Extract to /C:/Games/[identifier]
-      statusMsg.text(`Extracting ${title}...`);
-      const installDir = `/C:/Games/${identifier}`;
+      dialog.update(`Preparing extraction...`, null, null, 0);
       if (!(await existsAsync(installDir))) {
         await fs.promises.mkdir(installDir, { recursive: true });
       }
 
-      const zipFs = await Zip.create({ data: new Uint8Array(buffer) });
+      const zipFs = await Zip.create({ data: buffer });
       await zipFs.ready();
 
       const mountPoint = `/mnt/zip-${identifier}`;
@@ -222,7 +245,9 @@ export class DosGamesDownloaderApp extends Application {
       mount(mountPoint, zipFs);
 
       try {
-        await this._copyRecursive(mountPoint, installDir);
+        const totalExtractSize = await this._getRecursiveSize(mountPoint);
+        dialog.setTotalSize(totalExtractSize);
+        await this._copyRecursive(mountPoint, installDir, dialog, 0);
       } finally {
         umount(mountPoint);
         try {
@@ -245,8 +270,7 @@ export class DosGamesDownloaderApp extends Application {
       await this._saveInstalledGames();
 
       this._renderResults();
-      statusMsg.text(`Successfully installed ${title}!`);
-      setTimeout(() => overlay.addClass("hidden"), 3000);
+      dialog.close();
 
       ShowDialogWindow({
         title: "Installation Successful",
@@ -264,9 +288,26 @@ export class DosGamesDownloaderApp extends Application {
         modal: true,
       });
     } catch (e) {
-      console.error("Installation failed", e);
-      statusMsg.text(`Error: ${e.message}`);
-      setTimeout(() => overlay.addClass("hidden"), 5000);
+      if (e.name === 'AbortError' || dialog.cancelled) {
+         console.log("Installation cancelled");
+         // Cleanup
+         try {
+           if (await existsAsync(installDir)) {
+             await fs.promises.rm(installDir, { recursive: true });
+           }
+         } catch (err) {
+           console.error("Cleanup failed", err);
+         }
+      } else {
+        console.error("Installation failed", e);
+        ShowDialogWindow({
+          title: "Installation Failed",
+          text: `Error: ${e.message}`,
+          buttons: [{ label: "OK", isDefault: true }],
+          modal: true,
+        });
+      }
+      dialog.close();
     } finally {
       this.isDownloading = false;
     }
@@ -323,9 +364,25 @@ export class DosGamesDownloaderApp extends Application {
     return candidates[0].path;
   }
 
-  async _copyRecursive(src, dest) {
+  async _getRecursiveSize(path) {
+    let size = 0;
+    const entries = await fs.promises.readdir(path);
+    for (const entry of entries) {
+      const fullPath = `${path}/${entry}`;
+      const stats = await fs.promises.stat(fullPath);
+      if (stats.isDirectory()) {
+        size += await this._getRecursiveSize(fullPath);
+      } else {
+        size += stats.size;
+      }
+    }
+    return size;
+  }
+
+  async _copyRecursive(src, dest, dialog, currentProgress) {
     const entries = await fs.promises.readdir(src);
     for (const entry of entries) {
+      if (dialog && dialog.cancelled) throw new Error("Cancelled");
       const srcPath = `${src}/${entry}`;
       const destPath = `${dest}/${entry}`;
       const stats = await fs.promises.stat(srcPath);
@@ -334,11 +391,14 @@ export class DosGamesDownloaderApp extends Application {
         if (!(await existsAsync(destPath))) {
           await fs.promises.mkdir(destPath);
         }
-        await this._copyRecursive(srcPath, destPath);
+        currentProgress = await this._copyRecursive(srcPath, destPath, dialog, currentProgress);
       } else {
         const data = await fs.promises.readFile(srcPath);
         await fs.promises.writeFile(destPath, data);
+        currentProgress += stats.size;
+        if (dialog) dialog.update(`Extracting ${entry}...`, null, null, currentProgress);
       }
     }
+    return currentProgress;
   }
 }
