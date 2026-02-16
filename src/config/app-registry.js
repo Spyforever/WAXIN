@@ -171,24 +171,6 @@ export const appRegistry = {
       allowFullscreen: true,
       startFullscreen: true,
       isSingleton: false,
-    },
-    {
-      id: "wolf3d",
-      title: "Wolfenstein 3D",
-      description: "Play Wolfenstein 3D",
-      icon: ICONS.msdos,
-      category: "Accessories/Games",
-      width: 640,
-      height: 480,
-    },
-    {
-      id: "sky",
-      title: "Beneath a Steel Sky",
-      description: "Play Beneath a Steel Sky",
-      icon: ICONS.msdos,
-      category: "Accessories/Games",
-      width: 640,
-      height: 480,
     }
   ],
     importApp: () => import("../apps/dos-box/dos-box-app.js")

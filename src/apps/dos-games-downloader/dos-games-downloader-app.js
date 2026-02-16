@@ -21,6 +21,35 @@ export class DosGamesDownloaderApp extends Application {
     super(config);
     this.results = [];
     this.isDownloading = false;
+    this.installedGames = {};
+    this.persistencePath = "/C:/Program Files/DOS Games Downloader/installed.json";
+  }
+
+  async _onLaunch() {
+    await this._loadInstalledGames();
+  }
+
+  async _loadInstalledGames() {
+    try {
+      if (await existsAsync(this.persistencePath)) {
+        const content = await fs.promises.readFile(this.persistencePath, "utf8");
+        this.installedGames = JSON.parse(content);
+      }
+    } catch (e) {
+      console.error("Failed to load installed games", e);
+    }
+  }
+
+  async _saveInstalledGames() {
+    try {
+      const dir = "/C:/Program Files/DOS Games Downloader";
+      if (!(await existsAsync(dir))) {
+        await fs.promises.mkdir(dir, { recursive: true });
+      }
+      await fs.promises.writeFile(this.persistencePath, JSON.stringify(this.installedGames, null, 2));
+    } catch (e) {
+      console.error("Failed to save installed games", e);
+    }
   }
 
   _createWindow() {
@@ -68,6 +97,19 @@ export class DosGamesDownloaderApp extends Application {
       const title = $(e.currentTarget).data("title");
       this._downloadAndInstall(identifier, title);
     });
+
+    this.win.$content.on("click", ".play-btn", (e) => {
+      const identifier = $(e.currentTarget).data("id");
+      this._playGame(identifier);
+    });
+  }
+
+  _playGame(identifier) {
+    const game = this.installedGames[identifier];
+    if (game) {
+      const executablePath = `${game.installDir}/${game.executable}`;
+      window.System.launchApp("dos-box", { path: executablePath });
+    }
   }
 
   async _handleSearch() {
@@ -97,7 +139,9 @@ export class DosGamesDownloaderApp extends Application {
     list.empty();
 
     this.results.forEach((item) => {
-      const thumbUrl = `https://archive.org/services/img/${item.identifier}`;
+      const isInstalled = !!this.installedGames[item.identifier];
+      const thumbUrl = isInstalled ? this.installedGames[item.identifier].thumbUrl : `https://archive.org/services/img/${item.identifier}`;
+
       const card = $(`
         <div class="game-card">
           <img class="game-thumb" src="${thumbUrl}" alt="${item.title}" loading="lazy">
@@ -105,7 +149,10 @@ export class DosGamesDownloaderApp extends Application {
             <div class="game-title">${item.title}</div>
             <div class="game-id">${item.identifier}</div>
           </div>
-          <button class="download-btn" data-id="${item.identifier}" data-title="${item.title}">Install</button>
+          ${isInstalled
+            ? `<button class="play-btn" data-id="${item.identifier}">Play</button>`
+            : `<button class="download-btn" data-id="${item.identifier}" data-title="${item.title}">Install</button>`
+          }
         </div>
       `);
       list.append(card);
@@ -201,16 +248,33 @@ export class DosGamesDownloaderApp extends Application {
       const files = await fs.promises.readdir(installDir);
       const executable = files.find(f => f.toLowerCase().endsWith(".exe") || f.toLowerCase().endsWith(".com"));
 
-      // 5. Create shortcut
+      // 5. Update persistence
+      const thumbUrl = `https://archive.org/services/img/${identifier}`;
+      this.installedGames[identifier] = {
+        identifier,
+        title,
+        installDir,
+        executable,
+        thumbUrl
+      };
+      await this._saveInstalledGames();
+
+      // 6. Create shortcut in DOS Games folder
       if (executable) {
-          await addDesktopShortcut("dos-box", title);
-          // Update the shortcut content to point to the game
-          const lnkPath = `/C:/WINDOWS/Desktop/${title}.lnk.json`;
-          const lnkContent = JSON.parse(await fs.promises.readFile(lnkPath, "utf8"));
-          lnkContent.args = `${installDir}/${executable}`;
-          await fs.promises.writeFile(lnkPath, JSON.stringify(lnkContent, null, 2));
+          const dosGamesPath = "/C:/WINDOWS/Desktop/DOS Games";
+          if (!(await existsAsync(dosGamesPath))) {
+              await fs.promises.mkdir(dosGamesPath, { recursive: true });
+          }
+          const lnkPath = `${dosGamesPath}/${title}.lnk.json`;
+          await fs.promises.writeFile(lnkPath, JSON.stringify({
+              type: "shortcut",
+              appId: "dos-box",
+              args: `${installDir}/${executable}`
+          }, null, 2));
+          document.dispatchEvent(new CustomEvent("fs-change", { detail: { path: lnkPath } }));
       }
 
+      this._renderResults();
       statusMsg.text(`Successfully installed ${title}!`);
       setTimeout(() => overlay.addClass("hidden"), 3000);
     } catch (e) {
