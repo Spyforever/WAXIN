@@ -564,7 +564,7 @@
                   // This prevents the parent window from unfocusing when focus moves from the iframe to the window's titlebar, for example.
                   if (
                     !document.activeElement ||
-                    !$w.$window[0].contains(document.activeElement)
+                    !$w[0].contains(document.activeElement)
                   ) {
                     stopShowingAsFocused();
                   }
