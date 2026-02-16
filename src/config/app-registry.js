@@ -192,7 +192,7 @@ export const appRegistry = {
       title: "DOSBox",
       description: "DOSBox-X Emulator",
       icon: ICONS.msdos,
-      category: "",
+      category: null,
       width: 640,
       height: 480,
       resizable: true,
@@ -201,35 +201,21 @@ export const appRegistry = {
       startFullscreen: true,
       isSingleton: false,
     },
-    {
-      id: "wolf3d",
-      title: "Wolfenstein 3D",
-      description: "Play Wolfenstein 3D",
-      icon: ICONS.msdos,
-      category: "Accessories/Games",
-      width: 640,
-      height: 480,
-    },
-    {
-      id: "sky",
-      title: "Beneath a Steel Sky",
-      description: "Play Beneath a Steel Sky",
-      icon: ICONS.msdos,
-      category: "Accessories/Games",
-      width: 640,
-      height: 480,
-    },
-    {
-      id: "sim-city-2000",
-      title: "SimCity 2000 Demo",
-      description: "Play SimCity 2000 Demo",
-      icon: ICONS.msdos,
-      category: "Accessories/Games",
-      width: 640,
-      height: 480,
-    }
   ],
     importApp: () => import("../apps/dos-box/dos-box-app.js")
+  },
+  "dos-games-downloader": {
+    config: {
+    id: "dos-games-downloader",
+    title: "DOS Games Downloader",
+    description: "Search and download DOS games from Archive.org",
+    icon: ICONS.msdos,
+    category: "",
+    width: 500,
+    height: 400,
+    resizable: true,
+  },
+    importApp: () => import("../apps/dos-games-downloader/dos-games-downloader-app.js")
   },
   "dx-ball": {
     config: {
