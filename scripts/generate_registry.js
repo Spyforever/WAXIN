@@ -51,7 +51,9 @@ import { getWebampMenuItems } from '../apps/webamp/webamp.js';
 export const appRegistry = {
 `;
 
-    for (const key in rawMetadata) {
+    const sortedKeys = Object.keys(rawMetadata).sort();
+
+    for (const key of sortedKeys) {
         const item = rawMetadata[key];
         let config = item.config;
 

@@ -183,7 +183,8 @@ Clippy is reintroduced as an optional, AI-powered assistant that provides contex
 
 ### Core Technologies
 * **Frontend**: Vanilla JavaScript (ES6+), HTML5, and CSS3.
-* **Build Tool**: [Vite](https://vitejs.dev/) for development and production bundling.
+* **Runtime & Package Manager**: [Bun](https://bun.sh/) for lightning-fast development.
+* **Build Tool**: [Vite](https://vitejs.dev/) (migrating to Bun native).
 * **Virtual File System**: [ZenFS](https://zenfs.dev/) for persistent storage.
 
 ### UI & Styling
@@ -198,10 +199,10 @@ git clone https://github.com/azayrahmad/win98-web.git
 cd win98-web
 
 # Install dependencies
-npm install
+bun install
 
 # Start the development server
-npm run dev
+bun run dev
 ```
 
 ## Future Roadmap
