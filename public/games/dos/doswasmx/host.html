@@ -69,11 +69,19 @@
                 window.parent.postMessage({ type: "DOSBOX_READY" }, "*");
             };
             window.myApp.initModule = newInit;
-            if (window.Module) window.Module.onRuntimeInitialized = newInit;
+            if (window.Module) {
+                window.Module.onRuntimeInitialized = newInit;
+                window.Module.onExit = function() {
+                    window.parent.postMessage({ type: "DOSBOX_EXIT" }, "*");
+                };
+            }
 
             const originalPrint = window.myApp.processPrintStatement;
             window.myApp.processPrintStatement = function(text) {
                 if (originalPrint) originalPrint.apply(window.myApp, arguments);
+                if (text && text.indexOf("QUIT_DOSBOX") !== -1) {
+                    window.parent.postMessage({ type: "DOSBOX_EXIT" }, "*");
+                }
                 if (text.startsWith("DEBUG_ShowMsg:")) {
                     const msg = text.substring(15).trim();
                     if (msg && msg.length > 1) showStatus(msg);

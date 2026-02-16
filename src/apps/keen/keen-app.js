@@ -15,6 +15,7 @@ export class KeenApp extends IFrameApplication {
 
   constructor(config) {
     super(config);
+    this._boundHandleMessage = this._handleMessage.bind(this);
   }
 
   _createWindow() {
@@ -50,6 +51,19 @@ export class KeenApp extends IFrameApplication {
   }
 
   _onLaunch() {
+    window.addEventListener("message", this._boundHandleMessage);
     this.win.focus();
+  }
+
+  _handleMessage(event) {
+    if (event.data && event.data.type === "KEEN_EXIT") {
+      if (this.win) {
+        this.win.close();
+      }
+    }
+  }
+
+  _onClose() {
+    window.removeEventListener("message", this._boundHandleMessage);
   }
 }
