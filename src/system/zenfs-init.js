@@ -92,6 +92,9 @@ export async function initFileSystem(onProgress) {
     if (!(await existsAsync("/C:/Program Files/Doom"))) {
       await fs.promises.mkdir("/C:/Program Files/Doom");
     }
+    if (!(await existsAsync("/C:/Program Files/DOS Games Downloader"))) {
+      await fs.promises.mkdir("/C:/Program Files/DOS Games Downloader");
+    }
 
     const doomFiles = ["doom1.wad", "default.cfg"];
     const doomRemotePath = "games/doom/";
@@ -169,8 +172,6 @@ export async function initFileSystem(onProgress) {
       { name: "Diablo.lnk.json", appId: "diablo" },
       { name: "Quake.lnk.json", appId: "quake" },
       { name: "Prince of Persia.lnk.json", appId: "prince-of-persia" },
-      { name: "Wolfenstein 3D.lnk.json", appId: "wolf3d" },
-      { name: "Beneath a Steel Sky.lnk.json", appId: "sky" },
     ];
 
     for (const game of games) {
@@ -190,6 +191,33 @@ export async function initFileSystem(onProgress) {
       }
     }
 
+    // Add DOS Games folder to Desktop
+    const dosGamesPath = "/C:/WINDOWS/Desktop/DOS Games";
+    if (!(await existsAsync(dosGamesPath))) {
+      await fs.promises.mkdir(dosGamesPath);
+    }
+
+    const dosGamesShortcuts = [
+      { name: "DOS Games Downloader.lnk.json", appId: "dos-games-downloader" },
+    ];
+
+    for (const shortcut of dosGamesShortcuts) {
+      const lnkPath = `${dosGamesPath}/${shortcut.name}`;
+      if (!(await existsAsync(lnkPath))) {
+        await fs.promises.writeFile(
+          lnkPath,
+          JSON.stringify(
+            {
+              type: "shortcut",
+              appId: shortcut.appId,
+            },
+            null,
+            2,
+          ),
+        );
+      }
+    }
+
     // Ensure My Documents directory exists
     if (!(await existsAsync("/C:/My Documents"))) {
       await fs.promises.mkdir("/C:/My Documents");
@@ -198,45 +226,6 @@ export async function initFileSystem(onProgress) {
     // Ensure Games directory exists on C:
     if (!(await existsAsync("/C:/Games"))) {
       await fs.promises.mkdir("/C:/Games");
-    }
-
-    // Install Wolfenstein 3D to C:\Games\WOLF3D if it doesn't exist
-    if (!(await existsAsync("/C:/Games/WOLF3D"))) {
-      if (onProgress) onProgress("Installing Wolfenstein 3D...");
-      await fs.promises.mkdir("/C:/Games/WOLF3D", { recursive: true });
-      const wolfFiles = [
-        "AUDIOHED.WL6", "AUDIOT.WL6", "CONFIG.WL6", "GAMEMAPS.WL6",
-        "MAPHEAD.WL6", "VGADICT.WL6", "VGAGRAPH.WL6", "VGAHEAD.WL6",
-        "VSWAP.WL6", "WOLF3D.EXE"
-      ];
-      for (const file of wolfFiles) {
-        try {
-          const response = await fetch(`games/dos/wolf3d/${file}`);
-          const buffer = await response.arrayBuffer();
-          await fs.promises.writeFile(`/C:/Games/WOLF3D/${file}`, new Uint8Array(buffer));
-        } catch (e) {
-          console.error(`Failed to install ${file}:`, e);
-        }
-      }
-    }
-
-    // Install Beneath a Steel Sky to C:\Games\SKY if it doesn't exist
-    if (!(await existsAsync("/C:/Games/SKY"))) {
-      if (onProgress) onProgress("Installing Beneath a Steel Sky...");
-      await fs.promises.mkdir("/C:/Games/SKY", { recursive: true });
-      const skyFiles = ["SKY.DNR", "SKY.DSK", "SKY.EXE", "SKY.RST"];
-      for (const file of skyFiles) {
-        try {
-          const response = await fetch(`games/dos/sky/${file}`);
-          const buffer = await response.arrayBuffer();
-          await fs.promises.writeFile(
-            `/C:/Games/SKY/${file}`,
-            new Uint8Array(buffer),
-          );
-        } catch (e) {
-          console.error(`Failed to install ${file}:`, e);
-        }
-      }
     }
 
     if (onProgress) onProgress("Initializing Start Menu...");
