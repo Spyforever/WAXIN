@@ -2,7 +2,9 @@ import { Application } from '../../system/application.js';
 import { ICONS } from '../../config/icons.js';
 import { fs, mount, umount } from "@zenfs/core";
 import { Zip } from "@zenfs/archives";
-import { addDesktopShortcut, existsAsync } from "../../system/zenfs-utils.js";
+import { existsAsync } from "../../system/zenfs-utils.js";
+import { ShowDialogWindow } from '../../shared/components/dialog-window.js';
+import { getIcon } from '../../shared/utils/icon-resolver.js';
 import "./dos-games-downloader.css";
 
 export class DosGamesDownloaderApp extends Application {
@@ -11,7 +13,7 @@ export class DosGamesDownloaderApp extends Application {
     title: "DOS Games Downloader",
     description: "Search and download DOS games from Archive.org",
     icon: ICONS.msdos,
-    category: "Accessories/Games",
+    category: "",
     width: 500,
     height: 400,
     resizable: true,
@@ -97,19 +99,6 @@ export class DosGamesDownloaderApp extends Application {
       const title = $(e.currentTarget).data("title");
       this._downloadAndInstall(identifier, title);
     });
-
-    this.win.$content.on("click", ".play-btn", (e) => {
-      const identifier = $(e.currentTarget).data("id");
-      this._playGame(identifier);
-    });
-  }
-
-  _playGame(identifier) {
-    const game = this.installedGames[identifier];
-    if (game) {
-      const executablePath = `${game.installDir}/${game.executable}`;
-      window.System.launchApp("dos-box", { path: executablePath });
-    }
   }
 
   async _handleSearch() {
@@ -149,10 +138,7 @@ export class DosGamesDownloaderApp extends Application {
             <div class="game-title">${item.title}</div>
             <div class="game-id">${item.identifier}</div>
           </div>
-          ${isInstalled
-            ? `<button class="play-btn" data-id="${item.identifier}">Play</button>`
-            : `<button class="download-btn" data-id="${item.identifier}" data-title="${item.title}">Install</button>`
-          }
+          <button class="download-btn" data-id="${item.identifier}" data-title="${item.title}">Install</button>
         </div>
       `);
       list.append(card);
@@ -258,24 +244,25 @@ export class DosGamesDownloaderApp extends Application {
       };
       await this._saveInstalledGames();
 
-      // 6. Create shortcut in DOS Games folder
-      if (executable) {
-          const dosGamesPath = "/C:/WINDOWS/Desktop/DOS Games";
-          if (!(await existsAsync(dosGamesPath))) {
-              await fs.promises.mkdir(dosGamesPath, { recursive: true });
-          }
-          const lnkPath = `${dosGamesPath}/${title}.lnk.json`;
-          await fs.promises.writeFile(lnkPath, JSON.stringify({
-              type: "shortcut",
-              appId: "dos-box",
-              args: `${installDir}/${executable}`
-          }, null, 2));
-          document.dispatchEvent(new CustomEvent("fs-change", { detail: { path: lnkPath } }));
-      }
-
       this._renderResults();
       statusMsg.text(`Successfully installed ${title}!`);
       setTimeout(() => overlay.addClass("hidden"), 3000);
+
+      ShowDialogWindow({
+        title: "Installation Successful",
+        text: `Successfully installed <b>${title}</b>!<br><br>The game is installed in:<br><code>${installDir}</code>`,
+        contentIconUrl: ICONS.msdos[32],
+        buttons: [
+          {
+            label: "Go to directory",
+            action: () => {
+              window.System.launchApp("explorer", { filePath: installDir });
+            }
+          },
+          { label: "OK", isDefault: true }
+        ],
+        modal: true,
+      });
     } catch (e) {
       console.error("Installation failed", e);
       statusMsg.text(`Error: ${e.message}`);

@@ -10,7 +10,7 @@ export class DosBoxApp extends Application {
       title: "DOSBox",
       description: "DOSBox-X Emulator",
       icon: ICONS.msdos,
-      category: "",
+      category: null,
       width: 640,
       height: 480,
       resizable: true,
