@@ -13,5 +13,7 @@ export function getIcon(iconIdentifier) {
   const iconSchemeName = getIconSchemeName() || "default";
   const scheme = iconSchemes[iconSchemeName] || iconSchemes["default"];
 
-  return scheme[iconIdentifier] || ICONS[iconIdentifier] || ICONS.file;
+  return (
+    scheme.getIconObj(iconIdentifier) || ICONS[iconIdentifier] || ICONS.file
+  );
 }

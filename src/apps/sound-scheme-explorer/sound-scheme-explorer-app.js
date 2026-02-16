@@ -120,27 +120,30 @@ export class SoundSchemeExplorerApp extends Application {
   _updateSoundList(schemeName) {
     this.soundList.innerHTML = "";
     const scheme = soundSchemes[schemeName];
-    if (!scheme) return;
+    if (!scheme || !scheme.sounds) return;
 
-    for (const [eventName, soundFile] of Object.entries(scheme)) {
-      if (soundFile) {
-        const soundItem = document.createElement("div");
-        soundItem.className = "sound-item";
-        soundItem.innerHTML = `
-          <button class="play-btn" data-sound-event="${eventName}">
+    for (const [eventName, soundItem] of Object.entries(scheme.sounds)) {
+      const soundElement = document.createElement("div");
+      soundElement.className = "sound-item";
+
+      const playButtonHtml = soundItem.path
+        ? `<button class="play-btn" data-sound-event="${eventName}">
             <span class="play-icon"></span>
-          </button>
-          <span>${eventName}</span>
-        `;
-        this.soundList.appendChild(soundItem);
-      }
+          </button>`
+        : `<div class="play-btn-placeholder" style="width: 20px; height: 20px; margin-right: 10px;"></div>`;
+
+      soundElement.innerHTML = `
+        ${playButtonHtml}
+        <span>${eventName}</span>
+      `;
+      this.soundList.appendChild(soundElement);
     }
 
     this.soundList.querySelectorAll(".play-btn").forEach((button) => {
       button.addEventListener("click", () => {
         const eventName = button.dataset.soundEvent;
         const scheme = soundSchemes[this.select.value];
-        const soundToPlay = scheme[eventName];
+        const soundToPlay = scheme?.getSound(eventName);
         if (soundToPlay) {
           const audio = new Audio(soundToPlay);
           audio.play();

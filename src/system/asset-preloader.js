@@ -87,20 +87,21 @@ export async function preloadThemeAssets(themeId, onAssetStart, onAssetFinish) {
 
   // Sound scheme
   const soundScheme = soundSchemes[theme.soundScheme];
-  if (soundScheme) {
-    for (const sound in soundScheme) {
-      if (soundScheme[sound]) {
-        queueAsset(() => preloadAudio(soundScheme[sound]), soundScheme[sound]);
+  if (soundScheme?.sounds) {
+    for (const soundItem of Object.values(soundScheme.sounds)) {
+      if (soundItem.path) {
+        queueAsset(() => preloadAudio(soundItem.path), soundItem.path);
       }
     }
   }
 
   // Cursor scheme
   const cursorScheme = cursors[themeId];
-  if (cursorScheme) {
-    for (const cursor in cursorScheme) {
-      if (cursorScheme[cursor]) {
-        queueAsset(() => preloadCursor(cursorScheme[cursor]), cursorScheme[cursor]);
+  if (cursorScheme?.cursors) {
+    for (const cursorItem of Object.values(cursorScheme.cursors)) {
+      const path = typeof cursorItem === "string" ? cursorItem : cursorItem.path;
+      if (path) {
+        queueAsset(() => preloadCursor(path), path);
       }
     }
   }
