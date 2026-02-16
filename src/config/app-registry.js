@@ -4,6 +4,22 @@ import { getESheepMenuItems } from '../apps/esheep/esheep.js';
 import { getWebampMenuItems } from '../apps/webamp/webamp.js';
 
 export const appRegistry = {
+  "about": {
+    config: {
+    id: "about",
+    title: "About",
+    description: "Displays information about this application.",
+    summary: "<b>azOS Second Edition</b><br>Copyright © 2024",
+    icon: ICONS.windowsUpdate,
+    width: 400,
+    height: 280,
+    resizable: false,
+    minimizeButton: false,
+    maximizeButton: false,
+    isSingleton: true,
+  },
+    importApp: () => import("../shell/about/about-app.js")
+  },
   "app-maker": {
     config: {
         id: "app-maker",
@@ -140,6 +156,19 @@ export const appRegistry = {
         isSingleton: true,
     },
     importApp: () => import("../apps/diablo/diablo-app.js")
+  },
+  "display-properties": {
+    config: {
+    id: "display-properties",
+    title: "Display",
+    description: "Customize your display settings.",
+    icon: ICONS.displayProperties,
+    width: 404,
+    height: 448,
+    resizable: false,
+    isSingleton: true,
+  },
+    importApp: () => import("../shell/display-properties/display-properties-app.js")
   },
   "doom": {
     config: {
@@ -535,34 +564,5 @@ export const appRegistry = {
     isSingleton: false,
   },
     importApp: () => import("../apps/wordpad/word-pad-app.js")
-  },
-  "about": {
-    config: {
-    id: "about",
-    title: "About",
-    description: "Displays information about this application.",
-    summary: "<b>azOS Second Edition</b><br>Copyright © 2024",
-    icon: ICONS.windowsUpdate,
-    width: 400,
-    height: 280,
-    resizable: false,
-    minimizeButton: false,
-    maximizeButton: false,
-    isSingleton: true,
-  },
-    importApp: () => import("../shell/about/about-app.js")
-  },
-  "display-properties": {
-    config: {
-    id: "display-properties",
-    title: "Display",
-    description: "Customize your display settings.",
-    icon: ICONS.displayProperties,
-    width: 404,
-    height: 448,
-    resizable: false,
-    isSingleton: true,
-  },
-    importApp: () => import("../shell/display-properties/display-properties-app.js")
   },
 };

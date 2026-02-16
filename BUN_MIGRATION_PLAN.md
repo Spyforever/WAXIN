@@ -29,15 +29,17 @@ This document outlines the gradual migration of the Windows 98 Web Edition proje
 **Objective**: Use Bun as the primary package manager and script runner.
 
 1.  **Generate Bun Lockfile**:
-    - Run `bun install` to create `bun.lock`.
+    - Run `bun install` to create `bun.lock` (text-based).
     - Remove `package-lock.json`.
 2.  **Update `package.json` Scripts**:
-    - Prefix scripts with `bun`.
+    - Replace `npm run` with `bun run`.
     - Update `build:registry` to use `bun scripts/generate_registry.js`.
 3.  **CI/CD Update**:
     - Modify `.github/workflows/static.yml` to use `oven-sh/setup-bun@v2`.
     - Replace `npm ci` and `npm run build` with `bun install --frozen-lockfile` and `bun run build`.
-4.  **Verification**:
+4.  **Documentation Update**:
+    - Update `README.md` and `AGENTS.md` to reflect the switch to Bun.
+5.  **Verification**:
     - Ensure `bun run dev` and `bun run build` work correctly using the existing Vite configuration.
 
 ## Phase 2: Build Tooling (Vite to Bun)
@@ -51,7 +53,8 @@ This document outlines the gradual migration of the Windows 98 Web Edition proje
 2.  **PWA Support**:
     - Replace `vite-plugin-pwa` with a custom Service Worker generation step or a compatible Bun-native approach.
 3.  **Native Dev Server**:
-    - Implement a development server using `Bun.serve` with static file serving and basic HMR support.
+    - Implement a development server using `Bun.serve` with static file serving.
+    - Note: Bun's native HMR is primarily for its own bundler; implementing a compatible HMR for the existing browser-side logic might require a custom WebSocket bridge if full feature parity with Vite is desired.
 4.  **Dependency Cleanup**:
     - Remove `vite`, `vite-plugin-pwa`, and related Vite dependencies.
 5.  **Verification**:

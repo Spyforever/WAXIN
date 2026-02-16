@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run build:registry && vite build",
-    "build:registry": "node scripts/generate_registry.js",
-    "preview": "vite preview"
+    "build": "bun run build:registry && vite build",
+    "build:registry": "bun scripts/generate_registry.js",
+    "preview": "vite preview",
+    "test": "playwright test"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.1",
