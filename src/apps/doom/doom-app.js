@@ -80,6 +80,10 @@ export class DoomApp extends Application {
       } else {
         this._startGame(this.availableWads[0] || "doom1.wad");
       }
+    } else if (event.data && event.data.type === "DOOM_EXIT") {
+      if (this.win) {
+        this.win.close();
+      }
     }
   }
 

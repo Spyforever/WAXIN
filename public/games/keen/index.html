@@ -40,6 +40,9 @@
             var Module = {
                 preRun: [],
                 postRun: [],
+                onExit: () => {
+                    window.parent.postMessage({ type: 'KEEN_EXIT' }, '*');
+                },
                 onRuntimeInitialized: () => {
                     // Load all save games from localStorage
                     for (let i = 0; i < localStorage.length; i++) {
