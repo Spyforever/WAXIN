@@ -63,6 +63,10 @@ export class DosBoxApp extends Application {
     this.iframe = iframe;
     this.win = win;
 
+    win.on("focus", () => {
+      iframe.focus();
+    });
+
     return win;
   }
 
