@@ -52,7 +52,9 @@ export class AboutApp extends Application {
   }
 
   async openFile(markdown, title) {
-    const html = marked.parse(markdown);
+    // Fix image paths: in production, the 'public' folder contents are at the root
+    const fixedMarkdown = markdown.replaceAll('./public/', './');
+    const html = marked.parse(fixedMarkdown);
     const win = new $Window({
       title: title,
       outerWidth: 600,
