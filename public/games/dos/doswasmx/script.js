@@ -301,6 +301,10 @@ class MyClass {
 
     configureEmulator(){
 
+        if (!this.rivetsData.mobileMode) {
+            this.captureMouse();
+        }
+
         if (this.rivetsData.password)
             this.loginSilent();
 
@@ -2892,7 +2896,11 @@ class MyClass {
         canvas.requestPointerLock = canvas.requestPointerLock ||
         canvas.mozRequestPointerLock;
 
-        canvas.requestPointerLock()
+        canvas.requestPointerLock();
+
+        if (navigator.keyboard && navigator.keyboard.lock) {
+            navigator.keyboard.lock(['Escape']);
+        }
     }
 
     setupInputController(){

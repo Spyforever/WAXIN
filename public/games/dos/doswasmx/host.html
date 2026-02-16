@@ -138,6 +138,13 @@
         }
 
         init();
+
+        // Ensure we capture on any click within the host
+        window.addEventListener('click', () => {
+            if (window.myApp && !window.myApp.rivetsData.mobileMode) {
+                window.myApp.captureMouse();
+            }
+        });
     </script>
 </body>
 </html>
