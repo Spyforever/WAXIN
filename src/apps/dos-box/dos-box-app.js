@@ -1,5 +1,5 @@
-import { Application } from '../../system/application.js';
-import { ICONS } from '../../config/icons.js';
+import { Application } from "../../system/application.js";
+import { ICONS } from "../../config/icons.js";
 import { fs } from "@zenfs/core";
 import { Emscripten } from "@zenfs/emscripten";
 
@@ -18,7 +18,7 @@ export class DosBoxApp extends Application {
       allowFullscreen: true,
       startFullscreen: true,
       isSingleton: false,
-    }
+    },
   ];
 
   constructor(config) {
@@ -32,7 +32,7 @@ export class DosBoxApp extends Application {
   }
 
   async _createWindow(data) {
-    if (typeof data === 'string') {
+    if (typeof data === "string") {
       this.executablePath = data;
     } else if (data && data.path) {
       this.executablePath = data.path;
@@ -40,7 +40,9 @@ export class DosBoxApp extends Application {
     }
 
     const win = new window.$Window({
-      title: this.executablePath ? `DOSBox - ${this.executablePath.split('/').pop()}` : this.title,
+      title: this.executablePath
+        ? `DOSBox - ${this.executablePath.split("/").pop()}`
+        : this.title,
       outerWidth: this.width,
       outerHeight: this.height,
       resizable: this.resizable,
@@ -91,14 +93,16 @@ export class DosBoxApp extends Application {
 
     let localSyncPath = "/C:/Games";
     if (this.executablePath) {
-        const parts = this.executablePath.split('/');
-        parts.pop(); // Remove filename
-        localSyncPath = parts.join('/') || "/C:/Games";
+      const parts = this.executablePath.split("/");
+      parts.pop(); // Remove filename
+      localSyncPath = parts.join("/") || "/C:/Games";
     }
 
     // Convert local path (e.g. /C:/Games/WOLF3D) to guest path (e.g. /Games/WOLF3D)
     // by removing the /C: prefix if present
-    const guestSyncPath = localSyncPath.startsWith("/C:") ? localSyncPath.substring(3) || "/" : localSyncPath;
+    const guestSyncPath = localSyncPath.startsWith("/C:")
+      ? localSyncPath.substring(3) || "/"
+      : localSyncPath;
 
     try {
       const loadRecursive = async (localPath, emPath) => {
@@ -106,18 +110,21 @@ export class DosBoxApp extends Application {
         const entries = await fs.promises.readdir(localPath);
         for (const entry of entries) {
           const fullLocalPath = `${localPath}/${entry}`;
-          const fullEmPath = emPath === "/" ? `/${entry}` : `${emPath}/${entry}`;
+          const fullEmPath =
+            emPath === "/" ? `/${entry}` : `${emPath}/${entry}`;
           try {
-              const stat = await fs.promises.stat(fullLocalPath);
-              if (stat.isDirectory()) {
-                try { FS.mkdir(fullEmPath); } catch (e) {}
-                await loadRecursive(fullLocalPath, fullEmPath);
-              } else {
-                const data = await fs.promises.readFile(fullLocalPath);
-                FS.writeFile(fullEmPath, new Uint8Array(data));
-              }
+            const stat = await fs.promises.stat(fullLocalPath);
+            if (stat.isDirectory()) {
+              try {
+                FS.mkdir(fullEmPath);
+              } catch (e) {}
+              await loadRecursive(fullLocalPath, fullEmPath);
+            } else {
+              const data = await fs.promises.readFile(fullLocalPath);
+              FS.writeFile(fullEmPath, new Uint8Array(data));
+            }
           } catch (e) {
-              console.warn(`Failed to sync ${fullLocalPath}`, e);
+            console.warn(`Failed to sync ${fullLocalPath}`, e);
           }
         }
       };
@@ -145,12 +152,14 @@ export class DosBoxApp extends Application {
   }
 
   async _ensureEmDir(FS, path) {
-      const parts = path.split('/').filter(Boolean);
-      let current = '';
-      for (const part of parts) {
-          current += '/' + part;
-          try { FS.mkdir(current); } catch (e) {}
-      }
+    const parts = path.split("/").filter(Boolean);
+    let current = "";
+    for (const part of parts) {
+      current += "/" + part;
+      try {
+        FS.mkdir(current);
+      } catch (e) {}
+    }
   }
 
   _startEmulator() {
@@ -184,24 +193,26 @@ export class DosBoxApp extends Application {
       const syncData = [];
       const collectFiles = (path, guestPrefix, localPrefix) => {
         try {
-            const entries = FS.readdir(path).filter((e) => e !== "." && e !== "..");
-            for (const entry of entries) {
-              const fullPath = path === "/" ? `/${entry}` : `${path}/${entry}`;
-              try {
-                const stat = FS.stat(fullPath);
-                if (FS.isDir(stat.mode)) {
-                  collectFiles(fullPath, guestPrefix, localPrefix);
-                } else {
-                  // Map back to local path
-                  const relativePath = fullPath.substring(guestPrefix.length);
-                  const targetLocalPath = localPrefix + relativePath;
-                  syncData.push({
-                    path: targetLocalPath,
-                    data: new Uint8Array(FS.readFile(fullPath)),
-                  });
-                }
-              } catch (e) {}
-            }
+          const entries = FS.readdir(path).filter(
+            (e) => e !== "." && e !== "..",
+          );
+          for (const entry of entries) {
+            const fullPath = path === "/" ? `/${entry}` : `${path}/${entry}`;
+            try {
+              const stat = FS.stat(fullPath);
+              if (FS.isDir(stat.mode)) {
+                collectFiles(fullPath, guestPrefix, localPrefix);
+              } else {
+                // Map back to local path
+                const relativePath = fullPath.substring(guestPrefix.length);
+                const targetLocalPath = localPrefix + relativePath;
+                syncData.push({
+                  path: targetLocalPath,
+                  data: new Uint8Array(FS.readFile(fullPath)),
+                });
+              }
+            } catch (e) {}
+          }
         } catch (e) {}
       };
       collectFiles(this.guestSyncedPath, this.guestSyncedPath, this.syncedPath);

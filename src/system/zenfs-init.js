@@ -13,7 +13,10 @@ import { getStartupApps } from "./startup-manager.js";
 import { apps } from "../config/apps.js";
 import { existsAsync } from "./zenfs-utils.js";
 import { wallpapers } from "../config/wallpapers.js";
-import { getAllDiskHandles, removeDiskHandle } from "./removable-disk-persistence.js";
+import {
+  getAllDiskHandles,
+  removeDiskHandle,
+} from "./removable-disk-persistence.js";
 import { RemovableDiskManager } from "../shell/explorer/drives/removable-disk-manager.js";
 import { DriveService } from "./drive-service.js";
 
