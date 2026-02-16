@@ -1,5 +1,38 @@
 # Changelog
 
+## [0.7.0](https://github.com/azayrahmad/win98-web/compare/win98-web-v0.6.0...win98-web-v0.7.0) (2026-02-15)
+
+
+### Features
+
+* add GSC verification and GA4 tracking to index.html ([6818dfc](https://github.com/azayrahmad/win98-web/commit/6818dfc0ec211bdbbeb339394be2b02339290297))
+* add mouse and touch hardware detection to boot sequence ([187dc78](https://github.com/azayrahmad/win98-web/commit/187dc78ebd33034f51998767cc9325ba1d42bc0d))
+* add README and Changelog buttons to About app ([4f7469c](https://github.com/azayrahmad/win98-web/commit/4f7469c0f11b1f0d32425f2131ab31061aab0714))
+* add retro "About" page with live iframe preview ([736fa84](https://github.com/azayrahmad/win98-web/commit/736fa842569a689cc5a5cf97678b11de9d752ede))
+* enable editing app id and argument in shortcut properties ([2eab9b4](https://github.com/azayrahmad/win98-web/commit/2eab9b4e0dcf065dd085bd46eb35616bd2894878))
+* implement lazy loading for applications to reduce bundle size ([4427315](https://github.com/azayrahmad/win98-web/commit/44273150d33899ec1440c9be2889b9914390087d))
+* implement lazy loading for applications to reduce bundle size ([4427315](https://github.com/azayrahmad/win98-web/commit/44273150d33899ec1440c9be2889b9914390087d))
+* improve README/Changelog viewer in About app ([64bea54](https://github.com/azayrahmad/win98-web/commit/64bea54a9fb6271ffaac4bd2dfd0c8d69fe1d8ec))
+* replace Start Menu 'About' with 'Windows Update' mechanism ([336feab](https://github.com/azayrahmad/win98-web/commit/336feab9bce4c9661fe791b74d2fcd8e6ce19408))
+* **system:** show boot errors on BIOS screen ([4c6c39e](https://github.com/azayrahmad/win98-web/commit/4c6c39e9cedf186be45ec53c9cb9b023bd7f7182))
+
+
+### Bug Fixes
+
+* **about:** icons and focus ([695ac7b](https://github.com/azayrahmad/win98-web/commit/695ac7b80c72eeb0e8227f50750d7f100c6143b4))
+* automatically eject inaccessible removable disks ([b82930d](https://github.com/azayrahmad/win98-web/commit/b82930d497c015f25ba76484038dde0270218acf))
+* calculator help 404 and improve help system robustness ([384ac73](https://github.com/azayrahmad/win98-web/commit/384ac733d1b69dccd1cdef8a0d01f8bee60aa65e))
+* **flash-player:** update file open to use ZenFS and fix file association ([1e4e6e0](https://github.com/azayrahmad/win98-web/commit/1e4e6e026b6925b35f9d858c20da59d89261d2dd))
+* migrate SimCity 2000 Demo to use DosBoxApp ([e8d4b7d](https://github.com/azayrahmad/win98-web/commit/e8d4b7dcd3c779d745cd6ea39fa59cad42672f27))
+* **paint:** relaunch swatches and Exit menu issue ([34525ef](https://github.com/azayrahmad/win98-web/commit/34525ef7c4c59e91721025197a42009da4a59377))
+* resolve boot hang on iOS Safari by using fetch for audio preloading ([f72eeea](https://github.com/azayrahmad/win98-web/commit/f72eeea6ec03c5c9f542a45cbeecd6048fefd221))
+* use HTML file icon for Favorites and web Address Bar ([a7fccd8](https://github.com/azayrahmad/win98-web/commit/a7fccd88ba8a9a30467750f16975ed812f02551c))
+
+
+### Performance Improvements
+
+* implement lazy loading for apps and optimize build process ([4427315](https://github.com/azayrahmad/win98-web/commit/44273150d33899ec1440c9be2889b9914390087d))
+
 ## [0.6.0](https://github.com/azayrahmad/win98-web/compare/win98-web-v0.5.0...win98-web-v0.6.0) (2026-02-12)
 
 
