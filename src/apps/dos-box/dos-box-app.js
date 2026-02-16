@@ -74,6 +74,10 @@ export class DosBoxApp extends Application {
     if (event.data && event.data.type === "DOSBOX_READY") {
       await this._setupFileSystem();
       this._startEmulator();
+    } else if (event.data && event.data.type === "DOSBOX_EXIT") {
+      if (this.win) {
+        this.win.close();
+      }
     }
   }
 
@@ -175,7 +179,7 @@ export class DosBoxApp extends Application {
           ? parts.slice(1)
           : parts;
       const dir = dirParts.join("\\");
-      dosCommands = `C:\ncd \\${dir}\n${exe} ${this.args.join(" ")}\n`;
+      dosCommands = `C:\r\ncd \\${dir}\r\n${exe} ${this.args.join(" ")}\r\necho QUIT_DOSBOX\r\nexit\r\n`;
     }
 
     if (guestWindow.startWithCommands) {
