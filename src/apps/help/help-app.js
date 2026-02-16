@@ -103,8 +103,18 @@ class HelpApp extends Application {
     this._renderIndex();
     this._setupSearch();
 
-    // Show default topic
-    const defaultTopic = this.currentHelpData.topics?.[0] || { title: "Welcome", file: "default.html" };
+    // Show default topic - find the first one with a file
+    const findFirstTopicWithFile = (topics) => {
+      for (const topic of topics) {
+        if (topic.file) return topic;
+        if (topic.children && topic.children.length > 0) {
+          const found = findFirstTopicWithFile(topic.children);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+    const defaultTopic = findFirstTopicWithFile(this.currentHelpData.topics || []) || { title: "Welcome", file: "default.html" };
     this._showTopic(defaultTopic);
   }
 
@@ -308,11 +318,25 @@ class HelpApp extends Application {
     }
   }
 
+  _joinPaths(base, path) {
+    if (!base) return path;
+    if (!path) return base;
+    const baseHasSlash = base.endsWith("/");
+    const pathHasSlash = path.startsWith("/");
+    if (baseHasSlash && pathHasSlash) {
+      return base + path.substring(1);
+    } else if (!baseHasSlash && !pathHasSlash) {
+      return base + "/" + path;
+    } else {
+      return base + path;
+    }
+  }
+
   async _showTopic(topic, addToHistory = false) {
     const contentPanel = this.win.$content.find(".content-panel");
     let url = topic.file;
     if (url && !url.startsWith("http") && !url.startsWith("/")) {
-        url = this.rootPath ? `${this.rootPath}/${url}` : `${import.meta.env.BASE_URL}${url}`;
+        url = this.rootPath ? this._joinPaths(this.rootPath, url) : this._joinPaths(import.meta.env.BASE_URL, url);
     }
 
     if (url) {
