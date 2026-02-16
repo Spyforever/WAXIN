@@ -4,7 +4,7 @@
 
 A web-based recreation of the classic Windows 98 desktop experience, built using vanilla JavaScript, HTML, and CSS. Experience the familiar interface of Windows 98 directly in your modern browser, complete with working applications and games, customizable themes, and an AI-powered Clippy.
 
-![Windows 98 Web Edition Desktop](./docs/images/screenshot-desktop.png)
+![Windows 98 Web Edition Desktop](./public/docs/images/screenshot-desktop.png)
 *Windows 98 Web Edition Desktop*
 
 ## Table of Contents
@@ -32,7 +32,7 @@ Experience it directly in your browser:
 
 *(Desktop browser recommended for the best experience. Works best on Chrome, Firefox, and Edge.)*
 
-![Applications Demo](./docs/images/screenshot-apps.png)
+![Applications Demo](./public/docs/images/screenshot-apps.png)
 *Running multiple applications in Windows 98 Web Edition*
 
 ## Quick Start Guide
