@@ -244,9 +244,8 @@ export class DosGamesDownloaderApp extends Application {
         } catch (e) {}
       }
 
-      // 4. Find the first .EXE or .COM
-      const files = await fs.promises.readdir(installDir);
-      const executable = files.find(f => f.toLowerCase().endsWith(".exe") || f.toLowerCase().endsWith(".com"));
+      // 4. Find the best executable (.EXE, .COM, .BAT)
+      const executable = await this._findExecutable(installDir, identifier);
 
       // 5. Update persistence
       const thumbUrl = `https://archive.org/services/img/${identifier}`;
@@ -284,6 +283,57 @@ export class DosGamesDownloaderApp extends Application {
     } finally {
       this.isDownloading = false;
     }
+  }
+
+  async _findExecutable(installDir, identifier) {
+    const candidates = [];
+    const extensions = [".exe", ".com", ".bat"];
+
+    try {
+      const entries = await fs.promises.readdir(installDir);
+      for (const entry of entries) {
+        const fullPath = `${installDir}/${entry}`;
+        const stats = await fs.promises.stat(fullPath);
+        const lowerEntry = entry.toLowerCase();
+
+        if (stats.isDirectory()) {
+          // Check one level deep
+          const subEntries = await fs.promises.readdir(fullPath);
+          for (const subEntry of subEntries) {
+            const subFullPath = `${fullPath}/${subEntry}`;
+            const subStats = await fs.promises.stat(subFullPath);
+            if (subStats.isFile()) {
+              const subLower = subEntry.toLowerCase();
+              const extMatch = extensions.find(ext => subLower.endsWith(ext));
+              if (extMatch) {
+                let score = extensions.length - extensions.indexOf(extMatch);
+                const nameWithoutExt = subLower.slice(0, -extMatch.length);
+                if (nameWithoutExt === lowerEntry) score += 10; // Matches parent dir
+                if (nameWithoutExt === identifier.toLowerCase()) score += 5;
+                candidates.push({ path: `${entry}/${subEntry}`, score });
+              }
+            }
+          }
+        } else if (stats.isFile()) {
+          const extMatch = extensions.find(ext => lowerEntry.endsWith(ext));
+          if (extMatch) {
+            let score = extensions.length - extensions.indexOf(extMatch);
+            const nameWithoutExt = lowerEntry.slice(0, -extMatch.length);
+            const parentName = installDir.split("/").pop().toLowerCase();
+            if (nameWithoutExt === parentName) score += 10;
+            if (nameWithoutExt === identifier.toLowerCase()) score += 5;
+            candidates.push({ path: entry, score });
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Error finding executable", e);
+    }
+
+    if (candidates.length === 0) return null;
+
+    candidates.sort((a, b) => b.score - a.score);
+    return candidates[0].path;
   }
 
   async _copyRecursive(src, dest) {
