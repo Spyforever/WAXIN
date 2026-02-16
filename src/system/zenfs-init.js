@@ -194,33 +194,6 @@ export async function initFileSystem(onProgress) {
       }
     }
 
-    // Add DOS Games folder to Desktop
-    const dosGamesPath = "/C:/WINDOWS/Desktop/DOS Games";
-    if (!(await existsAsync(dosGamesPath))) {
-      await fs.promises.mkdir(dosGamesPath);
-    }
-
-    const dosGamesShortcuts = [
-      { name: "DOS Games Downloader.lnk.json", appId: "dos-games-downloader" },
-    ];
-
-    for (const shortcut of dosGamesShortcuts) {
-      const lnkPath = `${dosGamesPath}/${shortcut.name}`;
-      if (!(await existsAsync(lnkPath))) {
-        await fs.promises.writeFile(
-          lnkPath,
-          JSON.stringify(
-            {
-              type: "shortcut",
-              appId: shortcut.appId,
-            },
-            null,
-            2,
-          ),
-        );
-      }
-    }
-
     // Ensure My Documents directory exists
     if (!(await existsAsync("/C:/My Documents"))) {
       await fs.promises.mkdir("/C:/My Documents");
