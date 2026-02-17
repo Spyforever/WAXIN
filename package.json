@@ -8,7 +8,7 @@
     "build": "bun run build:registry && bun --bun vite build",
     "build:registry": "bun scripts/generate_registry.js",
     "preview": "bun --bun vite preview",
-    "test": "playwright test"
+    "test": "bun x playwright test"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",

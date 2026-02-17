@@ -56,16 +56,14 @@ This document outlines the gradual migration of the Windows 98 Web Edition proje
 5.  **Performance Verification**:
     - Measure and confirm improvements in build and dev server start times.
 
-## Phase 3: Testing (Playwright to Bun Test)
-**Objective**: Migrate E2E tests to use `bun test`.
+## Phase 3: Testing (Playwright via Bun)
+**Objective**: Integrate Playwright with the Bun runtime environment.
 
-1.  **Test Runner Migration**:
-    - Adapt `.spec.js` files in `e2e/` to use `bun:test` syntax (`describe`, `test`, `expect`).
-    - Use Bun's native test runner while keeping Playwright's browser automation capabilities.
-2.  **Configuration**:
-    - Update `package.json` to run tests via `bun test`.
-3.  **Verification**:
-    - Run the full E2E suite and ensure all tests pass in the Bun environment.
+1.  **Integrate Playwright with Bun**:
+    - Update `package.json` scripts to run Playwright tests using `bun x playwright test`.
+    - This leverages Bun's faster process launching and module resolution while maintaining the full feature set of the Playwright test runner.
+2.  **Verification**:
+    - Run the full E2E suite using `bun run test` and ensure all tests pass.
 
 ## Phase 4: Documentation
 **Objective**: Update all developer-facing documentation.
@@ -75,11 +73,19 @@ This document outlines the gradual migration of the Windows 98 Web Edition proje
 2.  **AGENTS.md**:
     - Update "Development Workflow" commands to use `bun run`.
     - Reflect the change in the "Key Dependencies" section.
+3.  **Other documentation**:
+    - Update `.github/copilot-instructions.md` and auxiliary scripts.
 
 ---
 
+## Migration Complete
+The migration to the Bun ecosystem is now complete. The project has successfully transitioned from Node.js/NPM to a Bun-native environment, leveraging Bun for:
+- **Package Management**: Lightning-fast installs and text-based lockfiles.
+- **Runtime**: High-performance execution for build tools (Vite) and scripts.
+- **Testing Integration**: Seamless E2E testing using Playwright executed via Bun.
+
 ## Success Criteria
-- [ ] No `package-lock.json` in the repository.
-- [ ] Project builds and runs correctly without Vite.
-- [ ] All E2E tests pass using `bun test`.
-- [ ] CI/CD successfully deploys using Bun.
+- [x] No `package-lock.json` in the repository.
+- [x] Project builds and runs correctly with Bun.
+- [x] All E2E tests pass using `bun run test`.
+- [x] CI/CD successfully deploys using Bun.

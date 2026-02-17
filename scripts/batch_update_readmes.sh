@@ -76,15 +76,15 @@ for app_dir in $app_dirs; do
   # Generate the screenshot if it doesn't exist
   if [ ! -f "$screenshot_path" ]; then
     if [ "$is_windowless" = true ]; then
-      APP_ID=$app_id WINDOWLESS=true npx playwright test
+      APP_ID=$app_id WINDOWLESS=true bun x playwright test
     elif [ "$is_iframe" = true ]; then
-      APP_ID=$app_id IS_IFRAME=true npx playwright test
+      APP_ID=$app_id IS_IFRAME=true bun x playwright test
     elif [ "$is_custom" = true ]; then
-      APP_ID=$app_id IS_CUSTOM=true npx playwright test
+      APP_ID=$app_id IS_CUSTOM=true bun x playwright test
     elif [ "$needs_file" = true ]; then
-      APP_ID=$app_id FILE_PATH=$default_file npx playwright test
+      APP_ID=$app_id FILE_PATH=$default_file bun x playwright test
     else
-      APP_ID=$app_id npx playwright test
+      APP_ID=$app_id bun x playwright test
     fi
   fi
 

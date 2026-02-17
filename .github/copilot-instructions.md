@@ -128,12 +128,12 @@ The theme system is managed by `src/utils/themeManager.js` and configured in `sr
 
 ### Local Development
 
-Use the following npm scripts to run the project:
+Use the following Bun scripts to run the project:
 
 ```bash
-npm run dev     # Start the Vite development server.
-npm run build   # Create a production build in the /dist directory.
-npm run preview # Serve the production build locally.
+bun run dev     # Start the Vite development server.
+bun run build   # Create a production build in the /dist directory.
+bun run preview # Serve the production build locally.
 ```
 
 ### Adding a New Application
