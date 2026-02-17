@@ -50,6 +50,7 @@ This project is made possible by the following amazing open-source libraries and
 | :--- | :--- | :--- | :--- | :--- |
 | MS-W98-UI | - | Microsoft Windows 98 UI elements and resources. | [MARTYR-X-LTD](https://github.com/MARTYR-X-LTD) | [GitHub](https://github.com/MARTYR-X-LTD/ms-w98-ui) |
 | Windows 98 Assets | - | A collection of Windows 98 icons, sounds, and UI resources. | [Isaiah Odhner](https://github.com/1j01) | [GitHub](https://github.com/1j01/98) |
+| CRT Monitor Effect | - | High-quality CRT monitor filter with scanlines and curvature. | [GLITCHXploitR](https://codepen.io/GLITCHXploitR) | [CodePen](https://codepen.io/GLITCHXploitR/pen/OxGKrq) |
 
 ## Development & Build Tools
 

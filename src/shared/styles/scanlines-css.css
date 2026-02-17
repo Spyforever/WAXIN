@@ -1,18 +1,12 @@
-/* REGULAR SCANLINES SETTINGS */
 /*
-    width of 1 scanline: 2px
-    emulates a damage-your-eyes bad pre-2000 CRT screen: true
-    frames-per-second: 60
-    scanline-color: rgba(0, 0, 0, 0.3)
-    z-index: 2147483648
-    moving scanline: true
-    opacity of the moving scanline: 0.75
+  CRT Monitor Filter
+  Source: Inspired by GLITCHXploitR (https://codepen.io/GLITCHXploitR/pen/OxGKrq)
+  Modified for a high-quality CRT monitor aesthetic with 2px scanlines, RGB subpixel mask, and curvature texture.
 */
 
 /* CSS .scanlines CLASS */
 .scanlines {
-    position: relative;
-    overflow: hidden; /* only to animate the unique scanline */
+    background-color: #000;
 }
 
 .scanlines:before,
@@ -20,46 +14,80 @@
     display: block;
     pointer-events: none;
     content: "";
-    position: absolute;
-}
-
-/* unique scanline travelling on the screen */
-.scanlines:before {
-    width: 100%;
-    height: 1px; /* $scan-width * 1 */
-    z-index: 2147483649; /* $scan-z-index + 1 */
-    background: rgba(0, 0, 0, 0.3); /* $scan-color */
-    opacity: 0.75; /* $scan-opacity */
-    animation: scanline 6s linear infinite;
-}
-
-/* the scanlines */
-.scanlines:after {
+    position: fixed;
     top: 0;
-    right: 0;
-    bottom: 0;
     left: 0;
-    z-index: 2147483648; /* $scan-z-index */
-    background: linear-gradient(
-        to bottom,
-        transparent 50%,
-        rgba(0, 0, 0, 0.3) 51%
-    );
-    background-size: 100% 4px; /* $scan-width*2 */
-    animation: scanlines 1s steps(60) infinite; /* $scan-fps */
+    bottom: 0;
+    right: 0;
 }
 
-/* ANIMATE UNIQUE SCANLINE */
-@keyframes scanline {
+/* Scanlines and RGB subpixel mask */
+.scanlines:before {
+    z-index: 2147483649;
+    background:
+        linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+        linear-gradient(
+            90deg,
+            rgba(255, 0, 0, 0.06),
+            rgba(0, 255, 0, 0.02),
+            rgba(0, 0, 255, 0.06)
+        );
+    background-size:
+        100% 2px,
+        3px 100%;
+}
+
+/* CRT Glass Texture / Vignette / Curvature */
+.scanlines:after {
+    z-index: 2147483648;
+    /* background-image: url("/img/crt.png"); */
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+}
+
+/* Screen Bloom & Flicker & Power-on */
+#screen {
+    transition:
+        transform 0.5s cubic-bezier(0.23, 1, 0.32, 1),
+        filter 0.5s ease;
+}
+
+.scanlines #screen {
+    animation:
+        crt-flicker 0.15s infinite,
+        crt-power-on 0.8s ease-out forwards;
+    /* Phosphor glow/boost */
+    filter: brightness(1.1) contrast(1.1) saturate(1.1);
+}
+
+@keyframes crt-flicker {
     0% {
-        transform: translate3d(0, 200000%, 0);
-        /* bottom: 0%; /* to have a continuous scanline move, use this line (here in 0% step) instead of transform and write, in &:before, { position: absolute; bottom: 100%; } */
+        opacity: 0.996;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0.996;
     }
 }
 
-@keyframes scanlines {
+@keyframes crt-power-on {
     0% {
-        background-position: 0 50%;
-        /* bottom: 0%; /* to have a continuous scanline move, use this line (here in 0% step) instead of transform and write, in &:before, { position: absolute; bottom: 100%; } */
+        transform: scale(1, 0.005);
+        filter: brightness(10);
+        opacity: 1;
+    }
+    40% {
+        transform: scale(1, 0.005);
+        filter: brightness(10);
+    }
+    70% {
+        transform: scale(1, 1);
+        filter: brightness(2);
+    }
+    100% {
+        transform: scale(1, 1);
+        filter: brightness(1.1) contrast(1.1) saturate(1.1);
     }
 }
