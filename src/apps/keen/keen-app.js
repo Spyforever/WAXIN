@@ -18,7 +18,10 @@ export class KeenApp extends Application {
     icon: ICONS.keen, category: "",
     width: 672,
     height: 414,
-    resizable: false,
+    resizable: true,
+    maximizable: true,
+    allowFullscreen: true,
+    startFullscreen: true,
     isSingleton: true,
   };
 
@@ -37,12 +40,16 @@ export class KeenApp extends Application {
       innerWidth: this.config.width,
       innerHeight: this.config.height,
       resizable: this.config.resizable,
+      maximizable: this.config.maximizable,
+      allowFullscreen: this.config.allowFullscreen,
+      startFullscreen: this.config.startFullscreen,
       icons: this.icon,
       id: "keen",
     });
 
     const iframe = document.createElement("iframe");
     iframe.src = "games/keen/index.html";
+    iframe.allow = "fullscreen";
     iframe.style.width = "100%";
     iframe.style.height = "100%";
     iframe.style.border = "none";

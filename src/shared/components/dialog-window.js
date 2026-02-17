@@ -62,6 +62,13 @@ function ShowDialogWindow(options) {
 
   const win = new $Window(winOptions);
 
+  // General OS rule: cancel full screen if there's a dialog window
+  if (document.fullscreenElement) {
+    document.exitFullscreen().catch((err) => {
+      console.warn(`Error attempting to exit full-screen mode for dialog: ${err.message}`);
+    });
+  }
+
   // Create dialog content
   const contentContainer = document.createElement("section");
   contentContainer.className = "dialog-content";

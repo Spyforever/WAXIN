@@ -12,6 +12,8 @@ export class DXBallApp extends Application {
     height: 520,
     resizable: true,
     maximizable: true,
+    allowFullscreen: true,
+    startFullscreen: true,
     isSingleton: true,
   };
 
@@ -95,6 +97,8 @@ export class DXBallApp extends Application {
       outerHeight: this.config.height,
       resizable: this.config.resizable,
       maximizable: this.config.maximizable,
+      allowFullscreen: this.config.allowFullscreen,
+      startFullscreen: this.config.startFullscreen,
       icons: this.config.icon,
       id: "dx-ball",
     });
@@ -103,6 +107,7 @@ export class DXBallApp extends Application {
     // Ensure the path is correct regardless of where the app is hosted
     const baseUrl = import.meta.env.BASE_URL || "/";
     iframe.src = `${baseUrl}games/dx-ball/index.html`.replace(/\/+/g, '/');
+    iframe.allow = "fullscreen";
     iframe.style.width = "100%";
     iframe.style.height = "100%";
     iframe.style.border = "none";

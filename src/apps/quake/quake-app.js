@@ -10,6 +10,9 @@ export class QuakeApp extends Application {
         width: 640,
         height: 480,
         resizable: true,
+        maximizable: true,
+        allowFullscreen: true,
+        startFullscreen: true,
         isSingleton: true,
     };
 
@@ -26,6 +29,9 @@ export class QuakeApp extends Application {
             outerWidth: this.width,
             outerHeight: this.height,
             resizable: this.resizable,
+            maximizable: this.config.maximizable,
+            allowFullscreen: this.config.allowFullscreen,
+            startFullscreen: this.config.startFullscreen,
             icons: this.icon,
             id: this.id,
         });
@@ -33,6 +39,7 @@ export class QuakeApp extends Application {
         this.iframe = document.createElement('iframe');
         this.iframe.className = 'quake-iframe';
         this.iframe.src = 'https://www.netquake.io/quake';
+        this.iframe.allow = 'fullscreen';
         this.win.$content.append(this.iframe);
 
         this.win.on('close', () => {

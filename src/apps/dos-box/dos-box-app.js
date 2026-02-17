@@ -55,6 +55,7 @@ export class DosBoxApp extends Application {
     const iframe = document.createElement("iframe");
     // We'll use a custom host.html for better integration
     iframe.src = "games/dos/doswasmx/host.html";
+    iframe.allow = "fullscreen";
     iframe.style.width = "100%";
     iframe.style.height = "100%";
     iframe.style.border = "none";
