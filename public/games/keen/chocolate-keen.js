@@ -8932,7 +8932,7 @@ var miniTempWebGLIntBuffersStorage = new Int32Array(288);
 {
 
   // Begin ATMODULES hooks
-  if (Module['noExitRuntime']) noExitRuntime = Module['noExitRuntime'];
+  if (typeof Module['noExitRuntime'] !== 'undefined') noExitRuntime = Module['noExitRuntime'];
 if (Module['preloadPlugins']) preloadPlugins = Module['preloadPlugins'];
 if (Module['print']) out = Module['print'];
 if (Module['printErr']) err = Module['printErr'];
