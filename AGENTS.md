@@ -34,7 +34,7 @@ Windows 98 Web Edition is a modular web-based desktop environment that emulates 
 -   **os-gui**: A library for Windows 98 UI components. **Note**: We use a modified version located in `public/os-gui/` which overrides the npm package for core components like `$Window`.
 -   **jQuery**: Used primarily by `os-gui` for DOM manipulation.
 -   **Bun**: Runtime, package manager, and (eventually) build tool.
--   **Vite**: Current build tool and development server (running via Bun).
+-   **Vite**: Current build tool and development server (optimized via Bun's runtime).
 
 ## 3. Development Patterns
 
