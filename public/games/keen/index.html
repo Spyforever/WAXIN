@@ -37,12 +37,14 @@
             ></canvas>
         </div>
         <script type="text/javascript">
+            var gameStartTime = 0;
             var Module = {
                 preRun: [],
                 postRun: [],
                 noInitialRun: true,
-                noExitRuntime: false,
-                onExit: () => {
+                noExitRuntime: true,
+                onExit: (code) => {
+                    // This is only called if noExitRuntime is false or emscripten_force_exit is used.
                     window.parent.postMessage({ type: 'KEEN_EXIT' }, '*');
                 },
                 onRuntimeInitialized: () => {
@@ -50,6 +52,17 @@
                 },
                 printErr: (text) => {
                     if (text.includes("program exited")) {
+                        const statusMatch = text.match(/status: (\d+)/);
+                        const isError = statusMatch && statusMatch[1] !== "0";
+                        const timeSinceStart = performance.now() - gameStartTime;
+
+                        // Ignore successful exit that often happens right after main() returns but game keeps running.
+                        // Real user quit happens much later.
+                        // If it's an error exit (status != 0), we always close.
+                        if (!isError && timeSinceStart < 3000) {
+                            console.log("Keen: Ignoring early exit(0) during startup.");
+                            return;
+                        }
                         window.parent.postMessage({ type: 'KEEN_EXIT' }, '*');
                     }
                     // Suppress timing error that happens on startup but doesn't prevent game from running
@@ -76,6 +89,7 @@
 
             window.addEventListener("message", (event) => {
                 if (event.data && event.data.type === "START_GAME") {
+                    gameStartTime = performance.now();
                     const start = () => {
                         if (typeof callMain === "function") {
                             callMain(event.data.args || []);
@@ -83,7 +97,6 @@
                             Module.callMain(event.data.args || []);
                         }
                     };
-                    // Delaying slightly to allow the runtime to stabilize
                     setTimeout(start, 100);
                 }
             });
