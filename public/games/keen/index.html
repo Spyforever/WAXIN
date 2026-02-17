@@ -48,9 +48,13 @@
                 onRuntimeInitialized: () => {
                     window.parent.postMessage({ type: 'KEEN_READY' }, '*');
                 },
-                err: (text) => {
+                printErr: (text) => {
                     if (text.includes("program exited")) {
                         window.parent.postMessage({ type: 'KEEN_EXIT' }, '*');
+                    }
+                    // Suppress timing error that happens on startup but doesn't prevent game from running
+                    if (text.includes("emscripten_set_main_loop_timing")) {
+                        return;
                     }
                     console.error(text);
                 },
@@ -79,8 +83,7 @@
                             Module.callMain(event.data.args || []);
                         }
                     };
-                    // Delaying slightly to allow the runtime to stabilize and avoid
-                    // "emscripten_set_main_loop_timing" errors on some systems.
+                    // Delaying slightly to allow the runtime to stabilize
                     setTimeout(start, 100);
                 }
             });
