@@ -33,8 +33,8 @@ Windows 98 Web Edition is a modular web-based desktop environment that emulates 
 -   **ZenFS**: Provides the persistent virtual file system. Use `fs` and `mounts` from `@zenfs/core`.
 -   **os-gui**: A library for Windows 98 UI components. **Note**: We use a modified version located in `public/os-gui/` which overrides the npm package for core components like `$Window`.
 -   **jQuery**: Used primarily by `os-gui` for DOM manipulation.
--   **Bun**: Runtime, package manager, and (eventually) build tool.
--   **Vite**: Current build tool and development server (optimized via Bun's runtime).
+-   **Bun**: Primary runtime and package manager.
+-   **Vite**: Build tool and development server (executed via Bun's high-performance runtime).
 
 ## 3. Development Patterns
 

@@ -73,11 +73,19 @@ This document outlines the gradual migration of the Windows 98 Web Edition proje
 2.  **AGENTS.md**:
     - Update "Development Workflow" commands to use `bun run`.
     - Reflect the change in the "Key Dependencies" section.
+3.  **Other documentation**:
+    - Update `.github/copilot-instructions.md` and auxiliary scripts.
 
 ---
+
+## Migration Complete
+The migration to the Bun ecosystem is now complete. The project has successfully transitioned from Node.js/NPM to a Bun-native environment, leveraging Bun for:
+- **Package Management**: Lightning-fast installs and text-based lockfiles.
+- **Runtime**: High-performance execution for build tools (Vite) and scripts.
+- **Testing Integration**: Seamless E2E testing using Playwright executed via Bun.
 
 ## Success Criteria
 - [x] No `package-lock.json` in the repository.
 - [x] Project builds and runs correctly with Bun.
 - [x] All E2E tests pass using `bun run test`.
-- [ ] CI/CD successfully deploys using Bun.
+- [x] CI/CD successfully deploys using Bun.
