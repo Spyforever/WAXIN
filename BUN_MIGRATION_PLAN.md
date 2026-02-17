@@ -56,16 +56,14 @@ This document outlines the gradual migration of the Windows 98 Web Edition proje
 5.  **Performance Verification**:
     - Measure and confirm improvements in build and dev server start times.
 
-## Phase 3: Testing (Playwright to Bun Test)
-**Objective**: Migrate E2E tests to use `bun test`.
+## Phase 3: Testing (Playwright via Bun)
+**Objective**: Integrate Playwright with the Bun runtime environment.
 
-1.  **Test Runner Migration**:
-    - Adapt `.spec.js` files in `e2e/` to use `bun:test` syntax (`describe`, `test`, `expect`).
-    - Use Bun's native test runner while keeping Playwright's browser automation capabilities.
-2.  **Configuration**:
-    - Update `package.json` to run tests via `bun test`.
-3.  **Verification**:
-    - Run the full E2E suite and ensure all tests pass in the Bun environment.
+1.  **Integrate Playwright with Bun**:
+    - Update `package.json` scripts to run Playwright tests using `bun x playwright test`.
+    - This leverages Bun's faster process launching and module resolution while maintaining the full feature set of the Playwright test runner.
+2.  **Verification**:
+    - Run the full E2E suite using `bun run test` and ensure all tests pass.
 
 ## Phase 4: Documentation
 **Objective**: Update all developer-facing documentation.
@@ -79,7 +77,7 @@ This document outlines the gradual migration of the Windows 98 Web Edition proje
 ---
 
 ## Success Criteria
-- [ ] No `package-lock.json` in the repository.
-- [ ] Project builds and runs correctly without Vite.
-- [ ] All E2E tests pass using `bun test`.
+- [x] No `package-lock.json` in the repository.
+- [x] Project builds and runs correctly with Bun.
+- [x] All E2E tests pass using `bun run test`.
 - [ ] CI/CD successfully deploys using Bun.
