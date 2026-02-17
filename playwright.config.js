@@ -4,7 +4,7 @@ export default defineConfig({
   testDir: './e2e',
   outputDir: 'test-results',
   webServer: {
-    command: 'npm run dev',
+    command: 'bun run dev',
     url: 'http://localhost:5173/win98-web/',
     reuseExistingServer: !process.env.CI,
   },
