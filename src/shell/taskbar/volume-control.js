@@ -34,12 +34,13 @@ class VolumeControl {
     const taskbarHeight = 28; // Approximate taskbar height
 
     let left = x - rect.width;
+    let top = screenHeight - taskbarHeight - rect.height - 2;
 
     // Ensure it's within screen bounds
     if (left < 0) left = 0;
 
     this.element.style.left = `${left}px`;
-    this.element.style.bottom = `0px`;
+    this.element.style.top = `${top}px`;
 
     // Create taskbar button
     // We need a fake window-like object for createTaskbarButton
@@ -126,10 +127,10 @@ class VolumeControl {
 
     // Use standard 98.css structure as much as possible
     container.innerHTML = `
-      <div style="text-align: center; margin-bottom: 10px; width: 100%;">Volume</div>
-      <div class="field-row" style="justify-content: center; margin-bottom: 10px; width: 100%;">
-        <div class="is-vertical" style="height: 80px;">
-          <input id="volume-slider" class="has-box-indicator" type="range" min="0" max="100" step="1" value="${Math.round(currentVolume * 100)}" aria-label="Volume" style="margin-top: 15px; width: 80px; margin: 0;" />
+      <div style="text-align: center; width: 100%;">Volume</div>
+      <div class="field-row" style="justify-content: center; width: 100%;">
+        <div class="is-vertical" style="height: 100px;">
+          <input id="volume-slider" class="has-box-indicator" type="range" min="0" max="100" step="1" value="${Math.round(currentVolume * 100)}" aria-label="Volume" style="margin: 0; width: 90px" />
         </div>
       </div>
       <div class="field-row" style="width: 100%; justify-content: center;">
