@@ -153,6 +153,9 @@ export const appRegistry = {
         width: 800,
         height: 600,
         resizable: true,
+        maximizable: true,
+        allowFullscreen: true,
+        startFullscreen: true,
         isSingleton: true,
     },
     importApp: () => import("../apps/diablo/diablo-app.js")
@@ -181,6 +184,7 @@ export const appRegistry = {
     resizable: true,
     maximizable: true,
     allowFullscreen: true,
+    startFullscreen: true,
     isSingleton: true,
   },
     importApp: () => import("../apps/doom/doom-app.js")
@@ -227,6 +231,8 @@ export const appRegistry = {
     height: 520,
     resizable: true,
     maximizable: true,
+    allowFullscreen: true,
+    startFullscreen: true,
     isSingleton: true,
   },
     importApp: () => import("../apps/dx-ball/dx-ball-app.js")
@@ -314,7 +320,10 @@ export const appRegistry = {
     icon: ICONS.keen, category: "",
     width: 672,
     height: 414,
-    resizable: false,
+    resizable: true,
+    maximizable: true,
+    allowFullscreen: true,
+    startFullscreen: true,
     isSingleton: true,
   },
     importApp: () => import("../apps/keen/keen-app.js")
@@ -414,6 +423,9 @@ export const appRegistry = {
     width: 640,
     height: 420,
     resizable: true,
+    maximizable: true,
+    allowFullscreen: true,
+    startFullscreen: true,
   },
     importApp: () => import("../apps/prince-of-persia/prince-of-persia-app.js")
   },
@@ -425,6 +437,9 @@ export const appRegistry = {
         width: 640,
         height: 480,
         resizable: true,
+        maximizable: true,
+        allowFullscreen: true,
+        startFullscreen: true,
         isSingleton: true,
     },
     importApp: () => import("../apps/quake/quake-app.js")

@@ -30,6 +30,7 @@ export class DoomApp extends Application {
     resizable: true,
     maximizable: true,
     allowFullscreen: true,
+    startFullscreen: true,
     isSingleton: true,
   };
 
@@ -48,7 +49,7 @@ export class DoomApp extends Application {
       outerWidth: this.width,
       outerHeight: this.height,
       resizable: this.resizable,
-      maximizable: this.maximizable,
+      maximizable: this.config.maximizable,
       allowFullscreen: this.config.allowFullscreen,
       startFullscreen: this.config.startFullscreen,
       icons: this.icon,
@@ -57,6 +58,7 @@ export class DoomApp extends Application {
 
     const iframe = document.createElement("iframe");
     iframe.src = "games/doom/index.html";
+    iframe.allow = "fullscreen";
     iframe.style.width = "100%";
     iframe.style.height = "100%";
     iframe.style.border = "none";

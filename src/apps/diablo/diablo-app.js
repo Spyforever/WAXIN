@@ -15,6 +15,9 @@ export class DiabloApp extends Application {
         width: 800,
         height: 600,
         resizable: true,
+        maximizable: true,
+        allowFullscreen: true,
+        startFullscreen: true,
         isSingleton: true,
     };
 
@@ -268,6 +271,9 @@ export class DiabloApp extends Application {
             outerWidth: this.width,
             outerHeight: this.height,
             resizable: this.resizable,
+            maximizable: this.config.maximizable,
+            allowFullscreen: this.config.allowFullscreen,
+            startFullscreen: this.config.startFullscreen,
             icons: this.icon,
             id: this.id,
         });
@@ -276,6 +282,7 @@ export class DiabloApp extends Application {
         this.iframe = document.createElement('iframe');
         this.iframe.className = 'diablo-iframe';
         this.iframe.src = `${baseUrl}games/diablo/index.html`.replace(/\/+/g, '/');
+        this.iframe.allow = 'fullscreen';
         this.iframe.onload = () => {
             try {
                 const style = this.iframe.contentDocument.createElement('style');
