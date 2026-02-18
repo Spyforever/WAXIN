@@ -95,7 +95,6 @@ html {
 
 .desktop .explorer-icon {
     color: white;
-    text-shadow: 1px 1px 1px black;
 }
 
 .desktop .explorer-icon .icon-label {
@@ -106,10 +105,15 @@ html {
 /* Advanced Icon Selection Highlight using background-blend-mode */
 .explorer-icon.selected .icon-wrapper {
     background-image:
-        linear-gradient(oklch(from var(--Hilight) l c h), oklch(from var(--Hilight) l c h)),
-        linear-gradient(oklch(from var(--Hilight) l c h), oklch(from var(--Hilight) l c h)),
-        var(--overlay-url-32, none),
-        var(--icon-url-32);
+        linear-gradient(
+            oklch(from var(--Hilight) l c h),
+            oklch(from var(--Hilight) l c h)
+        ),
+        linear-gradient(
+            oklch(from var(--Hilight) l c h),
+            oklch(from var(--Hilight) l c h)
+        ),
+        var(--overlay-url-32, none), var(--icon-url-32);
     background-blend-mode: color, saturation, normal, normal;
     background-size: contain;
     background-repeat: no-repeat;
@@ -135,10 +139,6 @@ html {
 .highlighted-label {
     background-color: var(--highlight-blue);
     color: var(--highlight-text);
-}
-
-.desktop .explorer-icon.selected .icon-label {
-    text-shadow: none;
 }
 
 .lasso {
