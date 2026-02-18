@@ -1,5 +1,46 @@
 # Changelog
 
+## [0.8.0](https://github.com/azayrahmad/win98-web/compare/win98-web-v0.7.0...win98-web-v0.8.0) (2026-02-18)
+
+
+### Features
+
+* add local Diablo hosting with ZenFS integration ([067fc4e](https://github.com/azayrahmad/win98-web/commit/067fc4e1b9d992eca5b56928cc2ee5b090d6db7d))
+* add local Diablo hosting with ZenFS integration ([b957222](https://github.com/azayrahmad/win98-web/commit/b9572225119503d9fe51194153993b9221af4c7a))
+* complete Commander Keen ZenFS integration and stability fixes ([c5e577d](https://github.com/azayrahmad/win98-web/commit/c5e577d297476b80708567e8764e6d6e1ca207bc))
+* **diablo:** implement managed launch flow with MPQ detection and shareware download ([fe5121d](https://github.com/azayrahmad/win98-web/commit/fe5121d12f27f1920186c32bb94501dd438dd898))
+* **diablo:** improve launch flow with file detection and shareware downloader ([fe5121d](https://github.com/azayrahmad/win98-web/commit/fe5121d12f27f1920186c32bb94501dd438dd898))
+* **dosbox:** Implement auto-close for DOSBox games, Doom, and Commander Keen ([b634c4f](https://github.com/azayrahmad/win98-web/commit/b634c4f4ab51514bdd4e980d904d4c8c08ff7a6d))
+* finalize Commander Keen integration with ZenFS and lifecycle fixes ([7e8b9a1](https://github.com/azayrahmad/win98-web/commit/7e8b9a1cf37488b47eacc4f799cfd8e7414eb7b0))
+* finalize Commander Keen ZenFS integration and fix lifecycle issues ([679e7e6](https://github.com/azayrahmad/win98-web/commit/679e7e624de7809ddccdc2433e533a6d668c9dcf))
+* fix Commander Keen save file synchronization and ZenFS integration ([679e7e6](https://github.com/azayrahmad/win98-web/commit/679e7e624de7809ddccdc2433e533a6d668c9dcf))
+* **games:** start ported PC games in fullscreen ([fb7a9eb](https://github.com/azayrahmad/win98-web/commit/fb7a9ebcdcababcd703ea51e8c4dc1243fb86649))
+* host diablo locally and integrate with zenfs ([067fc4e](https://github.com/azayrahmad/win98-web/commit/067fc4e1b9d992eca5b56928cc2ee5b090d6db7d))
+* host diablo locally and integrate with zenfs ([b957222](https://github.com/azayrahmad/win98-web/commit/b9572225119503d9fe51194153993b9221af4c7a))
+* implement media metadata extraction for Webamp and clean up polyfills ([f6bca3d](https://github.com/azayrahmad/win98-web/commit/f6bca3d6f6859473de56b228f5d52064458b5103))
+* implement modal progress dialog for DOS Games Downloader ([e57f8d1](https://github.com/azayrahmad/win98-web/commit/e57f8d17b012fc5d2648ef1b2faf5c384c276a57))
+* integrate Commander Keen with ZenFS and add episode selection ([679e7e6](https://github.com/azayrahmad/win98-web/commit/679e7e624de7809ddccdc2433e533a6d668c9dcf))
+* migrate package management and CI/CD to Bun (Phase 1) ([ee6ef76](https://github.com/azayrahmad/win98-web/commit/ee6ef7691744c153599cbde47ba64abd779b1212))
+* optimize Vite with Bun runtime (Phase 2) ([91b1adc](https://github.com/azayrahmad/win98-web/commit/91b1adc809d3b1ae620f0daf8876cf8870c635e7))
+* robust content-only fullscreen for ported PC games ([fb7a9eb](https://github.com/azayrahmad/win98-web/commit/fb7a9ebcdcababcd703ea51e8c4dc1243fb86649))
+* **scanline:** replace scanline filter with high-quality CRT monitor effect ([d0742a6](https://github.com/azayrahmad/win98-web/commit/d0742a6834a8ce88c099005f18774c46795a0f41))
+* start ported PC games in content-only fullscreen mode ([fb7a9eb](https://github.com/azayrahmad/win98-web/commit/fb7a9ebcdcababcd703ea51e8c4dc1243fb86649))
+* start ported PC games in maximized window state ([fb7a9eb](https://github.com/azayrahmad/win98-web/commit/fb7a9ebcdcababcd703ea51e8c4dc1243fb86649))
+* **taskbar:** sync media applications with global system volume ([d41ec25](https://github.com/azayrahmad/win98-web/commit/d41ec25e7b032750337a37169c6b22dd236b5c8d))
+
+
+### Bug Fixes
+
+* about readme images not loading in production ([f61d179](https://github.com/azayrahmad/win98-web/commit/f61d17991689011770185b41d4bff94d1d9ce3b8))
+* **desktop:** remove inaccurate text shadow ([da5a2b2](https://github.com/azayrahmad/win98-web/commit/da5a2b23f6ef8fd7aee5fdb5e5bd14fd445c27e4))
+* **diablo:** add local Diablo hosting with ZenFS integration ([067fc4e](https://github.com/azayrahmad/win98-web/commit/067fc4e1b9d992eca5b56928cc2ee5b090d6db7d))
+* **diablo:** add shareware MPQ ([9f02fb0](https://github.com/azayrahmad/win98-web/commit/9f02fb0544aa3f7768fe81809e2d1d6f2739ca75))
+* **dosbox:** Improve DOSBox mouse capture and implementation of Escape hold to exit ([21e256e](https://github.com/azayrahmad/win98-web/commit/21e256e3dde4313a035f4fa002813097fd4708a7))
+* **dosbox:** Update DOS Games Downloader UI and system layout ([0d247c7](https://github.com/azayrahmad/win98-web/commit/0d247c74d634b66328c321436f49ad39e2018e47))
+* **games:** Refactor Doom and Commander Keen to use on-demand downloads ([aca4aa0](https://github.com/azayrahmad/win98-web/commit/aca4aa09346d4fc495600e4f643d2c0e2de1c567))
+* **os-gui:** resolve TypeError when blurring iframe windows ([2782a96](https://github.com/azayrahmad/win98-web/commit/2782a969f4e63d9fcd589a755e5182ed9cec09e0))
+* **webamp:** implement media metadata extraction for Webamp ([f6bca3d](https://github.com/azayrahmad/win98-web/commit/f6bca3d6f6859473de56b228f5d52064458b5103))
+
 ## [0.7.0](https://github.com/azayrahmad/win98-web/compare/win98-web-v0.6.0...win98-web-v0.7.0) (2026-02-15)
 
 
