@@ -113,6 +113,9 @@ export const ICONS = {
     16: new URL("../assets/icons/SYSTRAY_220-16.png", import.meta.url).href,
     32: new URL("../assets/icons/SYSTRAY_220.ico", import.meta.url).href,
   },
+  systrayMuted: {
+    16: new URL("../assets/icons/SYSTRAY_220_MUTED-16.png", import.meta.url).href,
+  },
   rnaui: {
     16: new URL("../assets/icons/RNAUI_106.ico", import.meta.url).href,
     32: new URL("../assets/icons/RNAUI_106-32.png", import.meta.url).href,

@@ -29,6 +29,8 @@ export const LOCAL_STORAGE_KEYS = {
   SOLITAIRE_TIMED_GAME: "solitaireTimedGame",
   SOLITAIRE_SCORING: 'solitaireScoring',
   SOLITAIRE_OUTLINE_DRAGGING: "solitaireOutlineDragging",
+  VOLUME: 'volume',
+  MUTED: 'muted',
   SOLITAIRE_SHOW_STATUS_BAR: "solitaireShowStatusBar",
   SOLITAIRE_KEEP_SCORE: "solitaireKeepScore",
 };

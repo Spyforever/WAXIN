@@ -8,6 +8,7 @@ import { ICONS } from '../../config/icons.js';
 import { appManager } from '../../system/app-manager.js';
 import { getWebampMenuItems } from './webamp.js';
 import { isZenFSPath, getZenFSFileUrl, getZenFSFileAsText } from '../../system/zenfs-utils.js';
+import { getVolume, getMuted } from '../../system/sound-manager.js';
 
 let webampInstance = null;
 let webampContainer = null;
@@ -199,6 +200,22 @@ export class WebampApp extends Application {
               this.setupTaskbarButton();
               this.showWebamp();
               handleFile(filePath);
+
+              const updateVolume = () => {
+                if (!webampInstance) return;
+                const systemVolume = getVolume();
+                const systemMuted = getMuted();
+                // Webamp volume is 0-255
+                const webampVol = systemMuted ? 0 : Math.round(systemVolume * 255);
+                webampInstance.store.dispatch({ type: "SET_VOLUME", volume: webampVol });
+              };
+
+              document.addEventListener("system-volume-change", updateVolume);
+              updateVolume();
+
+              // Also listen to webamp volume changes to sync back to system?
+              // webampInstance.onVolumeChange(...) might exist but let's stick to system override for now.
+
               resolve(); // Resolve the promise once Webamp is ready
             })
             .catch(reject);

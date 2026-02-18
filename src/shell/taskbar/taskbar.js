@@ -9,6 +9,7 @@ import StartMenu from "../start-menu/start-menu.js";
 import { refreshPrograms } from "../start-menu/start-menu-utils.js";
 import { showClippyContextMenu } from "../../apps/clippy/clippy.js";
 import { launchApp } from "../../system/app-manager.js";
+import { getMuted } from "../../system/sound-manager.js";
 
 // Constants for better maintainability
 const SELECTORS = {
@@ -166,6 +167,35 @@ class Taskbar {
     this.bindDesktopEvents();
     this.bindExternalLinkEvents();
     this.bindTaskbarAppAreaEvents();
+    this.bindTrayEvents();
+  }
+
+  /**
+   * Bind system tray events
+   */
+  bindTrayEvents() {
+    const volumeIcon = document.querySelector('.system-tray img[alt="Volume"]');
+    if (volumeIcon) {
+      this.addTrackedEventListener(volumeIcon, "click", (e) => {
+        import("./volume-control.js").then(({ volumeControl }) => {
+          volumeControl.show(e.clientX, e.clientY);
+        });
+      });
+    }
+
+    document.addEventListener("system-volume-change", (e) => {
+      this.updateVolumeIcon(e.detail.muted);
+    });
+
+    // Initial icon state
+    this.updateVolumeIcon(getMuted());
+  }
+
+  updateVolumeIcon(isMuted) {
+    const volumeIcon = document.querySelector('.system-tray img[alt="Volume"]');
+    if (volumeIcon) {
+      volumeIcon.src = isMuted ? ICONS.systrayMuted[16] : ICONS.systray[16];
+    }
   }
 
   /**
