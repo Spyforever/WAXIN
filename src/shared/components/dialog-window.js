@@ -17,6 +17,7 @@ import { playSound } from "../../system/sound-manager.js";
  * @property {string} [soundEvent] - The name of the sound event to play.
  * @property {boolean} [modal=false] - Whether the dialog should be modal.
  * @property {boolean} [showOverlay=false] - Whether to show the visual overlay for modal dialogs.
+ * @property {"bottom" | "right"} [buttonAlignment="bottom"] - The alignment of the buttons.
  */
 
 /**
@@ -34,6 +35,7 @@ function ShowDialogWindow(options) {
     soundEvent,
     modal = false,
     showOverlay = false,
+    buttonAlignment = "bottom",
     parentWindow,
   } = options;
 
@@ -59,6 +61,13 @@ function ShowDialogWindow(options) {
   }
 
   const win = new $Window(winOptions);
+
+  // General OS rule: cancel full screen if there's a dialog window
+  if (document.fullscreenElement) {
+    document.exitFullscreen().catch((err) => {
+      console.warn(`Error attempting to exit full-screen mode for dialog: ${err.message}`);
+    });
+  }
 
   // Create dialog content
   const contentContainer = document.createElement("section");
@@ -86,6 +95,19 @@ function ShowDialogWindow(options) {
   const buttonContainer = document.createElement("footer");
   buttonContainer.className = "dialog-buttons";
 
+  if (buttonAlignment === "right") {
+    win.$content.css({
+      display: "flex",
+      flexDirection: "row",
+    });
+    contentContainer.style.flex = "1";
+    buttonContainer.style.flexDirection = "column";
+    buttonContainer.style.justifyContent = "flex-start";
+    buttonContainer.style.borderTop = "none";
+    buttonContainer.style.borderLeft = "1px solid var(--border-highlight)";
+    buttonContainer.style.padding = "15px 10px";
+  }
+
   buttons.forEach((btnDef) => {
     const button = document.createElement("button");
     button.textContent = btnDef.label;
@@ -104,6 +126,12 @@ function ShowDialogWindow(options) {
     if (btnDef.disabled) {
       button.disabled = true;
     }
+
+    if (buttonAlignment === "right") {
+      button.style.margin = "0 0 10px 0";
+      button.style.width = "100%";
+    }
+
     buttonContainer.appendChild(button);
   });
   win.$content.append(contentContainer);
@@ -148,8 +176,16 @@ function ShowDialogWindow(options) {
   // Auto-height adjustment
   // The content needs to be rendered to get the correct height.
   setTimeout(() => {
-    const contentHeight =
-      contentContainer.offsetHeight + buttonContainer.offsetHeight;
+    let contentHeight;
+    if (buttonAlignment === "right") {
+      contentHeight = Math.max(
+        contentContainer.offsetHeight,
+        buttonContainer.offsetHeight
+      );
+    } else {
+      contentHeight =
+        contentContainer.offsetHeight + buttonContainer.offsetHeight;
+    }
     const frameHeight = win.outerHeight() - win.$content.innerHeight();
     win.outerHeight(contentHeight + frameHeight); // Add some padding
     win.center(); // Recenter after resizing

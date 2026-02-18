@@ -21,10 +21,18 @@ export default defineConfig({
     },
   },
   build: {
+    chunkSizeWarningLimit: 1500,
     rollupOptions: {
       input: {
         main: resolve(__dirname, "index.html"),
         404: resolve(__dirname, "404.html"),
+        about: resolve(__dirname, "about.html"),
+      },
+      output: {
+        manualChunks: {
+          xterm: ["@xterm/xterm", "@xterm/addon-fit", "@xterm/addon-image"],
+          zenfs: ["@zenfs/core", "@zenfs/dom", "@zenfs/archives", "@zenfs/emscripten"],
+        },
       },
     },
   },

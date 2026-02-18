@@ -6,16 +6,10 @@ const styleMap = new Map();
 
 export async function applyAniCursorTheme(theme, cursorType) {
   // `cursorType` directly corresponds to the key in the cursors object (e.g., 'busy', 'wait')
-  const cursorUrl = cursors[theme]?.[cursorType];
+  const scheme = cursors[theme] || cursors.default;
+  const cursorUrl = scheme?.getCursor(cursorType);
 
   if (!cursorUrl) {
-    // If a specific theme doesn't have an animated cursor, fall back to default if it exists.
-    if (cursors.default?.[cursorType]) {
-      // console.log(`Falling back to default animated cursor for theme: ${theme}, type: ${cursorType}`);
-      // When falling back, use 'default' as the themeKey, not the original 'theme'
-      await applyAniCursorTheme("default", cursorType); // Recursively call with default theme
-      return;
-    }
     console.warn(
       `Animated cursor not found for theme: ${theme}, type: ${cursorType}. No default fallback.`,
     );

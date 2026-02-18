@@ -2,6 +2,8 @@ import { fs } from "@zenfs/core";
 import { ICONS } from '../../../config/icons.js';
 import { VirtualStats } from './shell-manager.js';
 import { getPathName, joinPath } from '../navigation/path-utils.js';
+import { getAssociation } from '../../../system/directory.js';
+import { launchApp } from '../../../system/app-manager.js';
 
 /**
  * DesktopExtension - Shell extension for the Desktop folder
@@ -187,7 +189,6 @@ export class DesktopExtension {
     if (item) {
       if (item.target.startsWith("launch:")) {
         const appId = item.target.split(":")[1];
-        const { launchApp } = await import('../../../system/app-manager.js');
         launchApp(appId);
         return true;
       }
@@ -204,8 +205,6 @@ export class DesktopExtension {
       if (!stats.isDirectory()) {
         if (name.endsWith(".lnk.json") || name.endsWith(".lnk")) return false; // Let the app handle shortcuts
 
-        const { getAssociation } = await import('../../../system/directory.js');
-        const { launchApp } = await import('../../../system/app-manager.js');
         const association = getAssociation(name);
         if (association.appId) {
           launchApp(association.appId, realFullPath);

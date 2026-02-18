@@ -21,6 +21,9 @@
                 onRuntimeInitialized: function() {
                     console.log("Doom runtime initialized in iframe");
                     window.parent.postMessage({ type: 'DOOM_READY' }, '*');
+                },
+                onExit: function() {
+                    window.parent.postMessage({ type: 'DOOM_EXIT' }, '*');
                 }
             };
         </script>

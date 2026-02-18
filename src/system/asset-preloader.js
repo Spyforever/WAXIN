@@ -24,13 +24,32 @@ export async function preloadImage(src) {
   }
 }
 
+const audioPreloadMap = new Map();
+
 async function preloadAudio(src) {
-  return new Promise((resolve, reject) => {
-    const audio = new Audio();
-    audio.src = src;
-    audio.addEventListener('canplaythrough', resolve, { once: true });
-    audio.onerror = reject;
-  });
+  if (audioPreloadMap.has(src)) return audioPreloadMap.get(src);
+
+  const preloadPromise = (async () => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+    try {
+      const response = await fetch(src, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      // Consume the body to ensure it's fully downloaded into the HTTP cache
+      await response.arrayBuffer();
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error(`Preload timed out for audio: ${src}`);
+      }
+      throw error;
+    }
+  })();
+
+  audioPreloadMap.set(src, preloadPromise);
+  return preloadPromise;
 }
 
 async function preloadCursor(src) {
@@ -68,20 +87,21 @@ export async function preloadThemeAssets(themeId, onAssetStart, onAssetFinish) {
 
   // Sound scheme
   const soundScheme = soundSchemes[theme.soundScheme];
-  if (soundScheme) {
-    for (const sound in soundScheme) {
-      if (soundScheme[sound]) {
-        queueAsset(() => preloadAudio(soundScheme[sound]), soundScheme[sound]);
+  if (soundScheme?.sounds) {
+    for (const soundItem of Object.values(soundScheme.sounds)) {
+      if (soundItem.path) {
+        queueAsset(() => preloadAudio(soundItem.path), soundItem.path);
       }
     }
   }
 
   // Cursor scheme
   const cursorScheme = cursors[themeId];
-  if (cursorScheme) {
-    for (const cursor in cursorScheme) {
-      if (cursorScheme[cursor]) {
-        queueAsset(() => preloadCursor(cursorScheme[cursor]), cursorScheme[cursor]);
+  if (cursorScheme?.cursors) {
+    for (const cursorItem of Object.values(cursorScheme.cursors)) {
+      const path = typeof cursorItem === "string" ? cursorItem : cursorItem.path;
+      if (path) {
+        queueAsset(() => preloadCursor(path), path);
       }
     }
   }

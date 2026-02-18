@@ -13,6 +13,9 @@ export class PrinceOfPersiaApp extends Application {
     width: 640,
     height: 420,
     resizable: true,
+    maximizable: true,
+    allowFullscreen: true,
+    startFullscreen: true,
   };
 
   _createWindow() {
@@ -21,6 +24,9 @@ export class PrinceOfPersiaApp extends Application {
       innerWidth: this.width,
       innerHeight: this.height,
       resizable: this.resizable,
+      maximizable: this.config.maximizable,
+      allowFullscreen: this.config.allowFullscreen,
+      startFullscreen: this.config.startFullscreen,
       icons: this.icon,
     });
     this.win = win;
@@ -33,6 +39,7 @@ export class PrinceOfPersiaApp extends Application {
     };
 
     this.iframe = document.createElement("iframe");
+    this.iframe.allow = "fullscreen";
     this.iframe.style.width = "100%";
     this.iframe.style.height = "100%";
     this.iframe.style.border = "none";

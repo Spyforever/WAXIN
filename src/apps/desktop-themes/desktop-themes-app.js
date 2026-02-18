@@ -18,7 +18,7 @@ import {
   parseCssVariables,
   applyThemeToPreview,
   applyPropertiesToPreview,
-} from '../display-properties/theme-preview.js';
+} from '../../shell/display-properties/theme-preview.js';
 import { getItem, LOCAL_STORAGE_KEYS } from '../../system/local-storage.js';
 import { ShowDialogWindow } from '../../shared/components/dialog-window.js';
 import {
@@ -593,10 +593,8 @@ export class DesktopThemesApp extends Application {
 
   updatePreviewIcons(schemeId = "default") {
     const scheme = iconSchemes[schemeId] || iconSchemes.default;
-    const defaultScheme = iconSchemes.default;
 
-    const getIconPath = (iconName) =>
-      scheme[iconName]?.[32] || defaultScheme[iconName]?.[32];
+    const getIconPath = (iconName) => scheme.getIcon(iconName, 32);
 
     const computerIcon = this.previewContainer.querySelector(
       '[data-icon="my-computer"] img',

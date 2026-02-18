@@ -30,6 +30,7 @@ export class DoomApp extends Application {
     resizable: true,
     maximizable: true,
     allowFullscreen: true,
+    startFullscreen: true,
     isSingleton: true,
   };
 
@@ -48,7 +49,7 @@ export class DoomApp extends Application {
       outerWidth: this.width,
       outerHeight: this.height,
       resizable: this.resizable,
-      maximizable: this.maximizable,
+      maximizable: this.config.maximizable,
       allowFullscreen: this.config.allowFullscreen,
       startFullscreen: this.config.startFullscreen,
       icons: this.icon,
@@ -57,6 +58,7 @@ export class DoomApp extends Application {
 
     const iframe = document.createElement("iframe");
     iframe.src = "games/doom/index.html";
+    iframe.allow = "fullscreen";
     iframe.style.width = "100%";
     iframe.style.height = "100%";
     iframe.style.border = "none";
@@ -79,6 +81,10 @@ export class DoomApp extends Application {
         this._showWadSelectionDialog();
       } else {
         this._startGame(this.availableWads[0] || "doom1.wad");
+      }
+    } else if (event.data && event.data.type === "DOOM_EXIT") {
+      if (this.win) {
+        this.win.close();
       }
     }
   }

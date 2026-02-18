@@ -45,7 +45,8 @@ export class PropertiesManager {
    * Show properties for a single item
    * @private
    */
-  static async _showSingleProperties({ path, stats }) {
+  static async _showSingleProperties(item) {
+    let { path, stats } = item;
     const isDir = stats.isDirectory();
     const isRecycled = RecycleBinManager.isRecycledItemPath(path);
     let name = getPathName(path);
@@ -84,7 +85,18 @@ export class PropertiesManager {
     const modified = formatDate(stats.mtime);
     const accessed = formatDate(stats.atime);
 
-    const { container, sizeEl, containsEl } = this._createPropertiesUI({
+    let shortcutData = null;
+    const isShortcutFile = !isDir && (name.endsWith(".lnk.json") || name.endsWith(".lnk"));
+    if (isShortcutFile) {
+      try {
+        const content = await fs.promises.readFile(ShellManager.getRealPath(path), "utf8");
+        shortcutData = JSON.parse(content);
+      } catch (e) {
+        console.error("Failed to read shortcut data", e);
+      }
+    }
+
+    const { container, sizeEl, containsEl, nameInput, shortcutInputs } = this._createPropertiesUI({
       iconUrl,
       name,
       type,
@@ -95,14 +107,102 @@ export class PropertiesManager {
       created,
       modified,
       accessed,
-    });
+    }, shortcutData);
+
+    const handleSave = async () => {
+      let currentPath = path;
+      let currentName = name;
+
+      // 1. Handle Rename
+      const newNameBase = nameInput.value.trim();
+      if (newNameBase && newNameBase !== (isShortcutFile ? name.replace(".lnk.json", "").replace(".lnk", "") : name)) {
+        let newName = newNameBase;
+        if (isShortcutFile && !newName.endsWith(".lnk.json") && !newName.endsWith(".lnk")) {
+          newName += ".lnk.json";
+        }
+
+        const parentPath = path.substring(0, path.lastIndexOf("/")) || "/";
+        const newPath = joinPath(parentPath, newName);
+
+        try {
+          await fs.promises.rename(ShellManager.getRealPath(path), ShellManager.getRealPath(newPath));
+          currentPath = newPath;
+          currentName = newName;
+          path = currentPath;
+          name = currentName;
+        } catch (e) {
+          console.error("Failed to rename file:", e);
+          alert("Failed to rename file: " + e.message);
+          return false;
+        }
+      }
+
+      // 2. Handle Shortcut Content Update
+      if (isShortcutFile && shortcutInputs) {
+        const updatedShortcutData = {
+          ...shortcutData,
+          type: "shortcut",
+          targetPath: shortcutInputs.targetInput.value.trim(),
+          appId: shortcutInputs.appIdInput.value.trim(),
+          args: shortcutInputs.argsInput.value.trim(),
+        };
+
+        try {
+          await fs.promises.writeFile(ShellManager.getRealPath(currentPath), JSON.stringify(updatedShortcutData, null, 2));
+        } catch (e) {
+          console.error("Failed to update shortcut:", e);
+          alert("Failed to update shortcut: " + e.message);
+          return false;
+        }
+      }
+
+      document.dispatchEvent(new CustomEvent("fs-change", { detail: { sourceAppId: "properties-manager" } }));
+      return true;
+    };
 
     const win = ShowDialogWindow({
       title: `${name} Properties`,
       content: container,
-      buttons: [{ label: "OK", isDefault: true }],
+      buttons: [
+        {
+          label: "OK",
+          isDefault: true,
+          action: async () => {
+            return await handleSave();
+          }
+        },
+        { label: "Cancel" },
+        {
+          label: "Apply",
+          disabled: true,
+          action: async () => {
+            const success = await handleSave();
+            if (success) {
+              win.$content.find(".apply-button").prop("disabled", true);
+              // Update title if renamed
+              win.title(`${nameInput.value.trim()} Properties`);
+            }
+            return false; // Keep open
+          }
+        }
+      ],
       modal: true,
     });
+
+    const $applyBtn = win.$content.find("button").filter(function() {
+      return $(this).text() === "Apply";
+    });
+
+    const enableApply = () => {
+      $applyBtn.prop("disabled", false);
+    };
+
+    nameInput.addEventListener("input", enableApply);
+    if (shortcutInputs) {
+      shortcutInputs.targetInput.addEventListener("input", enableApply);
+      shortcutInputs.appIdInput.addEventListener("input", enableApply);
+      shortcutInputs.argsInput.addEventListener("input", enableApply);
+    }
 
     if (isDir) {
       const controller = new AbortController();
@@ -273,12 +373,88 @@ export class PropertiesManager {
    * Create the DOM structure for properties dialog
    * @private
    */
-  static _createPropertiesUI(data) {
+  static _createPropertiesUI(data, shortcutData = null) {
+    const isShortcut = !!shortcutData;
     const container = document.createElement("div");
-    container.className = "properties-dialog";
-    container.style.padding = "10px";
+    container.className = "properties-tabs";
     container.style.minWidth = "320px";
 
+    const menu = document.createElement("menu");
+    menu.setAttribute("role", "tablist");
+    menu.style.margin = "0 0 -1px 0";
+
+    const generalTab = document.createElement("li");
+    generalTab.setAttribute("role", "tab");
+    generalTab.setAttribute("aria-selected", "true");
+    generalTab.innerHTML = `<a href="#">General</a>`;
+    menu.appendChild(generalTab);
+
+    let shortcutTab = null;
+    if (isShortcut) {
+      shortcutTab = document.createElement("li");
+      shortcutTab.setAttribute("role", "tab");
+      shortcutTab.innerHTML = `<a href="#">Shortcut</a>`;
+      menu.appendChild(shortcutTab);
+    }
+
+    container.appendChild(menu);
+
+    const tabWindow = document.createElement("div");
+    tabWindow.className = "tab-window outset-deep";
+    tabWindow.setAttribute("role", "tabpanel");
+    tabWindow.style.backgroundColor = "var(--ButtonFace)";
+
+    const tabWindowBody = document.createElement("div");
+    tabWindowBody.className = "tab-window-body";
+    tabWindowBody.style.padding = "10px";
+    tabWindow.appendChild(tabWindowBody);
+
+    container.appendChild(tabWindow);
+
+    const generalContent = document.createElement("div");
+    generalContent.className = "tab-content";
+    tabWindowBody.appendChild(generalContent);
+
+    let shortcutContent = null;
+    if (isShortcut) {
+      shortcutContent = document.createElement("div");
+      shortcutContent.className = "tab-content";
+      shortcutContent.style.display = "none";
+      tabWindowBody.appendChild(shortcutContent);
+    }
+
+    // Fill General Tab
+    const { nameInput, sizeEl, containsEl } = this._fillGeneralTab(generalContent, data, isShortcut);
+
+    // Fill Shortcut Tab
+    let shortcutInputs = null;
+    if (isShortcut) {
+      shortcutInputs = this._fillShortcutTab(shortcutContent, data, shortcutData);
+    }
+
+    // Tab switching logic
+    if (shortcutTab) {
+      const tabs = [generalTab, shortcutTab];
+      const contents = [generalContent, shortcutContent];
+      tabs.forEach((tab, index) => {
+        tab.addEventListener("click", (e) => {
+          e.preventDefault();
+          tabs.forEach((t) => t.setAttribute("aria-selected", "false"));
+          tab.setAttribute("aria-selected", "true");
+          contents.forEach((c) => (c.style.display = "none"));
+          contents[index].style.display = "block";
+        });
+      });
+    }
+
+    return { container, nameInput, sizeEl, containsEl, shortcutInputs };
+  }
+
+  /**
+   * Fill the General tab content
+   * @private
+   */
+  static _fillGeneralTab(container, data, isShortcut) {
     const header = document.createElement("div");
     header.style.display = "flex";
     header.style.alignItems = "center";
@@ -293,8 +469,17 @@ export class PropertiesManager {
     icon.style.marginRight = "15px";
     header.appendChild(icon);
 
-    const nameInput = document.createElement("label");
-    nameInput.textContent = data.name;
+    const nameIsEditable = !data.name.includes("Items") && !data.name.includes("Files");
+    let nameInput;
+    if (nameIsEditable) {
+        nameInput = document.createElement("input");
+        nameInput.type = "text";
+        nameInput.value = isShortcut ? data.name.replace(".lnk.json", "").replace(".lnk", "") : data.name;
+        nameInput.style.flex = "1";
+    } else {
+        nameInput = document.createElement("label");
+        nameInput.textContent = data.name;
+    }
     header.appendChild(nameInput);
 
     container.appendChild(header);
@@ -339,7 +524,45 @@ export class PropertiesManager {
     }
 
     container.appendChild(details);
+    return { nameInput, sizeEl, containsEl };
+  }
 
-    return { container, sizeEl, containsEl };
+  /**
+   * Fill the Shortcut tab content
+   * @private
+   */
+  static _fillShortcutTab(container, data, shortcutData) {
+    const details = document.createElement("div");
+    details.style.display = "grid";
+    details.style.gridTemplateColumns = "max-content 1fr";
+    details.style.gap = "8px 15px";
+    details.style.fontSize = "11px";
+
+    const targetInput = document.createElement("input");
+    targetInput.type = "text";
+    targetInput.value = shortcutData.targetPath || "";
+
+    const appIdInput = document.createElement("input");
+    appIdInput.type = "text";
+    appIdInput.value = shortcutData.appId || "";
+
+    const argsInput = document.createElement("input");
+    argsInput.type = "text";
+    argsInput.value = shortcutData.args || "";
+
+    const addInputRow = (label, input) => {
+      const labelEl = document.createElement("label");
+      labelEl.textContent = label + ":";
+      details.appendChild(labelEl);
+      details.appendChild(input);
+    };
+
+    addInputRow("Target", targetInput);
+    addInputRow("App ID", appIdInput);
+    addInputRow("Arguments", argsInput);
+
+    container.appendChild(details);
+
+    return { targetInput, appIdInput, argsInput };
   }
 }

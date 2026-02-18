@@ -1,14 +1,20 @@
-import { Application } from '../../system/application.js';
+import { Application } from "../../system/application.js";
 import {
   createTaskbarButton,
   removeTaskbarButton,
   updateTaskbarButton,
-} from '../../shell/taskbar/taskbar.js';
-import { ICONS } from '../../config/icons.js';
-import { appManager } from '../../system/app-manager.js';
-import { getWebampMenuItems } from './webamp.js';
-import { isZenFSPath, getZenFSFileUrl, getZenFSFileAsText, getZenFSFileAsBlob } from '../../system/zenfs-utils.js';
-import * as musicMetadata from 'music-metadata-browser';
+} from "../../shell/taskbar/taskbar.js";
+import { ICONS } from "../../config/icons.js";
+import { appManager } from "../../system/app-manager.js";
+import { getWebampMenuItems } from "./webamp.js";
+import {
+  isZenFSPath,
+  getZenFSFileUrl,
+  getZenFSFileAsText,
+  getZenFSFileAsBlob,
+} from "../../system/zenfs-utils.js";
+import * as musicMetadata from "music-metadata-browser";
+import { getVolume, getMuted } from "../../system/sound-manager.js";
 
 let webampInstance = null;
 let webampContainer = null;
@@ -20,7 +26,8 @@ export class WebampApp extends Application {
     id: "webamp",
     title: "Winamp",
     description: "A classic music player.",
-    icon: ICONS.webamp, category: "",
+    icon: ICONS.webamp,
+    category: "",
     hasTaskbarButton: true,
     isSingleton: true,
     tray: {
@@ -130,7 +137,10 @@ export class WebampApp extends Application {
                   }
                 }
               } else if (!trimmedLine.startsWith("#")) {
-                const trackUrl = (trimmedLine.startsWith("http") || trimmedLine.startsWith("/")) ? trimmedLine : baseUrl + trimmedLine;
+                const trackUrl =
+                  trimmedLine.startsWith("http") || trimmedLine.startsWith("/")
+                    ? trimmedLine
+                    : baseUrl + trimmedLine;
                 const isTrackZenFS = isZenFSPath(trackUrl);
                 let url = trackUrl;
                 if (isTrackZenFS) {
@@ -140,10 +150,18 @@ export class WebampApp extends Application {
 
                 let metaData = currentMetadata;
                 if (!metaData) {
-                  const fileMeta = await this.getTrackMetadata(trackUrl, isTrackZenFS);
+                  const fileMeta = await this.getTrackMetadata(
+                    trackUrl,
+                    isTrackZenFS,
+                  );
                   metaData = {
                     artist: fileMeta?.artist || "Unknown Artist",
-                    title: fileMeta?.title || trimmedLine.split("/").pop().replace(/\.[^/.]+$/, ""),
+                    title:
+                      fileMeta?.title ||
+                      trimmedLine
+                        .split("/")
+                        .pop()
+                        .replace(/\.[^/.]+$/, ""),
                   };
                 }
 
@@ -184,11 +202,15 @@ export class WebampApp extends Application {
           title: path.title || path.name,
         };
 
-        if ((!path.artist || !path.title) && (path.content || path.contentUrl)) {
+        if (
+          (!path.artist || !path.title) &&
+          (path.content || path.contentUrl)
+        ) {
           const source = path.content || path.contentUrl;
           const fileMeta = await this.getTrackMetadata(source);
           if (fileMeta) {
-            metaData.artist = path.artist || fileMeta.artist || "Unknown Artist";
+            metaData.artist =
+              path.artist || fileMeta.artist || "Unknown Artist";
             metaData.title = path.title || fileMeta.title || path.name;
           }
         }
@@ -265,6 +287,27 @@ export class WebampApp extends Application {
               this.setupTaskbarButton();
               this.showWebamp();
               handleFile(filePath);
+
+              const updateVolume = () => {
+                if (!webampInstance) return;
+                const systemVolume = getVolume();
+                const systemMuted = getMuted();
+                // Webamp volume is 0-255
+                const webampVol = systemMuted
+                  ? 0
+                  : Math.round(systemVolume * 255);
+                webampInstance.store.dispatch({
+                  type: "SET_VOLUME",
+                  volume: webampVol,
+                });
+              };
+
+              document.addEventListener("system-volume-change", updateVolume);
+              updateVolume();
+
+              // Also listen to webamp volume changes to sync back to system?
+              // webampInstance.onVolumeChange(...) might exist but let's stick to system override for now.
+
               resolve(); // Resolve the promise once Webamp is ready
             })
             .catch(reject);

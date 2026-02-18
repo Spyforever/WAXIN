@@ -1,50 +1,27 @@
 // src/config/apps.js
-import { FlashPlayerApp } from '../apps/flash-player/flash-player-app.js';
 import { ZenExplorerApp } from '../shell/explorer/explorer-app.js';
 import { ShowDialogWindow } from '../shared/components/dialog-window.js';
 import { getIcon } from '../shared/utils/icon-resolver.js';
-import { playSound } from '../system/sound-manager.js';
 import {
   getRecycleBinItems,
-  emptyRecycleBin,
 } from '../system/recycle-bin-utils.js';
 import { SPECIAL_FOLDER_PATHS } from './special-folders.js';
+import { appRegistry } from './app-registry.js';
 
 // --- Dynamic App Loading ---
-
-// Use Vite's glob import to get all App modules
-const appModules = import.meta.glob("../apps/*/*-app.js", { eager: true });
 
 export const appClasses = {};
 const staticConfigs = [];
 
-for (const path in appModules) {
-  const appModule = appModules[path];
-  let AppClass = null;
-
-  // Check for a named export ending in 'App'
-  const appClassName = Object.keys(appModule).find((key) =>
-    key.toLowerCase().endsWith("app"),
-  );
-  if (appClassName) {
-    AppClass = appModule[appClassName];
-  }
-  // If not found, check for a default export
-  else if (appModule.default) {
-    AppClass = appModule.default;
-  }
-
-  if (AppClass && AppClass.config) {
-    const configs = Array.isArray(AppClass.config)
-      ? AppClass.config
-      : [AppClass.config];
-    configs.forEach((config) => {
-      if (config.id) {
-        appClasses[config.id] = AppClass;
-        staticConfigs.push({ ...config, appClass: AppClass });
-      }
-    });
-  }
+for (const key in appRegistry) {
+  const { config, importApp } = appRegistry[key];
+  const configs = Array.isArray(config) ? config : [config];
+  configs.forEach((c) => {
+    if (c.id) {
+      appClasses[c.id] = importApp;
+      staticConfigs.push({ ...c, appClass: importApp });
+    }
+  });
 }
 
 // --- Static & System App Definitions ---
@@ -133,7 +110,6 @@ const systemApps = [
                 action: async () => {
                   if (window.RecycleBinManager) {
                     await window.RecycleBinManager.emptyAllRecycleBins();
-                    const { playSound } = await import('../system/sound-manager.js');
                     playSound("EmptyRecycleBin");
                   }
                 },
@@ -251,16 +227,24 @@ const systemApps = [
       },
     },
   },
+  {
+    id: "windows-update",
+    title: "Windows Update",
+    description: "Update the web app to the latest version.",
+    get icon() {
+      return getIcon("windowsUpdate");
+    },
+    action: {
+      type: "function",
+      handler: async () => {
+        const { showUpdateConfirmation } = await import("../system/update-manager.js");
+        await showUpdateConfirmation();
+      },
+    },
+  },
 ];
 
 // --- Combine and Export ---
-
-// --- Combine and Export ---
-
-if (FlashPlayerApp.config) {
-  appClasses[FlashPlayerApp.config.id] = FlashPlayerApp;
-  staticConfigs.push({ ...FlashPlayerApp.config, appClass: FlashPlayerApp });
-}
 
 if (ZenExplorerApp.config) {
   appClasses[ZenExplorerApp.config.id] = ZenExplorerApp;

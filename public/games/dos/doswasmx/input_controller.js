@@ -85,6 +85,8 @@ class InputController {
         this.VectorY = 0;
         this.ClickMouse = false;
         this.MouseMoved = false;
+        this.escTimer = null;
+        this.escapeExited = false;
 
         //touch
         this.touchX_Start = 0;
@@ -203,6 +205,20 @@ class InputController {
     {
         document.onkeydown = this.keyDown.bind(this);
         document.onkeyup = this.keyUp.bind(this);
+        const pointerLockChange = () => {
+            if (!document.pointerLockElement && !this.escapeExited) {
+                // If we didn't deliberately exit via the 1s hold,
+                // but the browser exited anyway (e.g. single press of Esc when Keyboard Lock isn't supported),
+                // we should let script.js know so it can potentially re-capture on next click or if appropriate.
+                // Re-capturing immediately usually fails without a user gesture.
+            }
+            if (document.pointerLockElement) {
+                this.escapeExited = false;
+            }
+        };
+        document.addEventListener('pointerlockchange', pointerLockChange, false);
+        document.addEventListener('mozpointerlockchange', pointerLockChange, false);
+
         document.getElementById('canvas').addEventListener('mousemove', this.mouseMove.bind(this), false );
         document.getElementById('canvas').addEventListener('mousedown', this.mouseDown.bind(this), false );
         document.getElementById('canvas').addEventListener('mouseup', this.mouseUp.bind(this), false );
@@ -695,7 +711,23 @@ class InputController {
         input_controller.Key_Last = event.key;
         if (this.isNumber(event.keyCode))
         {
-            input_controller.KeyCodes.push(event.keyCode);
+            if (!input_controller.KeyCodes.includes(event.keyCode)) {
+                input_controller.KeyCodes.push(event.keyCode);
+            }
+        }
+
+        if (event.key === 'Escape' && !event.repeat) {
+            this.escapeExited = false;
+            if (this.escTimer) clearTimeout(this.escTimer);
+            this.escTimer = setTimeout(() => {
+                this.escapeExited = true;
+                if (document.pointerLockElement) {
+                    document.exitPointerLock();
+                }
+                if (navigator.keyboard && navigator.keyboard.unlock) {
+                    navigator.keyboard.unlock();
+                }
+            }, 1000);
         }
         if (input_controller.DebugKeycodes)
             console.log(event);
@@ -758,6 +790,14 @@ class InputController {
         this.preventDefaultKeys(event);
 
         let input_controller = this;
+
+        if (event.key === 'Escape') {
+            if (this.escTimer) {
+                clearTimeout(this.escTimer);
+                this.escTimer = null;
+            }
+        }
+
         if (this.isNumber(event.keyCode))
         {
             input_controller.KeyCodes = input_controller.KeyCodes.filter(item => item !== event.keyCode);

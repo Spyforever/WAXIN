@@ -10,6 +10,7 @@ import {
   LOCAL_STORAGE_KEYS,
 } from '../../system/local-storage.js';
 import { getActiveTheme, applyTheme } from '../../system/theme-manager.js';
+import { getAssociation } from '../../system/directory.js';
 import { IconManager } from './icon-manager.js';
 import { isZenFSPath, getZenFSFileUrl } from '../../system/zenfs-utils.js';
 import { fs } from "@zenfs/core";
@@ -355,7 +356,6 @@ class DesktopController {
               launchApp("explorer", data.targetPath);
             } else {
               const targetName = data.targetPath.split("/").pop();
-              const { getAssociation } = await import('../../system/directory.js');
               const association = getAssociation(targetName);
               if (association.appId) {
                 launchApp(association.appId, ShellManager.getRealPath(data.targetPath));
@@ -375,7 +375,6 @@ class DesktopController {
     if (stat.isDirectory()) {
       launchApp("explorer", path);
     } else {
-      const { getAssociation } = await import('../../system/directory.js');
       const association = getAssociation(path.split("/").pop());
       if (association.appId) {
         launchApp(association.appId, ShellManager.getRealPath(path));

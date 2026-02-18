@@ -21,25 +21,16 @@ import { iconSchemes } from '../../../config/icon-schemes.js';
 export function getThemedIconObj(specialType, isEmpty = true) {
   const schemeName = getIconSchemeName();
   const scheme = iconSchemes[schemeName] || iconSchemes.default;
-  const defaultScheme = iconSchemes.default;
 
   switch (specialType) {
     case "computer":
-      return scheme.myComputer || defaultScheme.myComputer || ICONS.computer;
+      return scheme.getIconObj("myComputer") || ICONS.computer;
     case "recycle":
       return isEmpty
-        ? scheme.recycleBinEmpty ||
-            defaultScheme.recycleBinEmpty ||
-            ICONS.recycleBinEmpty
-        : scheme.recycleBinFull ||
-            defaultScheme.recycleBinFull ||
-            ICONS.recycleBinFull;
+        ? scheme.getIconObj("recycleBinEmpty") || ICONS.recycleBinEmpty
+        : scheme.getIconObj("recycleBinFull") || ICONS.recycleBinFull;
     case "network":
-      return (
-        scheme.networkNeighborhood ||
-        defaultScheme.networkNeighborhood ||
-        ICONS.networkNeighborhood
-      );
+      return scheme.getIconObj("networkNeighborhood") || ICONS.networkNeighborhood;
     default:
       return null;
   }
@@ -120,7 +111,7 @@ export async function renderFileIcon(fileName, fullPath, isDir, options = {}) {
     iconObj = ICONS.startMenuFolder;
   }
 
-  if (isDir && fullPath.endsWith("/WINDOWS/Favorites")) {
+  if (isDir && fullPath.toLowerCase().includes("/windows/favorites")) {
     iconObj = ICONS.favoritesFolder;
   }
 
@@ -142,6 +133,9 @@ export async function renderFileIcon(fileName, fullPath, isDir, options = {}) {
           const app = apps.find((a) => a.id === data.appId);
           if (app) {
             iconObj = app.icon;
+          }
+          if (data.appId === "internet-explorer" && fullPath.toLowerCase().includes("favorites")) {
+            iconObj = ICONS.htmlFile;
           }
         } else if (data.targetPath) {
           iconObj = ShellManager.getIconObj(data.targetPath);

@@ -6,7 +6,8 @@ import { Tooltip } from '../../shared/components/tooltip.js';
 import buttonDefinitions from './buttons.js'; // Import the centralized button definitions
 import "./calculator.css";
 import { ICONS } from '../../config/icons.js';
-import helpData from "./help.json";
+import hhc from "./calc.hhc?raw";
+import hhk from "./calc.hhk?raw";
 
 export class CalculatorApp extends Application {
   static config = {
@@ -84,7 +85,12 @@ export class CalculatorApp extends Application {
       "&Help": [
         {
           label: "Help &Topics",
-          action: () => window.System.launchApp("help", helpData),
+          action: () => window.System.launchApp("help", {
+            title: "Calculator Help",
+            hhc,
+            hhk,
+            baseUrl: `${import.meta.env.BASE_URL}apps/calculator/help`
+          }),
         },
         {
           label: "&About Calculator",

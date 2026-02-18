@@ -1,6 +1,8 @@
 import { openApps } from '../../../system/application.js';
 import { getParentPath, getPathName } from '../navigation/path-utils.js';
 import { RecycleBinManager } from './recycle-bin-manager.js';
+import { ShowDialogWindow } from '../../../shared/components/dialog-window.js';
+import { ProgressBarShowDialogWindow } from '../interface/progress-bar-dialog-window.js';
 
 export class DragDropManager {
     constructor() {
@@ -176,7 +178,6 @@ export class DragDropManager {
                 ? `Are you sure you want to send '${getPathName(sourcePaths[0])}' to the Recycle Bin?`
                 : `Are you sure you want to send these ${sourcePaths.length} items to the Recycle Bin?`;
 
-            const { ShowDialogWindow } = await import('../../../shared/components/dialog-window.js');
             ShowDialogWindow({
                 title: "Confirm File Delete",
                 text: message,
@@ -186,7 +187,6 @@ export class DragDropManager {
                         label: "Yes",
                         isDefault: true,
                         action: async () => {
-                            const { ProgressBarShowDialogWindow } = await import('../interface/progress-bar-dialog-window.js');
                             const totalSize = await sourceApp.fileOps.getTotalSize(sourcePaths);
                             const dialog = new ProgressBarShowDialogWindow("recycle", sourcePaths.length, totalSize);
                             try {
@@ -201,7 +201,6 @@ export class DragDropManager {
             });
             return;
         }
-        const { ProgressBarShowDialogWindow } = await import('../interface/progress-bar-dialog-window.js');
         const totalSize = await sourceApp.fileOps.getTotalSize(sourcePaths);
         const dialog = new ProgressBarShowDialogWindow(isCopy ? "copy" : "move", sourcePaths.length, totalSize);
         try {

@@ -184,13 +184,18 @@ function startBootProcessStep(message) {
     return null;
 }
 
-function finalizeBootProcessStep(stepInfo, status) {
+function finalizeBootProcessStep(stepInfo, status, error) {
     if (terminal && stepInfo && !setupMode) {
         if (status === undefined || status === null) {
             terminal.write('\r\n');
         } else {
             terminal.write(` ${status}\r\n`);
         }
+
+        if (error) {
+            writeBootError(error.message || error);
+        }
+
         terminal.write("\x1b[?25h"); // Ensure cursor is visible
     }
 }
@@ -270,6 +275,13 @@ function showSetupScreen() {
 
 export function getTerminal() {
     return terminal;
+}
+
+export function writeBootError(message) {
+    if (terminal) {
+        // Ensure we're on a new line and show the error
+        terminal.write(`\r\nError: ${message}\r\n`);
+    }
 }
 
 export {

@@ -1,5 +1,5 @@
 import { resolveMountConfig, InMemory, fs } from "@zenfs/core";
-import { IndexedDB } from "@zenfs/dom";
+import { IndexedDB, WebAccess } from "@zenfs/dom";
 import {
   migrateToZenFS,
   refreshPrograms,
@@ -13,6 +13,12 @@ import { getStartupApps } from "./startup-manager.js";
 import { apps } from "../config/apps.js";
 import { existsAsync } from "./zenfs-utils.js";
 import { wallpapers } from "../config/wallpapers.js";
+import {
+  getAllDiskHandles,
+  removeDiskHandle,
+} from "./removable-disk-persistence.js";
+import { RemovableDiskManager } from "../shell/explorer/drives/removable-disk-manager.js";
+import { DriveService } from "./drive-service.js";
 
 let isInitialized = false;
 
@@ -89,6 +95,24 @@ export async function initFileSystem(onProgress) {
     if (!(await existsAsync("/C:/Program Files/Doom"))) {
       await fs.promises.mkdir("/C:/Program Files/Doom");
     }
+    if (!(await existsAsync("/C:/Program Files/Keen"))) {
+      await fs.promises.mkdir("/C:/Program Files/Keen");
+    }
+    if (!(await existsAsync("/C:/Program Files/Keen/GAMEDATA"))) {
+      await fs.promises.mkdir("/C:/Program Files/Keen/GAMEDATA");
+    }
+    if (!(await existsAsync("/C:/Program Files/Keen/GAMEDATA/KEEN1"))) {
+      await fs.promises.mkdir("/C:/Program Files/Keen/GAMEDATA/KEEN1");
+    }
+    if (!(await existsAsync("/C:/Program Files/Keen/GAMEDATA/KEEN2"))) {
+      await fs.promises.mkdir("/C:/Program Files/Keen/GAMEDATA/KEEN2");
+    }
+    if (!(await existsAsync("/C:/Program Files/Keen/GAMEDATA/KEEN3"))) {
+      await fs.promises.mkdir("/C:/Program Files/Keen/GAMEDATA/KEEN3");
+    }
+    if (!(await existsAsync("/C:/Program Files/DOS Games Downloader"))) {
+      await fs.promises.mkdir("/C:/Program Files/DOS Games Downloader");
+    }
 
     const doomFiles = ["doom1.wad", "default.cfg"];
     const doomRemotePath = "games/doom/";
@@ -115,6 +139,72 @@ export async function initFileSystem(onProgress) {
             );
           } catch (e) {
             console.error(`Failed to load Doom game data ${file}:`, e);
+          }
+        }
+      }
+    }
+
+    const keenFiles = [
+      "CTLPANEL.CK1",
+      "EGAHEAD.CK1",
+      "EGALATCH.CK1",
+      "EGASPRIT.CK1",
+      "ENDTEXT.CK1",
+      "FINALE.CK1",
+      "HELPTEXT.CK1",
+      "KEEN1.EXE",
+      "LEVEL01.CK1",
+      "LEVEL02.CK1",
+      "LEVEL03.CK1",
+      "LEVEL04.CK1",
+      "LEVEL05.CK1",
+      "LEVEL06.CK1",
+      "LEVEL07.CK1",
+      "LEVEL08.CK1",
+      "LEVEL09.CK1",
+      "LEVEL10.CK1",
+      "LEVEL11.CK1",
+      "LEVEL12.CK1",
+      "LEVEL13.CK1",
+      "LEVEL14.CK1",
+      "LEVEL15.CK1",
+      "LEVEL16.CK1",
+      "LEVEL80.CK1",
+      "LEVEL81.CK1",
+      "LEVEL90.CK1",
+      "ORDER.FRM",
+      "PREVIEW2.CK1",
+      "PREVIEW3.CK1",
+      "PREVIEWS.CK1",
+      "SCORES.CK1",
+      "SOUNDS.CK1",
+      "STORYTXT.CK1",
+      "VENDOR.DOC",
+    ];
+    const keenRemotePath = "games/keen/GAMEDATA/KEEN1/";
+    const keenLocalPath = "/C:/Program Files/Keen/GAMEDATA/KEEN1/";
+
+    let keenNeeded = false;
+    for (const file of keenFiles) {
+      if (!(await existsAsync(keenLocalPath + file))) {
+        keenNeeded = true;
+        break;
+      }
+    }
+
+    if (keenNeeded) {
+      if (onProgress) onProgress("Loading Commander Keen game data...");
+      for (const file of keenFiles) {
+        if (!(await existsAsync(keenLocalPath + file))) {
+          try {
+            const response = await fetch(keenRemotePath + file);
+            const buffer = await response.arrayBuffer();
+            await fs.promises.writeFile(
+              keenLocalPath + file,
+              new Uint8Array(buffer),
+            );
+          } catch (e) {
+            console.error(`Failed to load Keen game data ${file}:`, e);
           }
         }
       }
@@ -166,8 +256,6 @@ export async function initFileSystem(onProgress) {
       { name: "Diablo.lnk.json", appId: "diablo" },
       { name: "Quake.lnk.json", appId: "quake" },
       { name: "Prince of Persia.lnk.json", appId: "prince-of-persia" },
-      { name: "Wolfenstein 3D.lnk.json", appId: "wolf3d" },
-      { name: "Beneath a Steel Sky.lnk.json", appId: "sky" },
     ];
 
     for (const game of games) {
@@ -197,65 +285,36 @@ export async function initFileSystem(onProgress) {
       await fs.promises.mkdir("/C:/Games");
     }
 
-    // Install Wolfenstein 3D to C:\Games\WOLF3D if it doesn't exist
-    if (!(await existsAsync("/C:/Games/WOLF3D"))) {
-      if (onProgress) onProgress("Installing Wolfenstein 3D...");
-      await fs.promises.mkdir("/C:/Games/WOLF3D", { recursive: true });
-      const wolfFiles = [
-        "AUDIOHED.WL6", "AUDIOT.WL6", "CONFIG.WL6", "GAMEMAPS.WL6",
-        "MAPHEAD.WL6", "VGADICT.WL6", "VGAGRAPH.WL6", "VGAHEAD.WL6",
-        "VSWAP.WL6", "WOLF3D.EXE"
-      ];
-      for (const file of wolfFiles) {
-        try {
-          const response = await fetch(`games/dos/wolf3d/${file}`);
-          const buffer = await response.arrayBuffer();
-          await fs.promises.writeFile(`/C:/Games/WOLF3D/${file}`, new Uint8Array(buffer));
-        } catch (e) {
-          console.error(`Failed to install ${file}:`, e);
-        }
-      }
-    }
-
-    // Install Beneath a Steel Sky to C:\Games\SKY if it doesn't exist
-    if (!(await existsAsync("/C:/Games/SKY"))) {
-      if (onProgress) onProgress("Installing Beneath a Steel Sky...");
-      await fs.promises.mkdir("/C:/Games/SKY", { recursive: true });
-      const skyFiles = ["SKY.DNR", "SKY.DSK", "SKY.EXE", "SKY.RST"];
-      for (const file of skyFiles) {
-        try {
-          const response = await fetch(`games/dos/sky/${file}`);
-          const buffer = await response.arrayBuffer();
-          await fs.promises.writeFile(
-            `/C:/Games/SKY/${file}`,
-            new Uint8Array(buffer),
-          );
-        } catch (e) {
-          console.error(`Failed to install ${file}:`, e);
-        }
-      }
-    }
-
     if (onProgress) onProgress("Initializing Start Menu...");
     // Ensure PINNED_PATH exists (C:/WINDOWS/Start Menu)
     if (!(await existsAsync(PINNED_PATH))) {
       await fs.promises.mkdir(PINNED_PATH, { recursive: true });
     }
 
-    // Ensure About shortcut exists in PINNED_PATH
-    const aboutLnkPath = `${PINNED_PATH}/About.lnk.json`;
-    if (!(await existsAsync(aboutLnkPath))) {
+    // Ensure Windows Update shortcut exists in PINNED_PATH
+    const updateLnkPath = `${PINNED_PATH}/Windows Update.lnk.json`;
+    if (!(await existsAsync(updateLnkPath))) {
       await fs.promises.writeFile(
-        aboutLnkPath,
+        updateLnkPath,
         JSON.stringify(
           {
             type: "shortcut",
-            appId: "about",
+            appId: "windows-update",
           },
           null,
           2,
         ),
       );
+    }
+
+    // Cleanup old About shortcut
+    const aboutLnkPath = `${PINNED_PATH}/About.lnk.json`;
+    if (await existsAsync(aboutLnkPath)) {
+      try {
+        await fs.promises.unlink(aboutLnkPath);
+      } catch (e) {
+        console.warn("Failed to remove old About shortcut:", e);
+      }
     }
 
     if (!(await existsAsync(START_MENU_PATH))) {
@@ -304,6 +363,46 @@ export async function initFileSystem(onProgress) {
       if (favoritesConfig && favoritesConfig.submenu) {
         await migrateToZenFS(favoritesConfig.submenu, FAVORITES_PATH);
       }
+    }
+
+    if (onProgress) onProgress("Restoring removable disks...");
+    try {
+      const savedHandles = await getAllDiskHandles();
+      for (const [letter, handle] of Object.entries(savedHandles)) {
+        const mountPoint = `/${letter}:`;
+        try {
+          if (!(await existsAsync(mountPoint))) {
+            await fs.promises.mkdir(mountPoint);
+          }
+          const diskFs = await WebAccess.create({ handle });
+          fs.mount(mountPoint, diskFs);
+
+          // Accessibility check
+          await fs.promises.readdir(mountPoint);
+
+          RemovableDiskManager.mount(letter, handle.name);
+          console.log(`Restored removable disk ${letter}: (${handle.name})`);
+        } catch (e) {
+          console.warn(`Failed to restore removable disk ${letter}:`, e);
+          // Clean up if it failed to mount or is inaccessible
+          try {
+            if (mounts.has(mountPoint)) {
+              fs.umount(mountPoint);
+            }
+          } catch (umountErr) {}
+
+          try {
+            if (await existsAsync(mountPoint)) {
+              await fs.promises.rmdir(mountPoint);
+            }
+          } catch (rmdirErr) {}
+
+          await removeDiskHandle(letter);
+          RemovableDiskManager.unmount(letter);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load persisted removable disks:", e);
     }
 
     isInitialized = true;

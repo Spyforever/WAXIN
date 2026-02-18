@@ -4,7 +4,7 @@
 
 A web-based recreation of the classic Windows 98 desktop experience, built using vanilla JavaScript, HTML, and CSS. Experience the familiar interface of Windows 98 directly in your modern browser, complete with working applications and games, customizable themes, and an AI-powered Clippy.
 
-![Windows 98 Web Edition Desktop](./docs/images/screenshot-desktop.png)
+![Windows 98 Web Edition Desktop](./public/docs/images/screenshot-desktop.png)
 *Windows 98 Web Edition Desktop*
 
 ## Table of Contents
@@ -32,7 +32,7 @@ Experience it directly in your browser:
 
 *(Desktop browser recommended for the best experience. Works best on Chrome, Firefox, and Edge.)*
 
-![Applications Demo](./docs/images/screenshot-apps.png)
+![Applications Demo](./public/docs/images/screenshot-apps.png)
 *Running multiple applications in Windows 98 Web Edition*
 
 ## Quick Start Guide
@@ -183,7 +183,8 @@ Clippy is reintroduced as an optional, AI-powered assistant that provides contex
 
 ### Core Technologies
 * **Frontend**: Vanilla JavaScript (ES6+), HTML5, and CSS3.
-* **Build Tool**: [Vite](https://vitejs.dev/) for development and production bundling.
+* **Runtime & Package Manager**: [Bun](https://bun.sh/) for lightning-fast development (Node.js/NPM no longer required).
+* **Build Tool**: [Vite](https://vitejs.dev/) (optimized with Bun).
 * **Virtual File System**: [ZenFS](https://zenfs.dev/) for persistent storage.
 
 ### UI & Styling
@@ -198,10 +199,10 @@ git clone https://github.com/azayrahmad/win98-web.git
 cd win98-web
 
 # Install dependencies
-npm install
+bun install
 
 # Start the development server
-npm run dev
+bun run dev
 ```
 
 ## Future Roadmap
