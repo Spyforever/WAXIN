@@ -5,6 +5,7 @@ import { fs } from "@zenfs/core";
 import { ShowDialogWindow } from '../../shared/components/dialog-window.js';
 import { DiabloProgressDialog } from './diablo-progress-dialog.js';
 import { existsAsync } from '../../system/zenfs-utils.js';
+import { DiabloStorage } from './diablo-storage.js';
 
 export class DiabloApp extends Application {
     static config = {
@@ -29,17 +30,21 @@ export class DiabloApp extends Application {
         this.selectedMPQ = null;
         this.isReady = false;
         this.isDownloading = false;
+        this._isClosing = false;
         this._boundHandleMessage = this._handleMessage.bind(this);
     }
 
     async _onLaunch() {
         window.addEventListener("message", this._boundHandleMessage);
         await this._ensureFileSystem();
+        await this._setupFileSystemSync();
         await this._scanAndLaunch();
     }
 
     async _onClose() {
+        this._isClosing = true;
         window.removeEventListener("message", this._boundHandleMessage);
+        await this._persistFilesToZenFS();
     }
 
     async _ensureFileSystem() {
@@ -226,7 +231,7 @@ export class DiabloApp extends Application {
                 type: 'START_WITH_FILE',
                 name: this.selectedMPQ,
                 data: data
-            }, '*', [data.buffer || data]);
+            }, window.location.origin, [data.buffer || data]);
         } catch (e) {
             console.error("Failed to send start message:", e);
         }
@@ -241,6 +246,11 @@ export class DiabloApp extends Application {
             this.isReady = true;
             if (this.selectedMPQ) {
                 this._sendStartMessage();
+            }
+        } else if (type === "DIABLO_EXIT") {
+            if (this.win && !this._isClosing) {
+                await this._persistFilesToZenFS();
+                this.win.close();
             }
         } else if (type === "GET_MPQ") {
             const { url } = event.data;
@@ -262,6 +272,42 @@ export class DiabloApp extends Application {
                 console.error("Error providing MPQ", e);
                 port.postMessage({ error: e.message });
             }
+        }
+    }
+
+    async _setupFileSystemSync() {
+        try {
+            const entries = await fs.promises.readdir(this.baseLocalPath);
+            const storage = new DiabloStorage();
+            const filesToSync = new Map();
+            for (const entry of entries) {
+                if (entry.toLowerCase().endsWith('.mpq')) continue;
+                const path = `${this.baseLocalPath}/${entry}`;
+                const stat = await fs.promises.stat(path);
+                if (stat.isDirectory()) continue;
+
+                const data = await fs.promises.readFile(path);
+                filesToSync.set(entry, data);
+            }
+            if (filesToSync.size > 0) {
+                await storage.setFiles(filesToSync);
+            }
+        } catch (e) {
+            console.error("Failed to sync files to Diablo storage", e);
+        }
+    }
+
+    async _persistFilesToZenFS() {
+        try {
+            const storage = new DiabloStorage();
+            const files = await storage.getFiles();
+            for (const [name, data] of files) {
+                if (name.toLowerCase().endsWith('.mpq')) continue;
+                await fs.promises.writeFile(`${this.baseLocalPath}/${name}`, data);
+            }
+            document.dispatchEvent(new CustomEvent("zen-fs-change", { detail: { path: this.baseLocalPath } }));
+        } catch (e) {
+            console.error("Failed to persist Diablo files to ZenFS", e);
         }
     }
 
