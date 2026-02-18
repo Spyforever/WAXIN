@@ -4,6 +4,8 @@ import {
   removeItem,
   LOCAL_STORAGE_KEYS,
 } from './local-storage.js';
+import { fs } from "@zenfs/core";
+import { existsAsync } from "./zenfs-utils.js";
 import { themes } from '../config/themes.js';
 import { colorSchemes } from '../config/color-schemes.js';
 import { applyCursorTheme } from './cursor-manager.js';
@@ -16,6 +18,7 @@ import screensaverManager from './screensaver-utils.js';
 
 let parserPromise = null;
 let activeTheme = null; // In-memory cache to avoid repeated localStorage access
+let zenFSThemes = {};
 
 export function loadThemeParser() {
   if (!parserPromise) {
@@ -54,9 +57,41 @@ export function deleteCustomTheme(themeId) {
   document.dispatchEvent(new CustomEvent("custom-themes-changed"));
 }
 
+export async function loadThemesFromZenFS() {
+  const themesPath = "/C:/Program Files/Plus!/Themes";
+  try {
+    await loadThemeParser();
+
+    if (!(await existsAsync(themesPath))) {
+      return {};
+    }
+    const files = await fs.promises.readdir(themesPath);
+    const themeFiles = files.filter((f) => f.toLowerCase().endsWith(".theme"));
+
+    const loadedThemes = {};
+    for (const file of themeFiles) {
+      const fullPath = `${themesPath}/${file}`;
+      const themeId = `zenfs-${file.toLowerCase().replace(/\.theme$/i, "")}`;
+
+      // Basic info for the list. We'll parse fully on selection/application.
+      loadedThemes[themeId] = {
+        id: themeId,
+        name: file.replace(/\.theme$/i, ""),
+        path: fullPath,
+        isZenFS: true,
+      };
+    }
+    zenFSThemes = loadedThemes;
+    return zenFSThemes;
+  } catch (error) {
+    console.error("Failed to load themes from ZenFS:", error);
+    return {};
+  }
+}
+
 export function getThemes() {
   const customThemes = getCustomThemes();
-  return { ...themes, ...customThemes };
+  return { ...themes, ...customThemes, ...zenFSThemes };
 }
 
 export function getColorSchemes() {

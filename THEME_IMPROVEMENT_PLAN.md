@@ -12,9 +12,17 @@ This plan outlines the transition of the Desktop Themes application from a hardc
 - **Theme Discovery (`src/system/theme-manager.js`)**:
     - Implement `loadThemesFromZenFS()` to scan `/C:/Program Files/Plus!/Themes`.
     - Update `getThemes()` to include discovered files.
-- **Runnable/Testable**:
-    - Verify themes are detected in ZenFS via the console.
-    - Run unit tests for the parser to ensure all sections (Icons, Cursors, Sounds, Desktop) are correctly extracted from a sample `.theme` string.
+- **Verification**:
+    - **Boot Check**: Restart the OS and verify the boot terminal shows `Loading system themes... OK`.
+    - **ZenFS Discovery**:
+        1. Open the Browser Console.
+        2. Create a dummy theme: `await fs.promises.writeFile('/C:/Program Files/Plus!/Themes/Test.theme', '[Control Panel\\Colors]\nBackground=0 128 128')`.
+        3. Open the "Desktop Themes" app.
+        4. Verify "Test" appears in the Theme dropdown.
+    - **Parser Test**:
+        1. Ensure the system is booted (this loads the theme parser).
+        2. In the console, call `window.getColorsFromThemeFile('[Control Panel\\Colors]\\nBackground=0 128 128')`.
+        3. Verify it returns `{ Background: "rgb(0, 128, 128)" }`.
 
 ## Phase 2: UI Integration & Basic Application
 **Goal**: Allow users to select ZenFS themes and apply basic visual changes (Colors/Wallpaper).
@@ -25,9 +33,10 @@ This plan outlines the transition of the Desktop Themes application from a hardc
     - Update the preview container to show the themed wallpaper and colors.
 - **Basic Application**:
     - Implement the flow in `ThemeManager` to apply `[Control Panel\Colors]` and `[Control Panel\Desktop]` (Wallpaper) from the `.theme` file.
-- **Runnable/Testable**:
-    - Open the "Desktop Themes" app; verify ZenFS themes appear in the list.
-    - Select a theme and click "Apply"; verify system colors and wallpaper change.
+- **Verification**:
+    - **Selection**: Select a `.theme` file in the "Desktop Themes" app; verify the preview updates immediately without showing the "Theme Wizard".
+    - **Apply Colors**: Click "Apply" and verify the system colors (buttons, title bars, background) change to match the `.theme` file.
+    - **Apply Wallpaper**: Verify the desktop wallpaper changes to the path specified in the `.theme` file.
 
 ## Phase 3: Assets Integration (Cursors & Sounds)
 **Goal**: Enable themed mouse pointers and system sounds from ZenFS.
@@ -38,8 +47,10 @@ This plan outlines the transition of the Desktop Themes application from a hardc
     - Update to support playing `.wav` files from ZenFS URLs.
 - **Cursor Manager (`src/system/cursor-manager.js`)**:
     - Update to support applying `.cur` and `.ani` cursors from ZenFS URLs.
-- **Runnable/Testable**:
-    - Apply a theme with custom sounds/cursors; verify sounds play on events (e.g., opening a window) and cursors update system-wide.
+- **Verification**:
+    - **Cursors**: Apply a theme with a custom `Arrow` cursor; verify the mouse pointer changes when hovering over the desktop.
+    - **Sounds**: Apply a theme with a custom `Open` sound; verify the sound plays when opening an application (e.g., Notepad).
+    - **Network Traffic**: Check the Network tab in DevTools to ensure assets are being loaded from `blob:` URLs.
 
 ## Phase 4: Shell Icons & Advanced Settings
 **Goal**: Apply themed icons to system folders and implement advanced desktop settings.
@@ -50,9 +61,10 @@ This plan outlines the transition of the Desktop Themes application from a hardc
 - **Advanced Desktop Settings**:
     - Implement `Tilewallpaper` and `Pattern` support in the desktop background component.
     - Integrate `ScreenSaveActive` with the Screensaver manager.
-- **Runnable/Testable**:
-    - Verify "My Computer", "Network Neighborhood", and "Recycle Bin" icons change on the desktop.
-    - Verify wallpaper tiling behavior matches the `.theme` file setting.
+- **Verification**:
+    - **Desktop Icons**: Verify "My Computer" and "Network Neighborhood" icons on the desktop match the theme.
+    - **Recycle Bin**: Delete a file and verify the Recycle Bin icon changes to the "full" version defined in the theme.
+    - **Tiling**: Set a small image as wallpaper with `TileWallpaper=1` in the theme; verify it tiles across the desktop.
 
 ## Phase 5: Cleanup & Defaults
 **Goal**: Finalize the system and remove legacy hardcoded data.
@@ -61,6 +73,6 @@ This plan outlines the transition of the Desktop Themes application from a hardc
     - Delete themes from `src/config/themes.js` (keeping only the "Default" fallback).
 - **Final System Init**:
     - Ensure `/C:/Program Files/Plus!/Themes` is created during system boot.
-- **Runnable/Testable**:
-    - Verify the system boots correctly with "Windows Default".
-    - Verify all functionality remains intact without the hardcoded `themes.js` list.
+- **Verification**:
+    - **Regression Check**: Ensure no hardcoded themes (like "Dangerous Creatures") appear in the list anymore unless their `.theme` files are present in ZenFS.
+    - **Default Fallback**: Delete all themes from ZenFS; verify the system still boots and functions correctly using the "Windows Default" theme.

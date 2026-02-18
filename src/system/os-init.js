@@ -5,7 +5,7 @@ import { registerCustomApp } from "./custom-app-manager.js";
 import { taskbar } from "../shell/taskbar/taskbar.js";
 import { ShowDialogWindow } from "../shared/components/dialog-window.js";
 import { playSound } from "./sound-manager.js";
-import { setTheme, getCurrentTheme, setColorScheme } from "./theme-manager.js";
+import { setTheme, getCurrentTheme, setColorScheme, loadThemesFromZenFS } from "./theme-manager.js";
 import { profiles } from "../config/profiles.js";
 import {
   hideBootScreen,
@@ -206,6 +206,16 @@ export async function initializeOS() {
         if (logElement && logElement.firstChild) {
           logElement.firstChild.nodeValue = baseMsg;
         }
+        finalizeBootProcessStep(logElement, "OK");
+      } catch (e) {
+        finalizeBootProcessStep(logElement, "FAILED", e);
+      }
+    });
+
+    await executeBootStep(async () => {
+      let logElement = startBootProcessStep("Loading system themes...");
+      try {
+        await loadThemesFromZenFS();
         finalizeBootProcessStep(logElement, "OK");
       } catch (e) {
         finalizeBootProcessStep(logElement, "FAILED", e);

@@ -329,21 +329,17 @@ export class DesktopThemesApp extends Application {
       const themeContent = e.target.result;
       try {
         await loadThemeParser();
-        const colors = window.getColorsFromThemeFile(themeContent);
+        const colorsObj = window.getColorsFromThemeFile(themeContent);
         const wallpaper = window.getWallpaperFromThemeFile(themeContent);
-        if (colors) {
-          this._showThemeWizard(colors, wallpaper, (updatedTheme) => {
-            const cssProperties = window.generateThemePropertiesFromColors(
-              updatedTheme.colors,
-            );
-            this.customThemeProperties = {
-              ...cssProperties,
-              wallpaper: updatedTheme.wallpaper,
-            };
-            this.addTemporaryThemeOption();
-            this.themeSelector.value = "current-settings";
-            this.handleThemeSelection(); // Use the handler to update state
-          });
+        if (colorsObj) {
+          const cssProperties = window.generateThemePropertiesFromColors(colorsObj);
+          this.customThemeProperties = {
+            ...cssProperties,
+            wallpaper: wallpaper,
+          };
+          this.addTemporaryThemeOption();
+          this.themeSelector.value = "current-settings";
+          await this.handleThemeSelection();
         } else {
           this.themeSelector.value = this.previousThemeId;
           ShowDialogWindow({
