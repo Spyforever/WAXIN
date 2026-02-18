@@ -3,6 +3,7 @@ import { ICONS } from '../../config/icons.js';
 import { fs } from "@zenfs/core";
 import { Emscripten } from "@zenfs/emscripten";
 import { ShowDialogWindow } from '../../shared/components/dialog-window.js';
+import { KeenProgressDialog } from './keen-progress-dialog.js';
 
 const EPISODE_NAMES = {
   "keen1": "Episode 1: Marooned on Mars",
@@ -29,6 +30,7 @@ export class KeenApp extends Application {
     super(config);
     this.iframe = null;
     this.isMounted = false;
+    this.isDownloading = false;
     this.baseLocalPath = "/C:/Program Files/Keen";
     this.availableEpisodes = [];
     this._boundHandleMessage = this._handleMessage.bind(this);
@@ -67,16 +69,180 @@ export class KeenApp extends Application {
 
   async _handleMessage(event) {
     if (event.data && event.data.type === "KEEN_READY") {
-      await this._setupFileSystem();
-      if (this.availableEpisodes.length > 1) {
-        this._showEpisodeSelectionDialog();
-      } else {
-        this._startGame(this.availableEpisodes[0] || "keen1");
-      }
+      await this._checkAndLaunch();
     } else if (event.data && event.data.type === "KEEN_EXIT") {
       if (this.win) {
         this.win.close();
       }
+    }
+  }
+
+  async _checkAndLaunch() {
+    const episodes = await this._scanForEpisodes();
+
+    if (episodes.length > 0) {
+      await this._setupFileSystem();
+      if (this.availableEpisodes.length > 1) {
+        this._showEpisodeSelectionDialog();
+      } else {
+        this._startGame(this.availableEpisodes[0]);
+      }
+    } else {
+      this._showDownloadConfirmationDialog();
+    }
+  }
+
+  async _scanForEpisodes() {
+    try {
+      const gamedataPath = `${this.baseLocalPath}/GAMEDATA`;
+      if (!fs.existsSync(gamedataPath)) {
+        await this._mkdirRecursive(gamedataPath);
+        return [];
+      }
+
+      const episodes = [];
+      const entries = await fs.promises.readdir(gamedataPath);
+      for (const entry of ["KEEN1", "KEEN2", "KEEN3"]) {
+        const fullPath = `${gamedataPath}/${entry}`;
+        if (fs.existsSync(fullPath)) {
+          const files = await fs.promises.readdir(fullPath);
+          if (files.length > 0) {
+            episodes.push(entry.toLowerCase());
+          }
+        }
+      }
+      return episodes;
+    } catch (e) {
+      console.error("Failed to scan for Keen episodes", e);
+      return [];
+    }
+  }
+
+  _showDownloadConfirmationDialog() {
+    ShowDialogWindow({
+      title: "No Commander Keen files found",
+      text: "No Commander Keen game files were found in your system.<br><br>Would you like to download the shareware version (Episode 1) to play?",
+      modal: true,
+      parentWindow: this.win,
+      buttons: [
+        {
+          label: "OK",
+          isDefault: true,
+          action: () => {
+            this._downloadShareware();
+          },
+        },
+        {
+          label: "Cancel",
+          action: () => {
+            this.win.close();
+          },
+        },
+      ],
+    });
+  }
+
+  async _downloadShareware() {
+    if (this.isDownloading) return;
+    this.isDownloading = true;
+
+    const baseUrl = import.meta.env.BASE_URL || "/";
+    const remotePath = `${baseUrl}games/keen/GAMEDATA/KEEN1/`.replace(/\/+/g, "/");
+    const localPath = `${this.baseLocalPath}/GAMEDATA/KEEN1`;
+    const files = [
+      "CTLPANEL.CK1", "EGAHEAD.CK1", "EGALATCH.CK1", "EGASPRIT.CK1",
+      "ENDTEXT.CK1", "FINALE.CK1", "HELPTEXT.CK1", "KEEN1.EXE",
+      "LEVEL01.CK1", "LEVEL02.CK1", "LEVEL03.CK1", "LEVEL04.CK1",
+      "LEVEL05.CK1", "LEVEL06.CK1", "LEVEL07.CK1", "LEVEL08.CK1",
+      "LEVEL09.CK1", "LEVEL10.CK1", "LEVEL11.CK1", "LEVEL12.CK1",
+      "LEVEL13.CK1", "LEVEL14.CK1", "LEVEL15.CK1", "LEVEL16.CK1",
+      "LEVEL80.CK1", "LEVEL81.CK1", "LEVEL90.CK1", "ORDER.FRM",
+      "PREVIEW2.CK1", "PREVIEW3.CK1", "PREVIEWS.CK1", "SCORES.CK1",
+      "SOUNDS.CK1", "STORYTXT.CK1", "VENDOR.DOC",
+    ];
+
+    if (!fs.existsSync(localPath)) {
+      await this._mkdirRecursive(localPath);
+    }
+
+    const dialog = new KeenProgressDialog({
+      title: "Downloading Shareware",
+      parentWindow: this.win,
+      onCancel: () => {
+        this.isDownloading = false;
+        this.win.close();
+      },
+    });
+
+    try {
+      let totalSize = 0;
+      const fileData = [];
+
+      // First pass to get total size
+      for (const file of files) {
+        const response = await fetch(remotePath + file, { method: "HEAD" });
+        const size = parseInt(response.headers.get("content-length") || "0", 10);
+        totalSize += size;
+        fileData.push({ name: file, size });
+      }
+      dialog.setTotalSize(totalSize);
+
+      let downloadedSize = 0;
+      for (const file of fileData) {
+        const response = await fetch(remotePath + file.name);
+        if (!response.ok)
+          throw new Error(`HTTP error! status: ${response.status}`);
+
+        const reader = response.body.getReader();
+        const chunks = [];
+        let fileDownloaded = 0;
+
+        while (true) {
+          if (dialog.cancelled) {
+            this.isDownloading = false;
+            return;
+          }
+
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          chunks.push(value);
+          fileDownloaded += value.length;
+          downloadedSize += value.length;
+          dialog.update(`Downloading ${file.name}...`, downloadedSize);
+        }
+
+        const buffer = new Uint8Array(fileDownloaded);
+        let offset = 0;
+        for (const chunk of chunks) {
+          buffer.set(chunk, offset);
+          offset += chunk.length;
+        }
+
+        await fs.promises.writeFile(`${localPath}/${file.name}`, buffer);
+      }
+
+      dialog.close();
+      this.isDownloading = false;
+      await this._checkAndLaunch();
+    } catch (e) {
+      console.error("Download failed", e);
+      dialog.close();
+      this.isDownloading = false;
+      ShowDialogWindow({
+        title: "Download Failed",
+        text: `Error downloading shareware: ${e.message}`,
+        buttons: [
+          {
+            label: "OK",
+            isDefault: true,
+            action: () => {
+              this.win.close();
+            },
+          },
+        ],
+        modal: true,
+      });
     }
   }
 
@@ -131,13 +297,9 @@ export class KeenApp extends Application {
           }
       }
 
-      if (this.availableEpisodes.length === 0) {
-        this.availableEpisodes = ["keen1"];
-      }
-
       this.availableEpisodes.sort();
     } catch (e) {
-      this.availableEpisodes = ["keen1"];
+      this.availableEpisodes = [];
     }
 
     // 3. Mount iframe's FS to host ZenFS

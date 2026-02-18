@@ -3,6 +3,7 @@ import { ICONS } from '../../config/icons.js';
 import { fs } from "@zenfs/core";
 import { Emscripten } from "@zenfs/emscripten";
 import { ShowDialogWindow } from '../../shared/components/dialog-window.js';
+import { DoomProgressDialog } from './doom-progress-dialog.js';
 
 const WAD_NAMES = {
   "doom1.wad": "Doom Shareware",
@@ -38,6 +39,7 @@ export class DoomApp extends Application {
     super(config);
     this.iframe = null;
     this.isMounted = false;
+    this.isDownloading = false;
     this.baseLocalPath = "/C:/Program Files/Doom";
     this.availableWads = [];
     this._boundHandleMessage = this._handleMessage.bind(this);
@@ -76,16 +78,153 @@ export class DoomApp extends Application {
 
   async _handleMessage(event) {
     if (event.data && event.data.type === "DOOM_READY") {
-      await this._setupFileSystem();
-      if (this.availableWads.length > 1) {
-        this._showWadSelectionDialog();
-      } else {
-        this._startGame(this.availableWads[0] || "doom1.wad");
-      }
+      await this._checkAndLaunch();
     } else if (event.data && event.data.type === "DOOM_EXIT") {
       if (this.win) {
         this.win.close();
       }
+    }
+  }
+
+  async _checkAndLaunch() {
+    const wads = await this._scanForWads();
+
+    if (wads.length > 0) {
+      await this._setupFileSystem();
+      if (this.availableWads.length > 1) {
+        this._showWadSelectionDialog();
+      } else {
+        this._startGame(this.availableWads[0]);
+      }
+    } else {
+      this._showDownloadConfirmationDialog();
+    }
+  }
+
+  async _scanForWads() {
+    try {
+      if (!fs.existsSync(this.baseLocalPath)) {
+        await this._mkdirRecursive(this.baseLocalPath);
+        return [];
+      }
+      const entries = await fs.promises.readdir(this.baseLocalPath);
+      return entries.filter((e) => e.toLowerCase().endsWith(".wad"));
+    } catch (e) {
+      console.error("Failed to scan for WADs", e);
+      return [];
+    }
+  }
+
+  _showDownloadConfirmationDialog() {
+    ShowDialogWindow({
+      title: "No Doom files found",
+      text: "No Doom WAD files were found in your system.<br><br>Would you like to download the shareware version (doom1.wad) to play?",
+      modal: true,
+      parentWindow: this.win,
+      buttons: [
+        {
+          label: "OK",
+          isDefault: true,
+          action: () => {
+            this._downloadShareware();
+          },
+        },
+        {
+          label: "Cancel",
+          action: () => {
+            this.win.close();
+          },
+        },
+      ],
+    });
+  }
+
+  async _downloadShareware() {
+    if (this.isDownloading) return;
+    this.isDownloading = true;
+
+    const baseUrl = import.meta.env.BASE_URL || "/";
+    const remotePath = `${baseUrl}games/doom/`.replace(/\/+/g, "/");
+    const files = ["doom1.wad", "default.cfg"];
+
+    const dialog = new DoomProgressDialog({
+      title: "Downloading Shareware",
+      parentWindow: this.win,
+      onCancel: () => {
+        this.isDownloading = false;
+        this.win.close();
+      },
+    });
+
+    try {
+      let totalSize = 0;
+      const fileData = [];
+
+      // First pass to get total size
+      for (const file of files) {
+        const response = await fetch(remotePath + file, { method: "HEAD" });
+        const size = parseInt(response.headers.get("content-length") || "0", 10);
+        totalSize += size;
+        fileData.push({ name: file, size });
+      }
+      dialog.setTotalSize(totalSize);
+
+      let downloadedSize = 0;
+      for (const file of fileData) {
+        const response = await fetch(remotePath + file.name);
+        if (!response.ok)
+          throw new Error(`HTTP error! status: ${response.status}`);
+
+        const reader = response.body.getReader();
+        const chunks = [];
+        let fileDownloaded = 0;
+
+        while (true) {
+          if (dialog.cancelled) {
+            this.isDownloading = false;
+            return;
+          }
+
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          chunks.push(value);
+          fileDownloaded += value.length;
+          downloadedSize += value.length;
+          dialog.update(`Downloading ${file.name}...`, downloadedSize);
+        }
+
+        const buffer = new Uint8Array(fileDownloaded);
+        let offset = 0;
+        for (const chunk of chunks) {
+          buffer.set(chunk, offset);
+          offset += chunk.length;
+        }
+
+        await fs.promises.writeFile(`${this.baseLocalPath}/${file.name}`, buffer);
+      }
+
+      dialog.close();
+      this.isDownloading = false;
+      await this._checkAndLaunch();
+    } catch (e) {
+      console.error("Download failed", e);
+      dialog.close();
+      this.isDownloading = false;
+      ShowDialogWindow({
+        title: "Download Failed",
+        text: `Error downloading shareware: ${e.message}`,
+        buttons: [
+          {
+            label: "OK",
+            isDefault: true,
+            action: () => {
+              this.win.close();
+            },
+          },
+        ],
+        modal: true,
+      });
     }
   }
 
@@ -128,14 +267,6 @@ export class DoomApp extends Application {
       const entries = await fs.promises.readdir(this.baseLocalPath);
       this.availableWads = entries.filter((e) => e.toLowerCase().endsWith(".wad"));
 
-      // Ensure doom1.wad is present in the list as it's the built-in default
-      const hasDoom1 = this.availableWads.some(
-        (w) => w.toLowerCase() === "doom1.wad",
-      );
-      if (!hasDoom1) {
-        this.availableWads.push("doom1.wad");
-      }
-
       // Sort wads so doom1.wad is usually first or just sort alphabetically
       this.availableWads.sort((a, b) => {
         if (a.toLowerCase() === "doom1.wad") return -1;
@@ -143,7 +274,7 @@ export class DoomApp extends Application {
         return a.localeCompare(b);
       });
     } catch (e) {
-      this.availableWads = ["doom1.wad"];
+      this.availableWads = [];
     }
 
     // 3. Mount iframe's FS to host ZenFS
