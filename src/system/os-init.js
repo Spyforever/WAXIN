@@ -6,6 +6,8 @@ import { taskbar } from "../shell/taskbar/taskbar.js";
 import { ShowDialogWindow } from "../shared/components/dialog-window.js";
 import { playSound } from "./sound-manager.js";
 import { setTheme, getCurrentTheme, setColorScheme, loadThemesFromZenFS } from "./theme-manager.js";
+import * as themeManager from "./theme-manager.js";
+import * as cursorManager from "./cursor-manager.js";
 import { profiles } from "../config/profiles.js";
 import {
   hideBootScreen,
@@ -374,6 +376,8 @@ export async function initializeOS() {
     window.ShowDialogWindow = ShowDialogWindow;
     window.playSound = playSound;
     window.setTheme = setTheme;
+    window.System.themeManager = themeManager;
+    window.System.cursorManager = cursorManager;
     window.fs = fs;
     window.mounts = mounts;
     window.RecycleBinManager = RecycleBinManager;

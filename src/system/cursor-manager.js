@@ -5,7 +5,22 @@ import { isZenFSPath, getZenFSFileUrl } from './zenfs-utils.js';
 
 const styleMap = new Map();
 
+function ensureGlobalStyles() {
+  if (typeof document === "undefined" || !document.head) return;
+  if (document.getElementById("global-cursor-styles")) return;
+  const style = document.createElement("style");
+  style.id = "global-cursor-styles";
+  style.innerText = `
+    .cursor-busy { cursor: var(--cursor-wait, wait); }
+    .cursor-busy * { cursor: inherit !important; }
+    .cursor-wait { cursor: var(--cursor-progress, progress); }
+    .cursor-wait * { cursor: inherit !important; }
+  `;
+  document.head.appendChild(style);
+}
+
 export async function applyAniCursorTheme(theme, cursorType) {
+  ensureGlobalStyles();
   // `cursorType` directly corresponds to the key in the cursors object (e.g., 'busy', 'wait')
   let cursorUrl = null;
   const activeTheme = getActiveTheme();
@@ -17,7 +32,9 @@ export async function applyAniCursorTheme(theme, cursorType) {
       wait: "WorkingInBackground",
     };
     const role = typeToRole[cursorType] || cursorType;
-    cursorUrl = activeTheme.cursors[role];
+    const cursorEntry = activeTheme.cursors[role];
+    cursorUrl = typeof cursorEntry === "string" ? cursorEntry : cursorEntry?.path;
+
     if (cursorUrl && isZenFSPath(cursorUrl)) {
       cursorUrl = await getZenFSFileUrl(cursorUrl);
     }
@@ -51,9 +68,12 @@ export async function applyAniCursorTheme(theme, cursorType) {
     }
 
     let css = convertAniBinaryToCSS(`.cursor-${cursorType}`, data);
-    // Force the animated cursor to take precedence over any other cursor declarations
-    // by adding !important to all cursor properties in the generated CSS.
-    css = css.replace(/cursor:[^;!]+;/g, (match) => match.replace(";", " !important;"));
+    // The ani-cursor library adds :hover to the selector by default.
+    // We want the cursor to apply as long as the class is present.
+    css = css.replace(/:hover/g, "");
+    // Some browsers don't support the x-win-bitmap mime type for cursors.
+    // image/x-icon is more widely supported for CUR/ICO data.
+    css = css.replace(/data:image\/x-win-bitmap/g, "data:image/x-icon");
     style.innerText = css;
     styleMap.set(`.cursor-${cursorType}`, style);
   } catch (error) {
@@ -77,8 +97,8 @@ export function clearAniCursor() {
  * @param {HTMLElement} [element=document.body] - The element to apply the cursor to.
  */
 export function applyBusyCursor(element = document.body) {
+  ensureGlobalStyles();
   element.classList.add("cursor-busy");
-  element.style.cursor = "var(--cursor-wait, wait)";
 }
 
 /**
@@ -90,12 +110,6 @@ export function clearBusyCursor(element = document.body) {
   // ensuring the browser has time to render the change.
   setTimeout(() => {
     element.classList.remove("cursor-busy");
-    // Revert to the default cursor for the body, or let other elements inherit.
-    if (element === document.body) {
-      element.style.cursor = "var(--cursor-default, default)";
-    } else {
-      element.style.cursor = "";
-    }
   }, 50);
 }
 
@@ -104,8 +118,8 @@ export function clearBusyCursor(element = document.body) {
  * @param {HTMLElement} [element=document.body] - The element to apply the cursor to.
  */
 export function applyWaitCursor(element = document.body) {
+  ensureGlobalStyles();
   element.classList.add("cursor-wait");
-  element.style.cursor = "var(--cursor-progress, progress)";
 }
 
 /**
@@ -115,11 +129,6 @@ export function applyWaitCursor(element = document.body) {
 export function clearWaitCursor(element = document.body) {
   setTimeout(() => {
     element.classList.remove("cursor-wait");
-    if (element === document.body) {
-      element.style.cursor = "var(--cursor-default, default)";
-    } else {
-      element.style.cursor = "";
-    }
   }, 50);
 }
 
@@ -167,10 +176,11 @@ export async function applyCursorTheme() {
   if (!themeConfig) themeConfig = getCursorThemes(themeId);
   if (!themeConfig) themeConfig = getCursorThemes("default");
 
+  clearAniCursor();
   if (themeConfig) {
     for (const [property, config] of Object.entries(themeConfig)) {
       if (config.animated) {
-        applyAniCursorTheme(themeId, config.type);
+        await applyAniCursorTheme(themeId, config.type);
       } else {
         root.style.setProperty(property, config.value);
       }

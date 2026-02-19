@@ -126,7 +126,13 @@ export function getActiveThemeId() {
 export function getActiveTheme() {
   const allThemes = getThemes();
   const activeId = getActiveThemeId();
-  return allThemes[activeId] || themes.default;
+  const theme = allThemes[activeId];
+  if (theme) return theme;
+
+  // If it's a ZenFS theme that hasn't been discovered yet, we might need to trigger discovery
+  // But discovery is async and this function is sync.
+  // We'll return default for now but apps should call loadThemesFromZenFS on start.
+  return themes.default;
 }
 
 // --- Individual Scheme Getters with Overrides ---
