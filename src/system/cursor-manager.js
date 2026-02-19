@@ -1,13 +1,32 @@
 import { convertAniBinaryToCSS } from "ani-cursor";
-import { cursors, getCursorThemes } from '../config/cursors.js';
-import { getCursorSchemeId } from './theme-manager.js';
+import { cursors, getCursorThemes, CursorScheme } from '../config/cursors.js';
+import { getCursorSchemeId, getActiveTheme } from './theme-manager.js';
+import { isZenFSPath, getZenFSFileUrl } from './zenfs-utils.js';
 
 const styleMap = new Map();
 
 export async function applyAniCursorTheme(theme, cursorType) {
   // `cursorType` directly corresponds to the key in the cursors object (e.g., 'busy', 'wait')
-  const scheme = cursors[theme] || cursors.default;
-  const cursorUrl = scheme?.getCursor(cursorType);
+  let cursorUrl = null;
+  const activeTheme = getActiveTheme();
+
+  if (activeTheme?.id === theme && activeTheme?.isZenFS && activeTheme.cursors) {
+    // Map internal types to Windows role names
+    const typeToRole = {
+      busy: "Busy",
+      wait: "WorkingInBackground",
+    };
+    const role = typeToRole[cursorType] || cursorType;
+    cursorUrl = activeTheme.cursors[role];
+    if (cursorUrl && isZenFSPath(cursorUrl)) {
+      cursorUrl = await getZenFSFileUrl(cursorUrl);
+    }
+  }
+
+  if (!cursorUrl) {
+    const scheme = cursors[theme] || cursors.default;
+    cursorUrl = scheme?.getCursor(cursorType);
+  }
 
   if (!cursorUrl) {
     console.warn(
@@ -18,6 +37,7 @@ export async function applyAniCursorTheme(theme, cursorType) {
 
   try {
     const response = await fetch(cursorUrl);
+    if (!response.ok) throw new Error(`Failed to fetch cursor: ${response.statusText}`);
     const data = new Uint8Array(await response.arrayBuffer());
 
     // Use a unique ID for the style element to manage it easily
@@ -30,7 +50,11 @@ export async function applyAniCursorTheme(theme, cursorType) {
       document.head.appendChild(style);
     }
 
-    style.innerText = convertAniBinaryToCSS(`.cursor-${cursorType}`, data);
+    let css = convertAniBinaryToCSS(`.cursor-${cursorType}`, data);
+    // Force the animated cursor to take precedence over any other cursor declarations
+    // by adding !important to all cursor properties in the generated CSS.
+    css = css.replace(/cursor:[^;!]+;/g, (match) => match.replace(";", " !important;"));
+    style.innerText = css;
     styleMap.set(`.cursor-${cursorType}`, style);
   } catch (error) {
     console.error("Failed to apply animated cursor:", error);
@@ -99,10 +123,48 @@ export function clearWaitCursor(element = document.body) {
   }, 50);
 }
 
-export function applyCursorTheme() {
+export async function applyCursorTheme() {
   const themeId = getCursorSchemeId();
   const root = document.documentElement;
-  let themeConfig = getCursorThemes(themeId);
+  const activeTheme = getActiveTheme();
+
+  let themeConfig = null;
+
+  if (activeTheme?.id === themeId && activeTheme?.isZenFS && activeTheme.cursors) {
+    // Create a dynamic CursorScheme from ZenFS cursors
+    const mappedCursors = {
+      arrow: activeTheme.cursors["Arrow"],
+      beam: activeTheme.cursors["IBeam"],
+      busy: activeTheme.cursors["Busy"],
+      wait: activeTheme.cursors["WorkingInBackground"],
+      help: activeTheme.cursors["Help"],
+      move: activeTheme.cursors["SizeAll"],
+      no: activeTheme.cursors["No"],
+      cross: activeTheme.cursors["Crosshair"],
+      sizeNESW: activeTheme.cursors["SizeNESW"],
+      sizeNS: activeTheme.cursors["SizeNS"],
+      sizeNWSE: activeTheme.cursors["SizeNWSE"],
+      sizeWE: activeTheme.cursors["SizeWE"],
+      pen: activeTheme.cursors["Handwriting"],
+      up: activeTheme.cursors["UpArrow"],
+      hand: activeTheme.cursors["Hand"],
+    };
+
+    // Resolve ZenFS paths to URLs and preserve animation state
+    for (const key in mappedCursors) {
+      const originalPath = mappedCursors[key];
+      if (originalPath && isZenFSPath(originalPath)) {
+        const url = await getZenFSFileUrl(originalPath);
+        const animated = originalPath.toLowerCase().endsWith(".ani");
+        mappedCursors[key] = { path: url, animated };
+      }
+    }
+
+    const scheme = new CursorScheme(themeId, mappedCursors);
+    themeConfig = scheme.getCSSVariables();
+  }
+
+  if (!themeConfig) themeConfig = getCursorThemes(themeId);
   if (!themeConfig) themeConfig = getCursorThemes("default");
 
   if (themeConfig) {

@@ -229,9 +229,9 @@ export class ZenExplorerApp extends Application {
             const vPath = vItem.target && !vItem.target.startsWith("launch:") ? vItem.target : joinPath("/Desktop", vItem.name);
             let iconObj = vItem.icon;
             if (!iconObj) {
-              if (vItem.name === "My Computer") iconObj = getThemedIconObj("computer");
-              else if (vItem.name === "Recycle Bin") iconObj = getThemedIconObj("recycle", await RecycleBinManager.isEmpty("/Recycle Bin"));
-              else if (vItem.name === "Network Neighborhood") iconObj = getThemedIconObj("network");
+              if (vItem.name === "My Computer") iconObj = await getThemedIconObj("computer");
+              else if (vItem.name === "Recycle Bin") iconObj = await getThemedIconObj("recycle", await RecycleBinManager.isEmpty("/Recycle Bin"));
+              else if (vItem.name === "Network Neighborhood") iconObj = await getThemedIconObj("network");
             }
             if (!iconObj) iconObj = ICONS.folder;
 

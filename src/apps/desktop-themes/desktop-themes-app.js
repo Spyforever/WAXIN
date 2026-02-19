@@ -6,6 +6,7 @@ import { fs } from '@zenfs/core';
 import {
   getThemes,
   setTheme,
+  loadThemesFromZenFS,
   saveCustomTheme,
   deleteCustomTheme,
   getCurrentTheme,
@@ -14,6 +15,7 @@ import {
   getActiveTheme,
   getIconSchemeName,
   getColorSchemes,
+  parseZenFSTheme,
 } from '../../system/theme-manager.js';
 import {
   fetchThemeCss,
@@ -254,17 +256,19 @@ export class DesktopThemesApp extends Application {
     applyButton.textContent = "Apply";
     actionsContainer.appendChild(applyButton);
 
-    const applyCurrentTheme = () => {
+    const applyCurrentTheme = async () => {
       if (this.themeSelector.value === "current-settings") {
-        this.applyCustomTheme();
+        await this.applyCustomTheme();
       } else {
-        setTheme(this.themeSelector.value);
+        await setTheme(this.themeSelector.value);
       }
     };
 
-    applyButton.addEventListener("click", applyCurrentTheme);
-    okButton.addEventListener("click", () => {
-      applyCurrentTheme();
+    applyButton.addEventListener("click", async () => {
+      await applyCurrentTheme();
+    });
+    okButton.addEventListener("click", async () => {
+      await applyCurrentTheme();
       win.close();
     });
     cancelButton.addEventListener("click", () => win.close());
@@ -332,7 +336,7 @@ export class DesktopThemesApp extends Application {
       try {
         await loadThemeParser();
         const colorsObj = window.getColorsFromThemeFile(themeContent);
-        const wallpaper = window.getWallpaperFromThemeFile(themeContent);
+        const wallpaper = await window.getWallpaperFromThemeFile(themeContent);
         if (colorsObj) {
           const cssProperties = window.generateThemePropertiesFromColors(colorsObj);
           this.customThemeProperties = {
@@ -515,15 +519,10 @@ export class DesktopThemesApp extends Application {
 
       // For ZenFS themes, we might need to parse them to see if they have a screensaver
       if (selectedTheme?.isZenFS && !selectedTheme.colors) {
-        const content = await fs.promises.readFile(selectedTheme.path, "utf8");
-        const themeDir = selectedTheme.path.substring(0, selectedTheme.path.lastIndexOf("/"));
-        await loadThemeParser();
-        selectedTheme.colors = window.getColorsFromThemeFile(content);
-        selectedTheme.desktopConfig = window.getDesktopConfigFromThemeFile(content, themeDir);
-        selectedTheme.icons = window.getIconsFromThemeFile(content, themeDir);
+        await parseZenFSTheme(selectedTheme);
       }
 
-      this.screenSaverButton.disabled = !(selectedTheme?.screensaver || selectedTheme?.desktopConfig?.screenSaveActive);
+      this.screenSaverButton.disabled = !(selectedTheme?.screensaver || selectedTheme?.desktopConfig?.screenSaveActive === "1");
 
       if (selectedValue === "current-settings") {
         const normalizedProperties = {};
@@ -566,6 +565,7 @@ export class DesktopThemesApp extends Application {
 
     this.addTemporaryThemeOption();
 
+    await loadThemesFromZenFS();
     const themes = getThemes();
     const sortedThemes = Object.entries(themes).sort(([, a], [, b]) =>
       a.name.localeCompare(b.name),
@@ -626,12 +626,7 @@ export class DesktopThemesApp extends Application {
 
     if (theme.isZenFS) {
       if (!theme.colors) {
-        const content = await fs.promises.readFile(theme.path, "utf8");
-        const themeDir = theme.path.substring(0, theme.path.lastIndexOf("/"));
-        await loadThemeParser();
-        theme.colors = window.getColorsFromThemeFile(content);
-        theme.desktopConfig = window.getDesktopConfigFromThemeFile(content, themeDir);
-        theme.icons = window.getIconsFromThemeFile(content, themeDir);
+        await parseZenFSTheme(theme);
       }
 
       // Preview ZenFS theme

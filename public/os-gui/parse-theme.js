@@ -41,17 +41,44 @@ function parseINIString(data) {
  * Resolves Windows-style paths to ZenFS paths.
  * @param {string} path
  * @param {string} themeDir
- * @returns {string}
+ * @returns {Promise<string>}
  */
-function resolveThemePath(path, themeDir) {
+async function resolveThemePath(path, themeDir) {
   if (!path) return "";
   let resolved = path.replace(/\\/g, "/");
-  resolved = resolved.replace(/%ThemeDir%/gi, themeDir);
-  resolved = resolved.replace(/%WinDir%/gi, "/C:/WINDOWS");
-  // Some themes might use C:\WINDOWS directly
+
+  // Ensure themeDir does not have a trailing slash for consistent manipulation
+  const cleanThemeDir = themeDir.replace(/\/+$/, "");
+
+  if (resolved.toLowerCase().includes("%themedir%")) {
+    resolved = resolved.replace(/%themedir%/gi, cleanThemeDir + "/");
+  } else if (
+    !resolved.match(/^[a-zA-Z]:\//) &&
+    !resolved.startsWith("/") &&
+    !resolved.startsWith("%")
+  ) {
+    // It's a relative path, prepend themeDir
+    resolved = cleanThemeDir + "/" + resolved;
+  }
+
+  resolved = resolved.replace(/%WinDir%/gi, "/C:/WINDOWS/");
+
+  // Convert C:/... to /C:/...
   if (resolved.match(/^[a-zA-Z]:\//)) {
     resolved = "/" + resolved;
   }
+
+  // Normalize slashes: replace multiple slashes with one, but avoid mashing /C:/
+  resolved = resolved.replace(/\/+/g, "/");
+
+  // Attempt case-insensitive resolution if available
+  if (window.resolveCaseInsensitivePath) {
+    const caseResolved = await window.resolveCaseInsensitivePath(resolved);
+    if (caseResolved) {
+      return caseResolved;
+    }
+  }
+
   return resolved;
 }
 
@@ -584,9 +611,9 @@ function getColorsFromThemeFile(themeIni) {
 /**
  * @param {string} themeIni
  * @param {string} themeDir
- * @returns {Record<string, any> | undefined}
+ * @returns {Promise<Record<string, any> | undefined>}
  */
-function getIconsFromThemeFile(themeIni, themeDir) {
+async function getIconsFromThemeFile(themeIni, themeDir) {
   const theme = parseINIString(themeIni);
   const icons = {};
 
@@ -602,16 +629,16 @@ function getIconsFromThemeFile(themeIni, themeDir) {
     if (section && typeof section === "object") {
       if (key === "recycleBin") {
         if (section["full"]) {
-          icons.recycleBinFull = resolveThemePath(section["full"].split(",")[0], themeDir);
+          icons.recycleBinFull = await resolveThemePath(section["full"].split(",")[0], themeDir);
         }
         if (section["empty"]) {
-          icons.recycleBinEmpty = resolveThemePath(section["empty"].split(",")[0], themeDir);
+          icons.recycleBinEmpty = await resolveThemePath(section["empty"].split(",")[0], themeDir);
         }
       } else {
         // For My Computer and Network, DefaultValue is often the first key
         const path = section["DefaultValue"] || Object.values(section)[0];
         if (path) {
-          icons[key] = resolveThemePath(path.split(",")[0], themeDir);
+          icons[key] = await resolveThemePath(path.split(",")[0], themeDir);
         }
       }
     }
@@ -623,9 +650,9 @@ function getIconsFromThemeFile(themeIni, themeDir) {
 /**
  * @param {string} themeIni
  * @param {string} themeDir
- * @returns {Record<string, string> | undefined}
+ * @returns {Promise<Record<string, string> | undefined>}
  */
-function getCursorsFromThemeFile(themeIni, themeDir) {
+async function getCursorsFromThemeFile(themeIni, themeDir) {
   const theme = parseINIString(themeIni);
   const cursorSection = theme["Control Panel\\Cursors"];
   if (!cursorSection || typeof cursorSection !== "object") {
@@ -635,7 +662,7 @@ function getCursorsFromThemeFile(themeIni, themeDir) {
   const cursors = {};
   for (const [role, path] of Object.entries(cursorSection)) {
     if (path && role !== "DefaultValue") {
-      cursors[role] = resolveThemePath(path, themeDir);
+      cursors[role] = await resolveThemePath(path, themeDir);
     }
   }
   return Object.keys(cursors).length > 0 ? cursors : undefined;
@@ -644,9 +671,9 @@ function getCursorsFromThemeFile(themeIni, themeDir) {
 /**
  * @param {string} themeIni
  * @param {string} themeDir
- * @returns {Record<string, any> | undefined}
+ * @returns {Promise<Record<string, any> | undefined>}
  */
-function getDesktopConfigFromThemeFile(themeIni, themeDir) {
+async function getDesktopConfigFromThemeFile(themeIni, themeDir) {
   const theme = parseINIString(themeIni);
   const desktopSection = theme["Control Panel\\Desktop"];
   if (!desktopSection || typeof desktopSection !== "object") {
@@ -654,7 +681,7 @@ function getDesktopConfigFromThemeFile(themeIni, themeDir) {
   }
 
   return {
-    wallpaper: resolveThemePath(desktopSection["Wallpaper"], themeDir),
+    wallpaper: await resolveThemePath(desktopSection["Wallpaper"], themeDir),
     tileWallpaper: desktopSection["TileWallpaper"],
     wallpaperStyle: desktopSection["WallpaperStyle"],
     pattern: desktopSection["Pattern"],
@@ -665,9 +692,9 @@ function getDesktopConfigFromThemeFile(themeIni, themeDir) {
 /**
  * @param {string} themeIni
  * @param {string} themeDir
- * @returns {Record<string, any> | undefined}
+ * @returns {Promise<Record<string, any> | undefined>}
  */
-function getSoundsFromThemeFile(themeIni, themeDir) {
+async function getSoundsFromThemeFile(themeIni, themeDir) {
   const theme = parseINIString(themeIni);
   const sounds = {};
 
@@ -686,7 +713,7 @@ function getSoundsFromThemeFile(themeIni, themeDir) {
           const path = theme[sectionName]["DefaultValue"] || Object.values(theme[sectionName])[0];
           if (path) {
             if (!sounds[app]) sounds[app] = {};
-            sounds[app][event] = resolveThemePath(path, themeDir);
+            sounds[app][event] = await resolveThemePath(path, themeDir);
           }
         }
       }
@@ -698,10 +725,10 @@ function getSoundsFromThemeFile(themeIni, themeDir) {
 
 /**
  * @param {string} themeIni
- * @returns {string | undefined}
+ * @returns {Promise<string | undefined>}
  */
-function getWallpaperFromThemeFile(themeIni) {
-  const config = getDesktopConfigFromThemeFile(themeIni, "");
+async function getWallpaperFromThemeFile(themeIni) {
+  const config = await getDesktopConfigFromThemeFile(themeIni, "");
   if (config && config.wallpaper) {
     return config.wallpaper.split("/").pop();
   }
@@ -722,7 +749,8 @@ function generateThemePropertiesFromColors(colors) {
     }
   } else {
     for (const [name, value] of Object.entries(colors)) {
-      cssProperties[`--${name}`] = value;
+      const key = name.startsWith("--") ? name : `--${name}`;
+      cssProperties[key] = value;
     }
   }
 
@@ -807,7 +835,8 @@ function makeThemeCSSFile(cssProperties) {
 :root {
 `;
   for (var k in cssProperties) {
-    css += `\t${k}: ${cssProperties[k]};\n`;
+    const key = k.startsWith("--") ? k : `--${k}`;
+    css += `\t${key}: ${cssProperties[k]};\n`;
   }
   css += `}
 `;
@@ -866,3 +895,4 @@ window.generateThemePropertiesFromColors = generateThemePropertiesFromColors;
 window.parseThemeFileString = parseThemeFileString;
 window.applyCSSProperties = applyCSSProperties;
 window.makeThemeCSSFile = makeThemeCSSFile;
+window.__THEME_PARSER_VERSION__ = 4;

@@ -5,7 +5,7 @@ import {
   LOCAL_STORAGE_KEYS,
 } from './local-storage.js';
 import { fs } from "@zenfs/core";
-import { existsAsync } from "./zenfs-utils.js";
+import { existsAsync, resolveCaseInsensitivePath } from "./zenfs-utils.js";
 import { themes } from '../config/themes.js';
 import { colorSchemes } from '../config/color-schemes.js';
 import { applyCursorTheme } from './cursor-manager.js';
@@ -23,11 +23,12 @@ let zenFSThemes = {};
 export function loadThemeParser() {
   if (!parserPromise) {
     parserPromise = new Promise((resolve, reject) => {
-      if (window.makeThemeCSSFile) {
+      // Check for a version marker to ensure we have the updated parser
+      if (window.__THEME_PARSER_VERSION__ >= 4) {
         return resolve();
       }
       const script = document.createElement("script");
-      script.src = "./os-gui/parse-theme.js";
+      script.src = "./os-gui/parse-theme.js?v=" + Date.now();
       script.onload = resolve;
       script.onerror = () => {
         parserPromise = null; // Reset on error
@@ -58,30 +59,47 @@ export function deleteCustomTheme(themeId) {
 }
 
 export async function loadThemesFromZenFS() {
-  const themesPath = "/C:/Program Files/Plus!/Themes";
+  const themesPathRequested = "/C:/Program Files/Plus!/Themes";
   try {
     await loadThemeParser();
 
-    if (!(await existsAsync(themesPath))) {
+    const themesPath = await resolveCaseInsensitivePath(themesPathRequested);
+    if (!themesPath || !(await existsAsync(themesPath))) {
+      console.warn("Themes directory not found:", themesPathRequested);
       return {};
     }
     const files = await fs.promises.readdir(themesPath);
     const themeFiles = files.filter((f) => f.toLowerCase().endsWith(".theme"));
 
-    const loadedThemes = {};
-    for (const file of themeFiles) {
-      const fullPath = `${themesPath}/${file}`;
-      const themeId = `zenfs-${file.toLowerCase().replace(/\.theme$/i, "")}`;
+    if (themeFiles.length > 0) {
+      const foundIds = new Set();
+      for (const file of themeFiles) {
+        const fullPath = `${themesPath}/${file}`;
+        const themeId = `zenfs-${file.toLowerCase().replace(/\.theme$/i, "")}`;
+        foundIds.add(themeId);
 
-      // Basic info for the list. We'll parse fully on selection/application.
-      loadedThemes[themeId] = {
-        id: themeId,
-        name: file.replace(/\.theme$/i, ""),
-        path: fullPath,
-        isZenFS: true,
-      };
+        if (!zenFSThemes[themeId]) {
+          // Basic info for the list. We'll parse fully on selection/application.
+          zenFSThemes[themeId] = {
+            id: themeId,
+            name: file.replace(/\.theme$/i, ""),
+            path: fullPath,
+            isZenFS: true,
+          };
+        } else {
+          // Update path in case it changed (e.g. parent folder casing changed)
+          zenFSThemes[themeId].path = fullPath;
+        }
+      }
+
+      // Remove themes that no longer exist, but keep 'custom'
+      for (const id in zenFSThemes) {
+        if (id !== "custom" && id.startsWith("zenfs-") && !foundIds.has(id)) {
+          delete zenFSThemes[id];
+        }
+      }
     }
-    zenFSThemes = loadedThemes;
+
     return zenFSThemes;
   } catch (error) {
     console.error("Failed to load themes from ZenFS:", error);
@@ -175,7 +193,7 @@ export async function applyTheme() {
   removeStylesheet("custom"); // For temporary themes
 
   // --- Application Phase ---
-  applyCursorTheme(cursorSchemeId);
+  await applyCursorTheme(cursorSchemeId);
 
   // Handle built-in color schemes
   if (colorScheme && colorScheme.loader) {
@@ -198,9 +216,9 @@ export async function applyTheme() {
       const content = await fs.promises.readFile(customThemeForColors.path, "utf8");
       const themeDir = customThemeForColors.path.substring(0, customThemeForColors.path.lastIndexOf("/"));
       await loadThemeParser();
-      customThemeForColors.colors = window.getColorsFromThemeFile(content);
-      customThemeForColors.desktopConfig = window.getDesktopConfigFromThemeFile(content, themeDir);
-      // ... we might need more here but colors is enough for applyStylesheet below
+      const colorsRaw = window.getColorsFromThemeFile(content);
+      customThemeForColors.colors = window.generateThemePropertiesFromColors(colorsRaw);
+      customThemeForColors.desktopConfig = await window.getDesktopConfigFromThemeFile(content, themeDir);
     }
 
     if (customThemeForColors.colors) {
@@ -278,6 +296,40 @@ export async function applyCustomColorScheme(colorObject) {
   }
 }
 
+export async function parseZenFSTheme(theme) {
+  if (!theme.isZenFS || theme.colors) return theme;
+
+  const content = await fs.promises.readFile(theme.path, "utf8");
+  const themeDir = theme.path.substring(0, theme.path.lastIndexOf("/"));
+  await loadThemeParser();
+
+  const colorsRaw = window.getColorsFromThemeFile(content);
+  const colors = window.generateThemePropertiesFromColors(colorsRaw);
+  const icons = await window.getIconsFromThemeFile(content, themeDir);
+  const cursors = await window.getCursorsFromThemeFile(content, themeDir);
+  const desktop = await window.getDesktopConfigFromThemeFile(content, themeDir);
+  const sounds = await window.getSoundsFromThemeFile(content, themeDir);
+
+  const parsedTheme = {
+    ...theme,
+    colors,
+    icons,
+    cursors,
+    wallpaper: desktop?.wallpaper,
+    desktopConfig: desktop,
+    sounds,
+    iconScheme: theme.id,
+    soundScheme: theme.id,
+  };
+
+  // Update cache
+  if (theme.id && zenFSThemes[theme.id]) {
+    zenFSThemes[theme.id] = parsedTheme;
+  }
+
+  return parsedTheme;
+}
+
 export async function setTheme(themeKey, themeData = null) {
   const setThemeId = `set-theme-${Date.now()}`;
   requestBusyState(setThemeId, document.body);
@@ -290,32 +342,17 @@ export async function setTheme(themeKey, themeData = null) {
       return;
     }
 
-    if (newTheme.isZenFS && !newTheme.colors) {
-      // Parse the theme if it's from ZenFS and not yet parsed
-      const content = await fs.promises.readFile(newTheme.path, "utf8");
-      const themeDir = newTheme.path.substring(0, newTheme.path.lastIndexOf("/"));
-      await loadThemeParser();
-
-      const colors = window.getColorsFromThemeFile(content);
-      const icons = window.getIconsFromThemeFile(content, themeDir);
-      const cursors = window.getCursorsFromThemeFile(content, themeDir);
-      const desktop = window.getDesktopConfigFromThemeFile(content, themeDir);
-      const sounds = window.getSoundsFromThemeFile(content, themeDir);
-
-      newTheme = {
-        ...newTheme,
-        colors,
-        icons,
-        cursors,
-        wallpaper: desktop?.wallpaper,
-        desktopConfig: desktop,
-        sounds,
-        iconScheme: themeKey, // Use themeId as scheme name for dynamic themes
-        soundScheme: themeKey,
+    if (themeKey === "custom" && themeData) {
+      // Temporary theme, cache it so applyTheme can find it
+      zenFSThemes["custom"] = {
+        ...themeData,
+        id: "custom",
+        isCustom: true
       };
+    }
 
-      // Update the cache
-      zenFSThemes[themeKey] = newTheme;
+    if (newTheme.isZenFS) {
+      newTheme = await parseZenFSTheme(newTheme);
     }
 
     // Set the master theme key
@@ -323,8 +360,8 @@ export async function setTheme(themeKey, themeData = null) {
 
     // Set individual components, clearing any previous overrides
     setItem(LOCAL_STORAGE_KEYS.COLOR_SCHEME, themeKey);
-    setItem(LOCAL_STORAGE_KEYS.SOUND_SCHEME, newTheme.soundScheme || "Default");
-    setItem(LOCAL_STORAGE_KEYS.ICON_SCHEME, newTheme.iconScheme || "default");
+    setItem(LOCAL_STORAGE_KEYS.SOUND_SCHEME, newTheme.soundScheme || (newTheme.isZenFS ? themeKey : "Default"));
+    setItem(LOCAL_STORAGE_KEYS.ICON_SCHEME, newTheme.iconScheme || (newTheme.isZenFS ? themeKey : "default"));
     setItem(LOCAL_STORAGE_KEYS.CURSOR_SCHEME, themeKey);
 
     if (newTheme.wallpaper) {

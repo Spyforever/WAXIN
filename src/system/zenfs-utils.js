@@ -109,6 +109,57 @@ export async function existsAsync(path) {
 }
 
 /**
+ * Resolves a path case-insensitively.
+ * @param {string} path
+ * @returns {Promise<string|null>} The actual case-sensitive path on disk, or null if not found.
+ */
+export async function resolveCaseInsensitivePath(path) {
+  if (!path) return null;
+
+  // Normalize path first
+  const normalized = path.replace(/\\/g, "/").replace(/\/+/g, "/");
+  const parts = normalized.split("/").filter(Boolean);
+  let current = normalized.startsWith("/") ? "/" : "";
+
+  for (const part of parts) {
+    try {
+      const dirToRead = current || "/";
+      const files = await fs.promises.readdir(dirToRead);
+
+      // Some ZenFS backends might return empty for some reasons or readdir might behave differently
+      // Try to find the part case-insensitively
+      const found = files.find((f) => {
+        // Handle potential full paths returned by readdir (though unlikely)
+        const name = f.split("/").pop();
+        return name.toLowerCase() === part.toLowerCase();
+      });
+
+      if (!found) {
+        // Fallback: check if the part actually exists exactly as-is
+        try {
+          const checkPath = current === "/" ? `/${part}` : `${current}/${part}`;
+          await fs.promises.stat(checkPath);
+          current = checkPath;
+          continue;
+        } catch (e) {
+           return null;
+        }
+      }
+
+      const foundName = found.split("/").pop();
+      current = current === "/" ? `/${foundName}` : `${current}/${foundName}`;
+    } catch (e) {
+      console.warn(`[resolveCaseInsensitivePath] Error at ${current} for part ${part}:`, e);
+      return null;
+    }
+  }
+
+  return current;
+}
+
+window.resolveCaseInsensitivePath = resolveCaseInsensitivePath;
+
+/**
  * Adds a shortcut to the desktop (/C:/WINDOWS/Desktop).
  * @param {string} appId The ID of the app to add.
  * @param {string} appTitle The title of the shortcut.

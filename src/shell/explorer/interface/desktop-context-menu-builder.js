@@ -164,8 +164,8 @@ export class DesktopContextMenuBuilder extends ContextMenuBuilder {
               value: theme.id,
             })),
             getValue: () => getCurrentTheme(),
-            setValue: (value) => {
-              setTheme(value);
+            setValue: async (value) => {
+              await setTheme(value);
             },
             ariaLabel: "Desktop Theme",
           },
