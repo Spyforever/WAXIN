@@ -25,14 +25,20 @@ export async function applyAniCursorTheme(theme, cursorType) {
   let cursorUrl = null;
   const activeTheme = getActiveTheme();
 
-  if (activeTheme?.id === theme && activeTheme?.isZenFS && activeTheme.cursors) {
+  if (activeTheme?.id === theme && (activeTheme?.isZenFS || activeTheme?.id === "custom") && activeTheme.cursors) {
     // Map internal types to Windows role names
     const typeToRole = {
-      busy: "Busy",
-      wait: "WorkingInBackground",
+      busy: ["Wait", "Busy"],
+      wait: ["AppStarting", "WorkingInBackground"],
     };
-    const role = typeToRole[cursorType] || cursorType;
-    const cursorEntry = activeTheme.cursors[role];
+    const roles = typeToRole[cursorType] || [cursorType];
+    let cursorEntry = null;
+    for (const r of roles) {
+      if (activeTheme.cursors[r]) {
+        cursorEntry = activeTheme.cursors[r];
+        break;
+      }
+    }
     cursorUrl = typeof cursorEntry === "string" ? cursorEntry : cursorEntry?.path;
 
     if (cursorUrl && isZenFSPath(cursorUrl)) {
@@ -139,13 +145,13 @@ export async function applyCursorTheme() {
 
   let themeConfig = null;
 
-  if (activeTheme?.id === themeId && activeTheme?.isZenFS && activeTheme.cursors) {
-    // Create a dynamic CursorScheme from ZenFS cursors
+  if (activeTheme?.id === themeId && (activeTheme?.isZenFS || activeTheme?.id === "custom") && activeTheme.cursors) {
+    // Create a dynamic CursorScheme from ZenFS/Custom cursors
     const mappedCursors = {
       arrow: activeTheme.cursors["Arrow"],
       beam: activeTheme.cursors["IBeam"],
-      busy: activeTheme.cursors["Busy"],
-      wait: activeTheme.cursors["WorkingInBackground"],
+      busy: activeTheme.cursors["Wait"] || activeTheme.cursors["Busy"],
+      wait: activeTheme.cursors["AppStarting"] || activeTheme.cursors["WorkingInBackground"],
       help: activeTheme.cursors["Help"],
       move: activeTheme.cursors["SizeAll"],
       no: activeTheme.cursors["No"],
@@ -154,18 +160,27 @@ export async function applyCursorTheme() {
       sizeNS: activeTheme.cursors["SizeNS"],
       sizeNWSE: activeTheme.cursors["SizeNWSE"],
       sizeWE: activeTheme.cursors["SizeWE"],
-      pen: activeTheme.cursors["Handwriting"],
+      pen: activeTheme.cursors["NWPen"] || activeTheme.cursors["Handwriting"],
       up: activeTheme.cursors["UpArrow"],
       hand: activeTheme.cursors["Hand"],
     };
 
-    // Resolve ZenFS paths to URLs and preserve animation state
+    // Resolve paths to URLs and preserve animation state
     for (const key in mappedCursors) {
       const originalPath = mappedCursors[key];
-      if (originalPath && isZenFSPath(originalPath)) {
-        const url = await getZenFSFileUrl(originalPath);
-        const animated = originalPath.toLowerCase().endsWith(".ani");
-        mappedCursors[key] = { path: url, animated };
+      if (originalPath && typeof originalPath === "string") {
+        const animated = originalPath.toLowerCase().split('?')[0].endsWith(".ani");
+        if (isZenFSPath(originalPath)) {
+          try {
+            const url = await getZenFSFileUrl(originalPath);
+            mappedCursors[key] = { path: url, animated };
+          } catch (e) {
+            console.warn(`Failed to resolve cursor path: ${originalPath}`, e);
+            mappedCursors[key] = null;
+          }
+        } else {
+          mappedCursors[key] = { path: originalPath, animated };
+        }
       }
     }
 

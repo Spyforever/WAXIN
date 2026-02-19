@@ -232,6 +232,10 @@ export class DesktopThemesApp extends Application {
       ...currentColors,
       wallpaper: currentWallpaper,
       iconScheme: currentIconScheme,
+      icons: activeTheme.icons,
+      cursors: activeTheme.cursors,
+      sounds: activeTheme.sounds,
+      desktopConfig: activeTheme.desktopConfig,
     };
 
     await this.populateThemes();
@@ -298,7 +302,7 @@ export class DesktopThemesApp extends Application {
     style.textContent = cssContent;
     document.head.appendChild(style);
 
-    const { wallpaper, ...colors } = this.customThemeProperties;
+    const { wallpaper, icons, cursors, sounds, desktopConfig, ...colors } = this.customThemeProperties;
     const customTheme = {
       ...baseTheme,
       id: "custom",
@@ -306,6 +310,10 @@ export class DesktopThemesApp extends Application {
       colorSchemeId: null,
       colors: colors,
       wallpaper: wallpaper,
+      icons,
+      cursors,
+      sounds,
+      desktopConfig,
     };
 
     setTheme("custom", customTheme);
@@ -337,11 +345,20 @@ export class DesktopThemesApp extends Application {
         await loadThemeParser();
         const colorsObj = window.getColorsFromThemeFile(themeContent);
         const wallpaper = await window.getWallpaperFromThemeFile(themeContent);
+        const icons = await window.getIconsFromThemeFile(themeContent, "");
+        const cursors = await window.getCursorsFromThemeFile(themeContent, "");
+        const sounds = await window.getSoundsFromThemeFile(themeContent, "");
+        const desktop = await window.getDesktopConfigFromThemeFile(themeContent, "");
+
         if (colorsObj) {
           const cssProperties = window.generateThemePropertiesFromColors(colorsObj);
           this.customThemeProperties = {
             ...cssProperties,
-            wallpaper: wallpaper,
+            wallpaper: wallpaper || desktop?.wallpaper,
+            icons,
+            cursors,
+            sounds,
+            desktopConfig: desktop,
           };
           this.addTemporaryThemeOption();
           this.themeSelector.value = "current-settings";
@@ -462,7 +479,7 @@ export class DesktopThemesApp extends Application {
     }
 
     const newThemeId = `custom-${finalName.toLowerCase().replace(/\s+/g, "-")}`;
-    const { wallpaper, ...colors } = this.customThemeProperties;
+    const { wallpaper, icons, cursors, sounds, desktopConfig, ...colors } = this.customThemeProperties;
     const newTheme = {
       ...themes.default,
       id: newThemeId,
@@ -470,6 +487,10 @@ export class DesktopThemesApp extends Application {
       colorSchemeId: null,
       colors: colors,
       wallpaper: wallpaper,
+      icons,
+      cursors,
+      sounds,
+      desktopConfig,
       isCustom: true,
     };
 
