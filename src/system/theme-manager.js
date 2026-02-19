@@ -191,13 +191,25 @@ export async function applyTheme() {
         applyStylesheet("default", cssModule.default);
       }
     }
-  } else if (customThemeForColors && customThemeForColors.colors) {
-    // It's a custom or temporary theme, so generate and apply its CSS.
-    await loadThemeParser();
-    if (window.makeThemeCSSFile) {
-      const cssContent = window.makeThemeCSSFile(customThemeForColors.colors);
-      const styleId = customThemeForColors.id === "custom" ? "custom" : customThemeForColors.id;
-      applyStylesheet(styleId, cssContent);
+  } else if (customThemeForColors) {
+    // It's a custom, temporary, or ZenFS theme.
+    if (customThemeForColors.isZenFS && !customThemeForColors.colors) {
+      // We need to parse it
+      const content = await fs.promises.readFile(customThemeForColors.path, "utf8");
+      const themeDir = customThemeForColors.path.substring(0, customThemeForColors.path.lastIndexOf("/"));
+      await loadThemeParser();
+      customThemeForColors.colors = window.getColorsFromThemeFile(content);
+      customThemeForColors.desktopConfig = window.getDesktopConfigFromThemeFile(content, themeDir);
+      // ... we might need more here but colors is enough for applyStylesheet below
+    }
+
+    if (customThemeForColors.colors) {
+      await loadThemeParser();
+      if (window.makeThemeCSSFile) {
+        const cssContent = window.makeThemeCSSFile(customThemeForColors.colors);
+        const styleId = customThemeForColors.id === "custom" ? "custom" : customThemeForColors.id;
+        applyStylesheet(styleId, cssContent);
+      }
     }
   } else {
     // Fallback for default or if nothing is found
@@ -266,16 +278,44 @@ export async function applyCustomColorScheme(colorObject) {
   }
 }
 
-export async function setTheme(themeKey) {
+export async function setTheme(themeKey, themeData = null) {
   const setThemeId = `set-theme-${Date.now()}`;
   requestBusyState(setThemeId, document.body);
   try {
     const allThemes = getThemes();
-    const newTheme = allThemes[themeKey];
+    let newTheme = themeData || allThemes[themeKey];
 
     if (!newTheme) {
       console.error(`Theme with key "${themeKey}" not found.`);
       return;
+    }
+
+    if (newTheme.isZenFS && !newTheme.colors) {
+      // Parse the theme if it's from ZenFS and not yet parsed
+      const content = await fs.promises.readFile(newTheme.path, "utf8");
+      const themeDir = newTheme.path.substring(0, newTheme.path.lastIndexOf("/"));
+      await loadThemeParser();
+
+      const colors = window.getColorsFromThemeFile(content);
+      const icons = window.getIconsFromThemeFile(content, themeDir);
+      const cursors = window.getCursorsFromThemeFile(content, themeDir);
+      const desktop = window.getDesktopConfigFromThemeFile(content, themeDir);
+      const sounds = window.getSoundsFromThemeFile(content, themeDir);
+
+      newTheme = {
+        ...newTheme,
+        colors,
+        icons,
+        cursors,
+        wallpaper: desktop?.wallpaper,
+        desktopConfig: desktop,
+        sounds,
+        iconScheme: themeKey, // Use themeId as scheme name for dynamic themes
+        soundScheme: themeKey,
+      };
+
+      // Update the cache
+      zenFSThemes[themeKey] = newTheme;
     }
 
     // Set the master theme key
@@ -283,8 +323,8 @@ export async function setTheme(themeKey) {
 
     // Set individual components, clearing any previous overrides
     setItem(LOCAL_STORAGE_KEYS.COLOR_SCHEME, themeKey);
-    setItem(LOCAL_STORAGE_KEYS.SOUND_SCHEME, newTheme.soundScheme);
-    setItem(LOCAL_STORAGE_KEYS.ICON_SCHEME, newTheme.iconScheme);
+    setItem(LOCAL_STORAGE_KEYS.SOUND_SCHEME, newTheme.soundScheme || "Default");
+    setItem(LOCAL_STORAGE_KEYS.ICON_SCHEME, newTheme.iconScheme || "default");
     setItem(LOCAL_STORAGE_KEYS.CURSOR_SCHEME, themeKey);
 
     if (newTheme.wallpaper) {
@@ -293,8 +333,17 @@ export async function setTheme(themeKey) {
       removeItem(LOCAL_STORAGE_KEYS.WALLPAPER);
     }
 
-    if (newTheme.screensaver) {
-      screensaverManager.setCurrentScreensaver(newTheme.screensaver);
+    if (newTheme.desktopConfig) {
+      const { tileWallpaper, wallpaperStyle } = newTheme.desktopConfig;
+      let mode = "tile";
+      if (tileWallpaper === "0") {
+        mode = wallpaperStyle === "2" ? "stretch" : "center";
+      }
+      setItem(LOCAL_STORAGE_KEYS.WALLPAPER_MODE, mode);
+    }
+
+    if (newTheme.screensaver || newTheme.desktopConfig?.screenSaveActive) {
+      screensaverManager.setCurrentScreensaver(newTheme.screensaver || "default");
     }
 
     await preloadThemeAssets(themeKey);

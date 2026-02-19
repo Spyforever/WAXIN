@@ -656,6 +656,7 @@ function getDesktopConfigFromThemeFile(themeIni, themeDir) {
   return {
     wallpaper: resolveThemePath(desktopSection["Wallpaper"], themeDir),
     tileWallpaper: desktopSection["TileWallpaper"],
+    wallpaperStyle: desktopSection["WallpaperStyle"],
     pattern: desktopSection["Pattern"],
     screenSaveActive: desktopSection["ScreenSaveActive"],
   };
