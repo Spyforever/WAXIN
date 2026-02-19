@@ -36,6 +36,9 @@ export async function getThemedIconObj(specialType, isEmpty = true) {
       case "network":
         iconPath = activeTheme.icons.networkNeighborhood;
         break;
+      case "documents":
+        iconPath = activeTheme.icons.myDocuments;
+        break;
     }
 
     if (iconPath) {
@@ -62,6 +65,8 @@ export async function getThemedIconObj(specialType, isEmpty = true) {
         : scheme.getIconObj("recycleBinFull") || ICONS.recycleBinFull;
     case "network":
       return scheme.getIconObj("networkNeighborhood") || ICONS.networkNeighborhood;
+    case "documents":
+      return scheme.getIconObj("myDocuments") || ICONS.folder;
     default:
       return null;
   }
@@ -201,7 +206,7 @@ export async function renderFileIcon(fileName, fullPath, isDir, options = {}) {
   }
   // Special handling for My Documents
   else if (fullPath === "/Desktop/My Documents") {
-    iconObj = ICONS.folder;
+    iconObj = await getThemedIconObj("documents");
   }
   // Special handling for Recycle Bin folder
   else if (RecycleBinManager.isRecycleBinPath(fullPath)) {

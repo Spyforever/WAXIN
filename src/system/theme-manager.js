@@ -126,7 +126,13 @@ export function getActiveThemeId() {
 export function getActiveTheme() {
   const allThemes = getThemes();
   const activeId = getActiveThemeId();
-  return allThemes[activeId] || themes.default;
+  const theme = allThemes[activeId];
+  if (theme) return theme;
+
+  // If it's a ZenFS theme that hasn't been discovered yet, we might need to trigger discovery
+  // But discovery is async and this function is sync.
+  // We'll return default for now but apps should call loadThemesFromZenFS on start.
+  return themes.default;
 }
 
 // --- Individual Scheme Getters with Overrides ---
@@ -212,13 +218,7 @@ export async function applyTheme() {
   } else if (customThemeForColors) {
     // It's a custom, temporary, or ZenFS theme.
     if (customThemeForColors.isZenFS && !customThemeForColors.colors) {
-      // We need to parse it
-      const content = await fs.promises.readFile(customThemeForColors.path, "utf8");
-      const themeDir = customThemeForColors.path.substring(0, customThemeForColors.path.lastIndexOf("/"));
-      await loadThemeParser();
-      const colorsRaw = window.getColorsFromThemeFile(content);
-      customThemeForColors.colors = window.generateThemePropertiesFromColors(colorsRaw);
-      customThemeForColors.desktopConfig = await window.getDesktopConfigFromThemeFile(content, themeDir);
+      await parseZenFSTheme(customThemeForColors);
     }
 
     if (customThemeForColors.colors) {
@@ -287,6 +287,17 @@ export async function applyCustomColorScheme(colorObject) {
       const cssContent = window.makeThemeCSSFile(colorObject);
       applyStylesheet("custom", cssContent);
     }
+
+    // Update the 'custom' theme object with the new colors
+    const allThemes = getThemes();
+    const currentCustom = allThemes["custom"] || allThemes["default"];
+    saveCustomTheme("custom", {
+      ...currentCustom,
+      id: "custom",
+      colors: colorObject,
+      isCustom: true,
+    });
+
     // Set a temporary key in localStorage so other parts of the system
     // know that a custom, non-saved theme is active.
     setItem(LOCAL_STORAGE_KEYS.COLOR_SCHEME, "custom");
@@ -303,7 +314,7 @@ export async function parseZenFSTheme(theme) {
   const themeDir = theme.path.substring(0, theme.path.lastIndexOf("/"));
   await loadThemeParser();
 
-  const colorsRaw = window.getColorsFromThemeFile(content);
+  const colorsRaw = window.getColorsFromThemeFile(content) || {};
   const colors = window.generateThemePropertiesFromColors(colorsRaw);
   const icons = await window.getIconsFromThemeFile(content, themeDir);
   const cursors = await window.getCursorsFromThemeFile(content, themeDir);
@@ -343,12 +354,12 @@ export async function setTheme(themeKey, themeData = null) {
     }
 
     if (themeKey === "custom" && themeData) {
-      // Temporary theme, cache it so applyTheme can find it
-      zenFSThemes["custom"] = {
+      // Persist the custom theme so it survives reload
+      saveCustomTheme("custom", {
         ...themeData,
         id: "custom",
         isCustom: true
-      };
+      });
     }
 
     if (newTheme.isZenFS) {
