@@ -218,6 +218,12 @@ export async function initializeOS() {
       let logElement = startBootProcessStep("Loading system themes...");
       try {
         await loadThemesFromZenFS();
+
+        const activeTheme = themeManager.getActiveTheme();
+        if (activeTheme?.isZenFS && !activeTheme.colors) {
+          await themeManager.parseZenFSTheme(activeTheme);
+        }
+
         finalizeBootProcessStep(logElement, "OK");
       } catch (e) {
         finalizeBootProcessStep(logElement, "FAILED", e);
