@@ -3,6 +3,14 @@
 
     let autoStartFile = null;
 
+    // Detect reload/exit to signal parent OS to close the window
+    window.addEventListener('beforeunload', () => {
+        // When the game reloads (Quit Game), signal the parent to close the window
+        if (window.parent && window.parent !== window) {
+            window.parent.postMessage({ type: "DIABLO_EXIT" }, window.location.origin);
+        }
+    });
+
     // Signal readiness to parent
     window.parent.postMessage({ type: "DIABLO_READY" }, "*");
 
