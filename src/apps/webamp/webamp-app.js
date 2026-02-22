@@ -236,7 +236,8 @@ export class WebampApp extends Application {
       webampContainer.style.zIndex = $Window.Z_INDEX++;
       webampContainer.style.left = "50px";
       webampContainer.style.top = "50px";
-      document.body.appendChild(webampContainer);
+      const screen = document.getElementById("screen");
+      (screen || document.body).appendChild(webampContainer);
 
       webampContainer.addEventListener(
         "mousedown",

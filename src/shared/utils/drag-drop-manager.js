@@ -71,7 +71,8 @@ export function createDragGhost(icon, e) {
     dragImage.style.position = "absolute";
     dragImage.style.top = "-1000px";
     dragImage.style.opacity = "0.5";
-    document.body.appendChild(dragImage);
+    const screen = document.getElementById("screen");
+    (screen || document.body).appendChild(dragImage);
     e.dataTransfer.setDragImage(dragImage, 0, 0);
     return dragImage;
 }
