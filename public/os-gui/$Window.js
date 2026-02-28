@@ -2076,23 +2076,25 @@ You can also disable this warning by passing {iframes: {ignoreCrossOrigin: true}
       animating_titlebar = true;
       const $eye_leader = $w.$titlebar.clone(true);
       $eye_leader.find("button").remove();
-      $eye_leader.appendTo("body");
+      const $screen = $("#screen");
+      $eye_leader.appendTo($screen.length ? $screen : "body");
       const duration_ms = $Window.OVERRIDE_TRANSITION_DURATION ?? 200; // TODO: how long?
       const duration_str = `${duration_ms}ms`;
+      const screen_rect = ($screen[0] || document.body).getBoundingClientRect();
       $eye_leader.css({
         transition: `left ${duration_str} linear, top ${duration_str} linear, width ${duration_str} linear, height ${duration_str} linear`,
-        position: "fixed",
+        position: "absolute",
         zIndex: 10000000,
         pointerEvents: "none",
-        left: from.left,
-        top: from.top,
+        left: from.left - screen_rect.left,
+        top: from.top - screen_rect.top,
         width: from.width,
         height: from.height,
       });
       setTimeout(() => {
         $eye_leader.css({
-          left: to.left,
-          top: to.top,
+          left: to.left - screen_rect.left,
+          top: to.top - screen_rect.top,
           width: to.width,
           height: to.height,
         });

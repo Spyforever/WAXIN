@@ -44,7 +44,8 @@ export class AddressBar {
     // Dropdown Menu
     this.dropdownMenu = document.createElement("div");
     this.dropdownMenu.className = "address-bar-dropdown";
-    document.body.appendChild(this.dropdownMenu);
+    const screen = document.getElementById("screen");
+    (screen || document.body).appendChild(this.dropdownMenu);
 
     if (this.options.onEnter) {
       this.input.addEventListener("keydown", (e) => {
@@ -101,9 +102,11 @@ export class AddressBar {
 
   async openDropdown() {
     // Positioning
+    const screen = document.getElementById("screen") || document.body;
+    const screenRect = screen.getBoundingClientRect();
     const rect = this.combo.getBoundingClientRect();
-    this.dropdownMenu.style.top = `${rect.bottom}px`;
-    this.dropdownMenu.style.left = `${rect.left}px`;
+    this.dropdownMenu.style.top = `${rect.bottom - screenRect.top}px`;
+    this.dropdownMenu.style.left = `${rect.left - screenRect.left}px`;
     this.dropdownMenu.style.width = `${rect.width}px`;
 
     await this.renderTree();

@@ -54,11 +54,13 @@ export class DragDropManager {
     }
 
     _createGhost(iconElements, x, y) {
+        const screen = document.getElementById('screen') || document.body;
+        const screenRect = screen.getBoundingClientRect();
         const ghost = document.createElement('div');
         ghost.className = 'drag-ghost';
-        ghost.style.position = 'fixed';
-        ghost.style.left = `${x - this.offsetX}px`;
-        ghost.style.top = `${y - this.offsetY}px`;
+        ghost.style.position = 'absolute';
+        ghost.style.left = `${x - this.offsetX - screenRect.left}px`;
+        ghost.style.top = `${y - this.offsetY - screenRect.top}px`;
         ghost.style.pointerEvents = 'none';
         ghost.style.zIndex = '99999';
         ghost.style.opacity = '0.6';
@@ -73,7 +75,8 @@ export class DragDropManager {
             clone.style.margin = '0';
             ghost.appendChild(clone);
         });
-        document.body.appendChild(ghost);
+        const screenElement = document.getElementById('screen');
+        (screenElement || document.body).appendChild(ghost);
         this.ghostElement = ghost;
     }
 
@@ -87,8 +90,10 @@ export class DragDropManager {
         }
 
         if (this.ghostElement) {
-            this.ghostElement.style.left = `${x - this.offsetX}px`;
-            this.ghostElement.style.top = `${y - this.offsetY}px`;
+            const screen = document.getElementById('screen') || document.body;
+            const screenRect = screen.getBoundingClientRect();
+            this.ghostElement.style.left = `${x - this.offsetX - screenRect.left}px`;
+            this.ghostElement.style.top = `${y - this.offsetY - screenRect.top}px`;
         }
         this._updateDropTarget(x, y);
     }

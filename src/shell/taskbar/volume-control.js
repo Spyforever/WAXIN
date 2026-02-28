@@ -28,13 +28,13 @@ class VolumeControl {
     // Position the element
     // "at the bottom of the screen, to the left of the pointer"
     // We need to wait for it to be in the DOM to get its size
+    const screen = document.getElementById("screen") || document.body;
+    const screenRect = screen.getBoundingClientRect();
     const rect = this.element.getBoundingClientRect();
-    const screenWidth = window.innerWidth;
-    const screenHeight = window.innerHeight;
     const taskbarHeight = 28; // Approximate taskbar height
 
-    let left = x - rect.width;
-    let top = screenHeight - taskbarHeight - rect.height - 2;
+    let left = x - rect.width - screenRect.left;
+    let top = screenRect.height - taskbarHeight - rect.height - 2;
 
     // Ensure it's within screen bounds
     if (left < 0) left = 0;
@@ -113,7 +113,7 @@ class VolumeControl {
   render() {
     const container = document.createElement("div");
     container.className = "volume-control-popup outset-deep";
-    container.style.position = "fixed";
+    container.style.position = "absolute";
     container.style.padding = "5px 5px";
     container.style.zIndex = "9999";
     container.style.width = "70px";
@@ -139,7 +139,8 @@ class VolumeControl {
       </div>
     `;
 
-    document.body.appendChild(container);
+    const screen = document.getElementById("screen");
+    (screen || document.body).appendChild(container);
     this.element = container;
 
     const slider = container.querySelector("#volume-slider");

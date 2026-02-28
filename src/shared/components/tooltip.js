@@ -13,7 +13,8 @@ export class Tooltip {
     if (this.text) {
         this.element.innerHTML = marked.parseInline(this.text, { breaks: true });
     }
-    document.body.appendChild(this.element);
+    const screen = document.getElementById('screen');
+    (screen || document.body).appendChild(this.element);
 
     this._position();
 
@@ -26,18 +27,20 @@ export class Tooltip {
   }
 
   _position() {
+    const screen = document.getElementById('screen') || document.body;
+    const screenRect = screen.getBoundingClientRect();
     const targetRect = this.targetElement.getBoundingClientRect();
     const tooltipRect = this.element.getBoundingClientRect();
 
-    let top = targetRect.bottom + 5;
-    let left = targetRect.left + (targetRect.width / 2) - (tooltipRect.width / 2);
+    let top = targetRect.bottom - screenRect.top + 5;
+    let left = targetRect.left - screenRect.left + (targetRect.width / 2) - (tooltipRect.width / 2);
 
     // Adjust if it goes off-screen
     if (left < 0) {
       left = 5;
     }
-    if (top + tooltipRect.height > window.innerHeight) {
-      top = targetRect.top - tooltipRect.height - 5;
+    if (top + tooltipRect.height > screenRect.height) {
+      top = targetRect.top - screenRect.top - tooltipRect.height - 5;
     }
 
     this.element.style.left = `${left}px`;

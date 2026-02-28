@@ -27,7 +27,7 @@ class Screensaver {
     if (!this.element) {
       this.element = document.createElement("iframe");
       this.element.src = `${import.meta.env.BASE_URL}${screensaver.path}`;
-      this.element.style.position = "fixed";
+      this.element.style.position = "absolute";
       this.element.style.top = "0";
       this.element.style.left = "0";
       this.element.style.width = "100%";
@@ -48,7 +48,8 @@ class Screensaver {
         );
       };
 
-      document.body.appendChild(this.element);
+      const screen = document.getElementById("screen");
+      (screen || document.body).appendChild(this.element);
     }
     this.element.style.display = "block";
     this.active = true;
@@ -72,7 +73,7 @@ class Screensaver {
 
     this.previewElement = document.createElement("iframe");
     this.previewElement.src = `${import.meta.env.BASE_URL}${screensaver.path}`;
-    this.previewElement.style.position = "fixed";
+    this.previewElement.style.position = "absolute";
     this.previewElement.style.top = "0";
     this.previewElement.style.left = "0";
     this.previewElement.style.width = "100%";
@@ -88,7 +89,8 @@ class Screensaver {
       iframeDoc.addEventListener("keydown", hidePreviewCallback);
     };
 
-    document.body.appendChild(this.previewElement);
+    const screen = document.getElementById("screen");
+    (screen || document.body).appendChild(this.previewElement);
   }
 
   hidePreview() {
