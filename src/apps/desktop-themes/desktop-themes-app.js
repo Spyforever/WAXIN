@@ -1,9 +1,12 @@
 import { Application } from '../../system/application.js';
 import { ICONS } from '../../config/icons.js';
 import { iconSchemes } from '../../config/icon-schemes.js';
+import { isZenFSPath, getZenFSFileUrl } from '../../system/zenfs-utils.js';
+import { fs } from '@zenfs/core';
 import {
   getThemes,
   setTheme,
+  loadThemesFromZenFS,
   saveCustomTheme,
   deleteCustomTheme,
   getCurrentTheme,
@@ -12,6 +15,7 @@ import {
   getActiveTheme,
   getIconSchemeName,
   getColorSchemes,
+  parseZenFSTheme,
 } from '../../system/theme-manager.js';
 import {
   fetchThemeCss,
@@ -228,6 +232,10 @@ export class DesktopThemesApp extends Application {
       ...currentColors,
       wallpaper: currentWallpaper,
       iconScheme: currentIconScheme,
+      icons: activeTheme.icons,
+      cursors: activeTheme.cursors,
+      sounds: activeTheme.sounds,
+      desktopConfig: activeTheme.desktopConfig,
     };
 
     await this.populateThemes();
@@ -252,17 +260,19 @@ export class DesktopThemesApp extends Application {
     applyButton.textContent = "Apply";
     actionsContainer.appendChild(applyButton);
 
-    const applyCurrentTheme = () => {
+    const applyCurrentTheme = async () => {
       if (this.themeSelector.value === "current-settings") {
-        this.applyCustomTheme();
+        await this.applyCustomTheme();
       } else {
-        setTheme(this.themeSelector.value);
+        await setTheme(this.themeSelector.value);
       }
     };
 
-    applyButton.addEventListener("click", applyCurrentTheme);
-    okButton.addEventListener("click", () => {
-      applyCurrentTheme();
+    applyButton.addEventListener("click", async () => {
+      await applyCurrentTheme();
+    });
+    okButton.addEventListener("click", async () => {
+      await applyCurrentTheme();
       win.close();
     });
     cancelButton.addEventListener("click", () => win.close());
@@ -292,7 +302,7 @@ export class DesktopThemesApp extends Application {
     style.textContent = cssContent;
     document.head.appendChild(style);
 
-    const { wallpaper, ...colors } = this.customThemeProperties;
+    const { wallpaper, icons, cursors, sounds, desktopConfig, ...colors } = this.customThemeProperties;
     const customTheme = {
       ...baseTheme,
       id: "custom",
@@ -300,6 +310,10 @@ export class DesktopThemesApp extends Application {
       colorSchemeId: null,
       colors: colors,
       wallpaper: wallpaper,
+      icons,
+      cursors,
+      sounds,
+      desktopConfig,
     };
 
     setTheme("custom", customTheme);
@@ -329,21 +343,26 @@ export class DesktopThemesApp extends Application {
       const themeContent = e.target.result;
       try {
         await loadThemeParser();
-        const colors = window.getColorsFromThemeFile(themeContent);
-        const wallpaper = window.getWallpaperFromThemeFile(themeContent);
-        if (colors) {
-          this._showThemeWizard(colors, wallpaper, (updatedTheme) => {
-            const cssProperties = window.generateThemePropertiesFromColors(
-              updatedTheme.colors,
-            );
-            this.customThemeProperties = {
-              ...cssProperties,
-              wallpaper: updatedTheme.wallpaper,
-            };
-            this.addTemporaryThemeOption();
-            this.themeSelector.value = "current-settings";
-            this.handleThemeSelection(); // Use the handler to update state
-          });
+        const colorsObj = window.getColorsFromThemeFile(themeContent);
+        const wallpaper = await window.getWallpaperFromThemeFile(themeContent);
+        const icons = await window.getIconsFromThemeFile(themeContent, "");
+        const cursors = await window.getCursorsFromThemeFile(themeContent, "");
+        const sounds = await window.getSoundsFromThemeFile(themeContent, "");
+        const desktop = await window.getDesktopConfigFromThemeFile(themeContent, "");
+
+        if (colorsObj) {
+          const cssProperties = window.generateThemePropertiesFromColors(colorsObj);
+          this.customThemeProperties = {
+            ...cssProperties,
+            wallpaper: wallpaper || desktop?.wallpaper,
+            icons,
+            cursors,
+            sounds,
+            desktopConfig: desktop,
+          };
+          this.addTemporaryThemeOption();
+          this.themeSelector.value = "current-settings";
+          await this.handleThemeSelection();
         } else {
           this.themeSelector.value = this.previousThemeId;
           ShowDialogWindow({
@@ -460,7 +479,7 @@ export class DesktopThemesApp extends Application {
     }
 
     const newThemeId = `custom-${finalName.toLowerCase().replace(/\s+/g, "-")}`;
-    const { wallpaper, ...colors } = this.customThemeProperties;
+    const { wallpaper, icons, cursors, sounds, desktopConfig, ...colors } = this.customThemeProperties;
     const newTheme = {
       ...themes.default,
       id: newThemeId,
@@ -468,6 +487,10 @@ export class DesktopThemesApp extends Application {
       colorSchemeId: null,
       colors: colors,
       wallpaper: wallpaper,
+      icons,
+      cursors,
+      sounds,
+      desktopConfig,
       isCustom: true,
     };
 
@@ -514,7 +537,13 @@ export class DesktopThemesApp extends Application {
 
       this.saveButton.disabled = selectedValue !== "current-settings";
       this.deleteButton.disabled = !selectedTheme?.isCustom;
-      this.screenSaverButton.disabled = !selectedTheme?.screensaver;
+
+      // For ZenFS themes, we might need to parse them to see if they have a screensaver
+      if (selectedTheme?.isZenFS && !selectedTheme.colors) {
+        await parseZenFSTheme(selectedTheme);
+      }
+
+      this.screenSaverButton.disabled = !(selectedTheme?.screensaver || selectedTheme?.desktopConfig?.screenSaveActive === "1");
 
       if (selectedValue === "current-settings") {
         const normalizedProperties = {};
@@ -557,6 +586,7 @@ export class DesktopThemesApp extends Application {
 
     this.addTemporaryThemeOption();
 
+    await loadThemesFromZenFS();
     const themes = getThemes();
     const sortedThemes = Object.entries(themes).sort(([, a], [, b]) =>
       a.name.localeCompare(b.name),
@@ -615,15 +645,53 @@ export class DesktopThemesApp extends Application {
     const theme = getThemes()[themeId];
     if (!theme) return;
 
-    this.updatePreviewIcons(theme.iconScheme);
+    if (theme.isZenFS) {
+      if (!theme.colors) {
+        await parseZenFSTheme(theme);
+      }
 
-    const variables = await applyThemeToPreview(themeId, this.previewContainer);
+      // Preview ZenFS theme
+      const properties = window.generateThemePropertiesFromColors(theme.colors);
+      const variables = {};
+      for (const [key, value] of Object.entries(properties)) {
+        variables[key.replace(/^--/, "")] = value;
+      }
+      applyPropertiesToPreview(variables, this.previewContainer);
 
-    this.previewContainer.style.backgroundImage = theme.wallpaper
-      ? `url('${theme.wallpaper}')`
-      : "none";
-    this.previewContainer.style.backgroundColor =
-      variables["Background"] || "#008080";
+      let wallpaperUrl = "none";
+      if (theme.desktopConfig?.wallpaper) {
+        if (isZenFSPath(theme.desktopConfig.wallpaper)) {
+          wallpaperUrl = await getZenFSFileUrl(theme.desktopConfig.wallpaper);
+        } else {
+          wallpaperUrl = theme.desktopConfig.wallpaper;
+        }
+      }
+
+      this.previewContainer.style.backgroundImage = wallpaperUrl !== "none" ? `url('${wallpaperUrl}')` : "none";
+      this.previewContainer.style.backgroundColor = variables["Background"] || "#008080";
+
+      // Update preview icons if present in theme
+      if (theme.icons) {
+        const computerIcon = this.previewContainer.querySelector('[data-icon="my-computer"] img');
+        const networkIcon = this.previewContainer.querySelector('[data-icon="network"] img');
+        const recycleBinIcon = this.previewContainer.querySelector('[data-icon="recycle-bin"] img');
+
+        if (computerIcon && theme.icons.myComputer) computerIcon.src = await getZenFSFileUrl(theme.icons.myComputer);
+        if (networkIcon && theme.icons.networkNeighborhood) networkIcon.src = await getZenFSFileUrl(theme.icons.networkNeighborhood);
+        if (recycleBinIcon && theme.icons.recycleBinEmpty) recycleBinIcon.src = await getZenFSFileUrl(theme.icons.recycleBinEmpty);
+      } else {
+        this.updatePreviewIcons(theme.iconScheme);
+      }
+    } else {
+      this.updatePreviewIcons(theme.iconScheme);
+      const variables = await applyThemeToPreview(themeId, this.previewContainer);
+
+      this.previewContainer.style.backgroundImage = theme.wallpaper
+        ? `url('${theme.wallpaper}')`
+        : "none";
+      this.previewContainer.style.backgroundColor =
+        variables["Background"] || "#008080";
+    }
   }
 
   previewCustomTheme(properties) {

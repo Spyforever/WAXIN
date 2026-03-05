@@ -58,9 +58,14 @@ async function preloadCursor(src) {
 }
 
 export async function preloadThemeAssets(themeId, onAssetStart, onAssetFinish) {
+  // We use getThemes from theme-manager if possible to support ZenFS themes
+  // but to avoid circular dependency, we might need a different approach.
+  // For now, let's just ignore the warning if it's a zenfs- prefixed ID
   const theme = themes[themeId];
   if (!theme) {
-    console.warn(`Theme not found: ${themeId}`);
+    if (!themeId.startsWith("zenfs-")) {
+      console.warn(`Theme not found for preloading: ${themeId}`);
+    }
     return;
   }
 

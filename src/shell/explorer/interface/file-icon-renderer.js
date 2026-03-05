@@ -5,8 +5,9 @@ import { RecycleBinManager } from '../file-operations/recycle-bin-manager.js';
 import { ShellManager } from '../extensions/shell-manager.js';
 import { fs } from "@zenfs/core";
 import { apps } from '../../../config/apps.js';
-import { getIconSchemeName } from '../../../system/theme-manager.js';
+import { getIconSchemeName, getActiveTheme } from '../../../system/theme-manager.js';
 import { iconSchemes } from '../../../config/icon-schemes.js';
+import { isZenFSPath, getZenFSFileUrl } from '../../../system/zenfs-utils.js';
 
 /**
  * FileIconRenderer - Handles rendering of file/folder icons in ZenExplorer
@@ -16,10 +17,43 @@ import { iconSchemes } from '../../../config/icon-schemes.js';
  * Get themed icon object for special system folders
  * @param {string} specialType - 'computer', 'recycle', or 'network'
  * @param {boolean} isEmpty - For recycle bin, whether it is empty
- * @returns {Object} Icon object with 16 and 32 sizes
+ * @returns {Promise<Object>} Icon object with 16 and 32 sizes
  */
-export function getThemedIconObj(specialType, isEmpty = true) {
+export async function getThemedIconObj(specialType, isEmpty = true) {
   const schemeName = getIconSchemeName();
+  const activeTheme = getActiveTheme();
+
+  // If it's a ZenFS theme, check for icons there
+  if (activeTheme?.id === schemeName && activeTheme?.isZenFS && activeTheme.icons) {
+    let iconPath = null;
+    switch (specialType) {
+      case "computer":
+        iconPath = activeTheme.icons.myComputer;
+        break;
+      case "recycle":
+        iconPath = isEmpty ? activeTheme.icons.recycleBinEmpty : activeTheme.icons.recycleBinFull;
+        break;
+      case "network":
+        iconPath = activeTheme.icons.networkNeighborhood;
+        break;
+      case "documents":
+        iconPath = activeTheme.icons.myDocuments;
+        break;
+    }
+
+    if (iconPath) {
+      let url = iconPath;
+      if (isZenFSPath(iconPath)) {
+        try {
+          url = await getZenFSFileUrl(iconPath);
+        } catch (e) {
+          console.error("Failed to resolve ZenFS icon URL:", e);
+        }
+      }
+      return { 16: url, 32: url };
+    }
+  }
+
   const scheme = iconSchemes[schemeName] || iconSchemes.default;
 
   switch (specialType) {
@@ -31,6 +65,8 @@ export function getThemedIconObj(specialType, isEmpty = true) {
         : scheme.getIconObj("recycleBinFull") || ICONS.recycleBinFull;
     case "network":
       return scheme.getIconObj("networkNeighborhood") || ICONS.networkNeighborhood;
+    case "documents":
+      return scheme.getIconObj("myDocuments") || ICONS.folder;
     default:
       return null;
   }
@@ -159,18 +195,18 @@ export async function renderFileIcon(fileName, fullPath, isDir, options = {}) {
 
   // Special handling for My Computer (root or desktop icon)
   if (fullPath === "/" || fullPath === "/Desktop/My Computer") {
-    iconObj = getThemedIconObj("computer");
+    iconObj = await getThemedIconObj("computer");
   }
   // Special handling for Network Neighborhood
   else if (
     fullPath === "/Network Neighborhood" ||
     fullPath === "/Desktop/Network Neighborhood"
   ) {
-    iconObj = getThemedIconObj("network");
+    iconObj = await getThemedIconObj("network");
   }
   // Special handling for My Documents
   else if (fullPath === "/Desktop/My Documents") {
-    iconObj = ICONS.folder;
+    iconObj = await getThemedIconObj("documents");
   }
   // Special handling for Recycle Bin folder
   else if (RecycleBinManager.isRecycleBinPath(fullPath)) {
@@ -178,7 +214,7 @@ export async function renderFileIcon(fileName, fullPath, isDir, options = {}) {
       options.recycleBinEmpty !== undefined
         ? options.recycleBinEmpty
         : await RecycleBinManager.isEmpty(fullPath);
-    iconObj = getThemedIconObj("recycle", isEmpty);
+    iconObj = await getThemedIconObj("recycle", isEmpty);
   }
   // Special handling for items INSIDE Recycle Bin
   else if (RecycleBinManager.isRecycledItemPath(fullPath)) {

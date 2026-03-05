@@ -1,13 +1,55 @@
 import { convertAniBinaryToCSS } from "ani-cursor";
-import { cursors, getCursorThemes } from '../config/cursors.js';
-import { getCursorSchemeId } from './theme-manager.js';
+import { cursors, getCursorThemes, CursorScheme } from '../config/cursors.js';
+import { getCursorSchemeId, getActiveTheme } from './theme-manager.js';
+import { isZenFSPath, getZenFSFileUrl } from './zenfs-utils.js';
 
 const styleMap = new Map();
 
+function ensureGlobalStyles() {
+  if (typeof document === "undefined" || !document.head) return;
+  if (document.getElementById("global-cursor-styles")) return;
+  const style = document.createElement("style");
+  style.id = "global-cursor-styles";
+  style.innerText = `
+    .cursor-busy { cursor: var(--cursor-wait, wait); }
+    .cursor-busy * { cursor: inherit !important; }
+    .cursor-wait { cursor: var(--cursor-progress, progress); }
+    .cursor-wait * { cursor: inherit !important; }
+  `;
+  document.head.appendChild(style);
+}
+
 export async function applyAniCursorTheme(theme, cursorType) {
+  ensureGlobalStyles();
   // `cursorType` directly corresponds to the key in the cursors object (e.g., 'busy', 'wait')
-  const scheme = cursors[theme] || cursors.default;
-  const cursorUrl = scheme?.getCursor(cursorType);
+  let cursorUrl = null;
+  const activeTheme = getActiveTheme();
+
+  if (activeTheme?.id === theme && (activeTheme?.isZenFS || activeTheme?.id === "custom") && activeTheme.cursors) {
+    // Map internal types to Windows role names
+    const typeToRole = {
+      busy: ["Wait", "Busy"],
+      wait: ["AppStarting", "WorkingInBackground"],
+    };
+    const roles = typeToRole[cursorType] || [cursorType];
+    let cursorEntry = null;
+    for (const r of roles) {
+      if (activeTheme.cursors[r]) {
+        cursorEntry = activeTheme.cursors[r];
+        break;
+      }
+    }
+    cursorUrl = typeof cursorEntry === "string" ? cursorEntry : cursorEntry?.path;
+
+    if (cursorUrl && isZenFSPath(cursorUrl)) {
+      cursorUrl = await getZenFSFileUrl(cursorUrl);
+    }
+  }
+
+  if (!cursorUrl) {
+    const scheme = cursors[theme] || cursors.default;
+    cursorUrl = scheme?.getCursor(cursorType);
+  }
 
   if (!cursorUrl) {
     console.warn(
@@ -18,6 +60,7 @@ export async function applyAniCursorTheme(theme, cursorType) {
 
   try {
     const response = await fetch(cursorUrl);
+    if (!response.ok) throw new Error(`Failed to fetch cursor: ${response.statusText}`);
     const data = new Uint8Array(await response.arrayBuffer());
 
     // Use a unique ID for the style element to manage it easily
@@ -30,7 +73,14 @@ export async function applyAniCursorTheme(theme, cursorType) {
       document.head.appendChild(style);
     }
 
-    style.innerText = convertAniBinaryToCSS(`.cursor-${cursorType}`, data);
+    let css = convertAniBinaryToCSS(`.cursor-${cursorType}`, data);
+    // The ani-cursor library adds :hover to the selector by default.
+    // We want the cursor to apply as long as the class is present.
+    css = css.replace(/:hover/g, "");
+    // Some browsers don't support the x-win-bitmap mime type for cursors.
+    // image/x-icon is more widely supported for CUR/ICO data.
+    css = css.replace(/data:image\/x-win-bitmap/g, "data:image/x-icon");
+    style.innerText = css;
     styleMap.set(`.cursor-${cursorType}`, style);
   } catch (error) {
     console.error("Failed to apply animated cursor:", error);
@@ -53,8 +103,8 @@ export function clearAniCursor() {
  * @param {HTMLElement} [element=document.body] - The element to apply the cursor to.
  */
 export function applyBusyCursor(element = document.body) {
+  ensureGlobalStyles();
   element.classList.add("cursor-busy");
-  element.style.cursor = "var(--cursor-wait, wait)";
 }
 
 /**
@@ -66,12 +116,6 @@ export function clearBusyCursor(element = document.body) {
   // ensuring the browser has time to render the change.
   setTimeout(() => {
     element.classList.remove("cursor-busy");
-    // Revert to the default cursor for the body, or let other elements inherit.
-    if (element === document.body) {
-      element.style.cursor = "var(--cursor-default, default)";
-    } else {
-      element.style.cursor = "";
-    }
   }, 50);
 }
 
@@ -80,8 +124,8 @@ export function clearBusyCursor(element = document.body) {
  * @param {HTMLElement} [element=document.body] - The element to apply the cursor to.
  */
 export function applyWaitCursor(element = document.body) {
+  ensureGlobalStyles();
   element.classList.add("cursor-wait");
-  element.style.cursor = "var(--cursor-progress, progress)";
 }
 
 /**
@@ -91,24 +135,67 @@ export function applyWaitCursor(element = document.body) {
 export function clearWaitCursor(element = document.body) {
   setTimeout(() => {
     element.classList.remove("cursor-wait");
-    if (element === document.body) {
-      element.style.cursor = "var(--cursor-default, default)";
-    } else {
-      element.style.cursor = "";
-    }
   }, 50);
 }
 
-export function applyCursorTheme() {
+export async function applyCursorTheme() {
   const themeId = getCursorSchemeId();
   const root = document.documentElement;
-  let themeConfig = getCursorThemes(themeId);
+  const activeTheme = getActiveTheme();
+
+  let themeConfig = null;
+
+  if (activeTheme?.id === themeId && (activeTheme?.isZenFS || activeTheme?.id === "custom") && activeTheme.cursors) {
+    // Create a dynamic CursorScheme from ZenFS/Custom cursors
+    const mappedCursors = {
+      arrow: activeTheme.cursors["Arrow"],
+      beam: activeTheme.cursors["IBeam"],
+      busy: activeTheme.cursors["Wait"] || activeTheme.cursors["Busy"],
+      wait: activeTheme.cursors["AppStarting"] || activeTheme.cursors["WorkingInBackground"],
+      help: activeTheme.cursors["Help"],
+      move: activeTheme.cursors["SizeAll"],
+      no: activeTheme.cursors["No"],
+      cross: activeTheme.cursors["Crosshair"],
+      sizeNESW: activeTheme.cursors["SizeNESW"],
+      sizeNS: activeTheme.cursors["SizeNS"],
+      sizeNWSE: activeTheme.cursors["SizeNWSE"],
+      sizeWE: activeTheme.cursors["SizeWE"],
+      pen: activeTheme.cursors["NWPen"] || activeTheme.cursors["Handwriting"],
+      up: activeTheme.cursors["UpArrow"],
+      hand: activeTheme.cursors["Hand"],
+    };
+
+    // Resolve paths to URLs and preserve animation state
+    for (const key in mappedCursors) {
+      const originalPath = mappedCursors[key];
+      if (originalPath && typeof originalPath === "string") {
+        const animated = originalPath.toLowerCase().split('?')[0].endsWith(".ani");
+        if (isZenFSPath(originalPath)) {
+          try {
+            const url = await getZenFSFileUrl(originalPath);
+            mappedCursors[key] = { path: url, animated };
+          } catch (e) {
+            console.warn(`Failed to resolve cursor path: ${originalPath}`, e);
+            mappedCursors[key] = null;
+          }
+        } else {
+          mappedCursors[key] = { path: originalPath, animated };
+        }
+      }
+    }
+
+    const scheme = new CursorScheme(themeId, mappedCursors);
+    themeConfig = scheme.getCSSVariables();
+  }
+
+  if (!themeConfig) themeConfig = getCursorThemes(themeId);
   if (!themeConfig) themeConfig = getCursorThemes("default");
 
+  clearAniCursor();
   if (themeConfig) {
     for (const [property, config] of Object.entries(themeConfig)) {
       if (config.animated) {
-        applyAniCursorTheme(themeId, config.type);
+        await applyAniCursorTheme(themeId, config.type);
       } else {
         root.style.setProperty(property, config.value);
       }

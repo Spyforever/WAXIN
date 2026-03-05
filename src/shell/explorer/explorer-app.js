@@ -28,6 +28,7 @@ import { joinPath, getDisplayName } from './navigation/path-utils.js';
 import { getToolbarItems } from './interface/toolbar-builder.js';
 import { sortFileInfos } from './file-operations/sort-utils.js';
 import { getThemedIconObj } from './interface/file-icon-renderer.js';
+import { loadThemesFromZenFS } from '../../system/theme-manager.js';
 import { ControlPanelExtension } from './extensions/control-panel-extension.js';
 import { DesktopExtension } from './extensions/desktop-extension.js';
 import { RecycleBinExtension } from './extensions/recycle-bin-extension.js';
@@ -102,6 +103,9 @@ export class ZenExplorerApp extends Application {
   }
 
   async launch(data = null) {
+    // Ensure ZenFS themes are discovered in this application context
+    loadThemesFromZenFS().catch(console.error);
+
     if (data && typeof data === "object") {
       if (data.retroMode !== undefined) {
         this.retroMode = data.retroMode;
@@ -229,9 +233,9 @@ export class ZenExplorerApp extends Application {
             const vPath = vItem.target && !vItem.target.startsWith("launch:") ? vItem.target : joinPath("/Desktop", vItem.name);
             let iconObj = vItem.icon;
             if (!iconObj) {
-              if (vItem.name === "My Computer") iconObj = getThemedIconObj("computer");
-              else if (vItem.name === "Recycle Bin") iconObj = getThemedIconObj("recycle", await RecycleBinManager.isEmpty("/Recycle Bin"));
-              else if (vItem.name === "Network Neighborhood") iconObj = getThemedIconObj("network");
+              if (vItem.name === "My Computer") iconObj = await getThemedIconObj("computer");
+              else if (vItem.name === "Recycle Bin") iconObj = await getThemedIconObj("recycle", await RecycleBinManager.isEmpty("/Recycle Bin"));
+              else if (vItem.name === "Network Neighborhood") iconObj = await getThemedIconObj("network");
             }
             if (!iconObj) iconObj = ICONS.folder;
 

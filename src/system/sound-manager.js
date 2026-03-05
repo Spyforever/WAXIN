@@ -1,6 +1,7 @@
 import { soundSchemes } from '../config/sound-schemes.js';
-import { getSoundSchemeName } from './theme-manager.js';
+import { getSoundSchemeName, getActiveTheme } from './theme-manager.js';
 import { getItem, setItem, LOCAL_STORAGE_KEYS } from './local-storage.js';
+import { isZenFSPath, getZenFSFileUrl } from './zenfs-utils.js';
 
 let globalVolume = getItem(LOCAL_STORAGE_KEYS.VOLUME) ?? 1.0;
 let globalMuted = getItem(LOCAL_STORAGE_KEYS.MUTED) ?? false;
@@ -47,17 +48,37 @@ export function setMuted(muted) {
  * @returns {Promise<void>} A promise that resolves when the sound has finished playing.
  */
 export function playSound(eventName) {
-  return new Promise((resolve) => {
+  return new Promise(async (resolve) => {
     if (globalMuted) {
       resolve();
       return;
     }
 
-    const schemeName = getSoundSchemeName();
-    const currentScheme = soundSchemes[schemeName];
+    let soundUrl = null;
+    const activeTheme = getActiveTheme();
 
-    // Determine the sound file url using the class method which handles fallbacks
-    const soundUrl = currentScheme?.getSound(eventName) || soundSchemes.Default?.getSound(eventName);
+    if (activeTheme?.isZenFS && activeTheme.sounds) {
+      // Check .Default and Explorer apps for the event
+      soundUrl = activeTheme.sounds[".Default"]?.[eventName] ||
+                 activeTheme.sounds["Explorer"]?.[eventName];
+
+      if (soundUrl && isZenFSPath(soundUrl)) {
+        try {
+          soundUrl = await getZenFSFileUrl(soundUrl);
+        } catch (e) {
+          console.error("Failed to resolve ZenFS sound path:", soundUrl, e);
+          soundUrl = null;
+        }
+      }
+    }
+
+    if (!soundUrl) {
+      const schemeName = getSoundSchemeName();
+      const currentScheme = soundSchemes[schemeName];
+
+      // Determine the sound file url using the class method which handles fallbacks
+      soundUrl = currentScheme?.getSound(eventName) || soundSchemes.Default?.getSound(eventName);
+    }
 
     // If no sound was found after all checks, resolve immediately.
     if (!soundUrl) {

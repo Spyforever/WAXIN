@@ -190,6 +190,14 @@ export async function initFileSystem(onProgress) {
       await fs.promises.mkdir("/C:/Games");
     }
 
+    // Ensure Plus!/Themes directory exists
+    if (!(await existsAsync("/C:/Program Files/Plus!"))) {
+      await fs.promises.mkdir("/C:/Program Files/Plus!");
+    }
+    if (!(await existsAsync("/C:/Program Files/Plus!/Themes"))) {
+      await fs.promises.mkdir("/C:/Program Files/Plus!/Themes");
+    }
+
     if (onProgress) onProgress("Initializing Start Menu...");
     // Ensure PINNED_PATH exists (C:/WINDOWS/Start Menu)
     if (!(await existsAsync(PINNED_PATH))) {

@@ -31,7 +31,7 @@ export class DirectoryView {
     const name = getDisplayName(path);
     let icon =
       path === "/"
-        ? getThemedIconObj("computer")
+        ? await getThemedIconObj("computer")
         : path.match(/^\/[A-Z]:\/?$/i)
           ? ICONS.drive
           : ICONS.folderOpen;
@@ -49,12 +49,12 @@ export class DirectoryView {
     }
 
     if (path === "/Network Neighborhood" || path === "/Desktop/Network Neighborhood") {
-      icon = getThemedIconObj("network");
+      icon = await getThemedIconObj("network");
     }
 
     if (RecycleBinManager.isRecycleBinPath(path)) {
       const isEmpty = await RecycleBinManager.isEmpty(path);
-      icon = getThemedIconObj("recycle", isEmpty);
+      icon = await getThemedIconObj("recycle", isEmpty);
     }
 
     if (path.toLowerCase().includes("/windows/favorites")) {

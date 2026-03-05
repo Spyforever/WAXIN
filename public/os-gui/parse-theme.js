@@ -32,13 +32,54 @@ function parseINIString(data) {
       value[match[1]] = {};
       // @ts-ignore (could refactor to use match result instead of test)
       section = match[1];
-    } else if (line.length == 0 && section) {
-      // REALLY?? An empty line resets the section?? Dubious!
-      // What does Windows do?
-      section = null;
     }
   });
   return value;
+}
+
+/**
+ * Resolves Windows-style paths to ZenFS paths.
+ * @param {string} path
+ * @param {string} themeDir
+ * @returns {Promise<string>}
+ */
+async function resolveThemePath(path, themeDir) {
+  if (!path) return "";
+  let resolved = path.replace(/\\/g, "/");
+
+  // Ensure themeDir does not have a trailing slash for consistent manipulation
+  const cleanThemeDir = themeDir.replace(/\/+$/, "");
+
+  if (resolved.toLowerCase().includes("%themedir%")) {
+    resolved = resolved.replace(/%themedir%/gi, cleanThemeDir + "/");
+  } else if (
+    !resolved.match(/^[a-zA-Z]:\//) &&
+    !resolved.startsWith("/") &&
+    !resolved.startsWith("%")
+  ) {
+    // It's a relative path, prepend themeDir
+    resolved = cleanThemeDir + "/" + resolved;
+  }
+
+  resolved = resolved.replace(/%WinDir%/gi, "/C:/WINDOWS/");
+
+  // Convert C:/... to /C:/...
+  if (resolved.match(/^[a-zA-Z]:\//)) {
+    resolved = "/" + resolved;
+  }
+
+  // Normalize slashes: replace multiple slashes with one, but avoid mashing /C:/
+  resolved = resolved.replace(/\/+/g, "/");
+
+  // Attempt case-insensitive resolution if available
+  if (window.resolveCaseInsensitivePath) {
+    const caseResolved = await window.resolveCaseInsensitivePath(resolved);
+    if (caseResolved) {
+      return caseResolved;
+    }
+  }
+
+  return resolved;
 }
 
 /**
@@ -549,31 +590,19 @@ function inheritTheme(target, source) {
 
 /**
  * @param {string} themeIni
- * @returns {{name: string, value: string}[] | undefined}
+ * @returns {Record<string, string> | undefined}
  */
 function getColorsFromThemeFile(themeIni) {
   const theme = parseINIString(themeIni);
   const colorsSection = theme["Control Panel\\Colors"];
-  if (!colorsSection) {
-    // Using console.error instead of alert to avoid blocking UI in case of errors.
-    console.error("Invalid theme file, no [Control Panel\\Colors] section");
-    return undefined;
-  }
-  if (typeof colorsSection !== "object") {
-    console.error(
-      "Invalid theme file, 'Control Panel\\Colors' is not a section",
-    );
+  if (!colorsSection || typeof colorsSection !== "object") {
     return undefined;
   }
 
-  const colors = [];
+  const colors = {};
   for (const k in colorsSection) {
-    // for .themepack file support, just ignore bad keys that were parsed
     if (!k.match(/\W/)) {
-      colors.push({
-        name: k,
-        value: `rgb(${colorsSection[k].split(" ").join(", ")})`,
-      });
+      colors[k] = `rgb(${colorsSection[k].split(" ").join(", ")})`;
     }
   }
   return colors;
@@ -581,31 +610,148 @@ function getColorsFromThemeFile(themeIni) {
 
 /**
  * @param {string} themeIni
- * @returns {string | undefined}
+ * @param {string} themeDir
+ * @returns {Promise<Record<string, any> | undefined>}
  */
-function getWallpaperFromThemeFile(themeIni) {
+async function getIconsFromThemeFile(themeIni, themeDir) {
+  const theme = parseINIString(themeIni);
+  const icons = {};
+
+  const clsidMap = {
+    myComputer: "{20D04FE0-3AEA-1069-A2D8-08002B30309D}",
+    networkNeighborhood: "{208D2C60-3AEA-1069-A2D7-08002B30309D}",
+    recycleBin: "{645FF040-5081-101B-9F08-00AA002F954E}",
+  };
+
+  for (const [key, clsid] of Object.entries(clsidMap)) {
+    const sectionName = `CLSID\\${clsid}\\DefaultIcon`;
+    const section = theme[sectionName];
+    if (section && typeof section === "object") {
+      if (key === "recycleBin") {
+        if (section["full"]) {
+          icons.recycleBinFull = await resolveThemePath(section["full"].split(",")[0], themeDir);
+        }
+        if (section["empty"]) {
+          icons.recycleBinEmpty = await resolveThemePath(section["empty"].split(",")[0], themeDir);
+        }
+      } else {
+        // For My Computer and Network, DefaultValue is often the first key
+        const path = section["DefaultValue"] || Object.values(section)[0];
+        if (path) {
+          icons[key] = await resolveThemePath(path.split(",")[0], themeDir);
+        }
+      }
+    }
+  }
+
+  return Object.keys(icons).length > 0 ? icons : undefined;
+}
+
+/**
+ * @param {string} themeIni
+ * @param {string} themeDir
+ * @returns {Promise<Record<string, string> | undefined>}
+ */
+async function getCursorsFromThemeFile(themeIni, themeDir) {
+  const theme = parseINIString(themeIni);
+  const cursorSection = theme["Control Panel\\Cursors"];
+  if (!cursorSection || typeof cursorSection !== "object") {
+    return undefined;
+  }
+
+  const cursors = {};
+  for (const [role, path] of Object.entries(cursorSection)) {
+    if (path && role !== "DefaultValue") {
+      cursors[role] = await resolveThemePath(path, themeDir);
+    }
+  }
+  return Object.keys(cursors).length > 0 ? cursors : undefined;
+}
+
+/**
+ * @param {string} themeIni
+ * @param {string} themeDir
+ * @returns {Promise<Record<string, any> | undefined>}
+ */
+async function getDesktopConfigFromThemeFile(themeIni, themeDir) {
   const theme = parseINIString(themeIni);
   const desktopSection = theme["Control Panel\\Desktop"];
   if (!desktopSection || typeof desktopSection !== "object") {
     return undefined;
   }
-  const wallpaperPath = desktopSection["Wallpaper"];
-  if (wallpaperPath) {
-    // Extract filename from the path
-    return wallpaperPath.split("\\").pop();
+
+  return {
+    wallpaper: await resolveThemePath(desktopSection["Wallpaper"], themeDir),
+    tileWallpaper: desktopSection["TileWallpaper"],
+    wallpaperStyle: desktopSection["WallpaperStyle"],
+    pattern: desktopSection["Pattern"],
+    screenSaveActive: desktopSection["ScreenSaveActive"],
+  };
+}
+
+/**
+ * @param {string} themeIni
+ * @param {string} themeDir
+ * @returns {Promise<Record<string, any> | undefined>}
+ */
+async function getSoundsFromThemeFile(themeIni, themeDir) {
+  const theme = parseINIString(themeIni);
+  const sounds = {};
+
+  // Structure: [AppEvents\Schemes\Apps\<AppName>\<Event>\.Current]
+  // We care about .Default and Explorer
+  const base = "AppEvents\\Schemes\\Apps";
+  const apps = [".Default", "Explorer"];
+
+  for (const sectionName in theme) {
+    if (sectionName.startsWith(base)) {
+      const parts = sectionName.split("\\");
+      if (parts.length >= 6 && parts[5] === ".Current") {
+        const app = parts[3];
+        const event = parts[4];
+        if (apps.includes(app)) {
+          const path = theme[sectionName]["DefaultValue"] || Object.values(theme[sectionName])[0];
+          if (path) {
+            if (!sounds[app]) sounds[app] = {};
+            sounds[app][event] = await resolveThemePath(path, themeDir);
+          }
+        }
+      }
+    }
+  }
+
+  return Object.keys(sounds).length > 0 ? sounds : undefined;
+}
+
+/**
+ * @param {string} themeIni
+ * @returns {Promise<string | undefined>}
+ */
+async function getWallpaperFromThemeFile(themeIni) {
+  const config = await getDesktopConfigFromThemeFile(themeIni, "");
+  if (config && config.wallpaper) {
+    return config.wallpaper.split("/").pop();
   }
   return undefined;
 }
 
 /**
- * @param {{name: string, value: string}[]} colors
+ * @param {Record<string, string> | {name: string, value: string}[]} colors
  * @returns {Record<string, string>}
  */
 function generateThemePropertiesFromColors(colors) {
   /** @type {Record<string, string>} */
   const cssProperties = {};
-  for (const color of colors) {
-    cssProperties[`--${color.name}`] = color.value;
+
+  if (Array.isArray(colors)) {
+    for (const color of colors) {
+      cssProperties[`--${color.name}`] = color.value;
+    }
+  } else {
+    for (const [name, value] of Object.entries(colors)) {
+      const key = name.startsWith("--") ? name : `--${name}`;
+      cssProperties[key] = value;
+    }
   }
 
   return Object.assign(renderThemeGraphics(cssProperties), cssProperties);
@@ -689,7 +835,8 @@ function makeThemeCSSFile(cssProperties) {
 :root {
 `;
   for (var k in cssProperties) {
-    css += `\t${k}: ${cssProperties[k]};\n`;
+    const key = k.startsWith("--") ? k : `--${k}`;
+    css += `\t${key}: ${cssProperties[k]};\n`;
   }
   css += `}
 `;
@@ -734,3 +881,18 @@ function makeBlackToInsetFilter() {
   const $svg = $(svg_xml);
   $svg.appendTo("body");
 }
+
+// Explicitly export to window for use in apps and console
+window.parseINIString = parseINIString;
+window.resolveThemePath = resolveThemePath;
+window.getColorsFromThemeFile = getColorsFromThemeFile;
+window.getIconsFromThemeFile = getIconsFromThemeFile;
+window.getCursorsFromThemeFile = getCursorsFromThemeFile;
+window.getDesktopConfigFromThemeFile = getDesktopConfigFromThemeFile;
+window.getSoundsFromThemeFile = getSoundsFromThemeFile;
+window.getWallpaperFromThemeFile = getWallpaperFromThemeFile;
+window.generateThemePropertiesFromColors = generateThemePropertiesFromColors;
+window.parseThemeFileString = parseThemeFileString;
+window.applyCSSProperties = applyCSSProperties;
+window.makeThemeCSSFile = makeThemeCSSFile;
+window.__THEME_PARSER_VERSION__ = 4;

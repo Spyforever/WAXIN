@@ -478,14 +478,14 @@ export class FilePicker {
         let iconObj = vItem.icon;
         if (!iconObj) {
           if (vItem.name === "My Computer")
-            iconObj = getThemedIconObj("computer");
+            iconObj = await getThemedIconObj("computer");
           else if (vItem.name === "Recycle Bin")
-            iconObj = getThemedIconObj(
+            iconObj = await getThemedIconObj(
               "recycle",
               await RecycleBinManager.isEmpty("/Recycle Bin"),
             );
           else if (vItem.name === "Network Neighborhood")
-            iconObj = getThemedIconObj("network");
+            iconObj = await getThemedIconObj("network");
         }
         if (!iconObj) iconObj = ICONS.folder;
         addItem(vItem.name, vPath, iconObj, 1);

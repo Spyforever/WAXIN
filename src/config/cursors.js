@@ -252,8 +252,14 @@ import underwaterPen from "../assets/cursor/Underwater Handwriting.cur";
 import underwaterUp from "../assets/cursor/Underwater Alternate Select.cur";
 
 export class CursorItem {
-  constructor(path = "") {
-    this.path = path;
+  constructor(data = "") {
+    if (typeof data === "string") {
+      this.path = data;
+      this.animated = data.toLowerCase().endsWith(".ani");
+    } else {
+      this.path = data?.path || "";
+      this.animated = data?.animated || this.path.toLowerCase().endsWith(".ani");
+    }
   }
 }
 
@@ -283,8 +289,7 @@ export class CursorScheme {
 
     for (const cursorKey of CursorScheme.ALL_CURSORS) {
       const data = cursorsData[cursorKey];
-      const path = typeof data === "string" ? data : data?.path || "";
-      this.cursors[cursorKey] = new CursorItem(path);
+      this.cursors[cursorKey] = new CursorItem(data);
     }
   }
 
@@ -311,10 +316,6 @@ export class CursorScheme {
    */
   getCSSVariables() {
     const cursorSet = this.cursors;
-    const defaultAnimatedCursors = {
-      "--cursor-wait": { value: "wait", animated: true, type: "busy" },
-      "--cursor-progress": { value: "progress", animated: true, type: "wait" },
-    };
 
     const getUrl = (cursorItem) => {
       return cursorItem?.path ? `url(${cursorItem.path})` : null;
@@ -384,7 +385,24 @@ export class CursorScheme {
       },
     };
 
-    return { ...baseCursors, ...defaultAnimatedCursors };
+    const animatedCursors = {
+      "--cursor-wait": getUrl(cursorSet.busy)
+        ? {
+            value: getUrl(cursorSet.busy),
+            animated: cursorSet.busy.animated,
+            type: "busy",
+          }
+        : { value: "wait", animated: true, type: "busy" },
+      "--cursor-progress": getUrl(cursorSet.wait)
+        ? {
+            value: getUrl(cursorSet.wait),
+            animated: cursorSet.wait.animated,
+            type: "wait",
+          }
+        : { value: "progress", animated: true, type: "wait" },
+    };
+
+    return { ...baseCursors, ...animatedCursors };
   }
 }
 
