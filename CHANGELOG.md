@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.8.1](https://github.com/azayrahmad/win98-web/compare/win98-web-v0.8.0...win98-web-v0.8.1) (2026-03-03)
+
+
+### Bug Fixes
+
+* ensure floating UI elements inherit CRT brightness boost ([c5fc142](https://github.com/azayrahmad/win98-web/commit/c5fc1427b693c5b23c55b9be638e3a9a5676a4ab))
+* optimize sitemap and robots.txt for Google Search Console ([bb34b40](https://github.com/azayrahmad/win98-web/commit/bb34b4097f1270a43ead9052e23a8339bc207167))
+* optimize sitemap discovery and formatting ([ef2e5d0](https://github.com/azayrahmad/win98-web/commit/ef2e5d0b76a12381a007075021292952ef012613))
+
 ## [0.8.0](https://github.com/azayrahmad/win98-web/compare/win98-web-v0.7.0...win98-web-v0.8.0) (2026-02-18)
 
 
