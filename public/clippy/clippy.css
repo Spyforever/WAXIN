@@ -57,3 +57,50 @@
   margin-left: -50px;
   background-position: 0px -16px;
 }
+
+.clippy-input {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 5px;
+}
+
+.clippy-input b {
+  align-self: flex-start;
+  margin-bottom: 5px;
+}
+
+.clippy-input textarea {
+  width: 100%;
+  margin-bottom: 10px;
+  background-color: white;
+  border: 1px solid grey;
+  box-shadow: none;
+  resize: none;
+  font-family: inherit;
+  font-size: inherit;
+  box-sizing: border-box;
+}
+
+.clippy-input-buttons {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.clippy-input-buttons button {
+  background-color: transparent;
+  border: 1px solid grey;
+  border-radius: 4px;
+  width: 70px;
+  padding: 2px;
+  cursor: pointer;
+}
+
+.clippy-input-buttons button:hover {
+  background-color: #eee;
+}
+
+.clippy-input-buttons .ask-button {
+  margin-right: 5px;
+}

@@ -68,7 +68,7 @@
          * @param {Object} options - Configuration options
          * @param {Number} options.animationTimeout - Timeout for animation (default: 5000ms)
          * @param {Boolean} options.hold - Whether to hold the speech balloon (default: false)
-         * @param {Boolean} options.useTTS - Whether to use text-to-speech (default: false)
+         * @param {Boolean=} options.useTTS - Whether to use text-to-speech (defaults to agent preference)
          * @param {Object} options.ttsOptions - TTS configuration (voice, rate, pitch, volume)
          * @param {Function} options.callback - Called when both speech and animation complete
          * @returns {Promise<Boolean>} - Promise that resolves to true if successful, false if animation doesn't exist
@@ -77,7 +77,7 @@
             options = options || {};
             var animationTimeout = options.animationTimeout !== undefined ? options.animationTimeout : 5000;
             var hold = options.hold || false;
-            var useTTS = options.useTTS || false;
+            var useTTS = options.useTTS !== undefined ? options.useTTS : this.isTTSEnabled();
             var ttsOptions = options.ttsOptions || {};
             var callback = options.callback;
 
@@ -163,7 +163,7 @@
     clippy.Agent.prototype.speakWithRepeatingAnimation = function (text, animation, options) {
         options = options || {};
         var hold = options.hold || false;
-        var useTTS = options.useTTS || false;
+        var useTTS = options.useTTS !== undefined ? options.useTTS : this.isTTSEnabled();
         var ttsOptions = options.ttsOptions || {};
         var callback = options.callback;
         var animationDelay = options.animationDelay || 200; // Delay between animation cycles
@@ -415,13 +415,13 @@
      * @param {String} text - The text to speak
      * @param {String} emotion - 'happy', 'sad', 'excited', 'thinking', 'surprised', etc.
      * @param {Object} options - Additional options
-     * @param {Boolean} options.useTTS - Whether to use text-to-speech (default: false)
+     * @param {Boolean=} options.useTTS - Whether to use text-to-speech (defaults to agent preference)
      * @param {Object} options.ttsOptions - TTS configuration (voice, rate, pitch, volume)
      * @returns {Boolean} - True if successful
      */
     clippy.Agent.prototype.speakWithEmotion = function (text, emotion, options) {
         options = options || {};
-        var useTTS = options.useTTS || false;
+        var useTTS = options.useTTS !== undefined ? options.useTTS : this.isTTSEnabled();
         var ttsOptions = options.ttsOptions || {};
 
         var emotionAnimations = {
@@ -861,6 +861,156 @@
         return this.hasAnimation("Goodbye") ? "Goodbye" : this.hasAnimation("GoodBye") ? "GoodBye" : "Hide";
     }
 
+    /**
+     * Show an interactive input balloon
+     * @param {Object} options - Configuration options
+     * @param {String} options.title - The title text (default: "What would you like to do?")
+     * @param {String} options.placeholder - Placeholder for the textarea
+     * @param {String} options.askButtonText - Text for the ask button (default: "Ask")
+     * @param {String} options.cancelButtonText - Text for the cancel button (default: "Cancel")
+     * @param {Number} options.timeout - Auto-close timeout in ms (default: 60000)
+     * @param {Function} options.onAsk - Called when the ask button is clicked, with the input value
+     * @param {Function} options.onCancel - Called when the cancel button is clicked
+     */
+    clippy.Agent.prototype.ask = function (options) {
+        options = options || {};
+        var self = this;
+        var title = options.title || "What would you like to do?";
+        var placeholder = options.placeholder || "Ask me anything...";
+        var askButtonText = options.askButtonText || "Ask";
+        var cancelButtonText = options.cancelButtonText || "Cancel";
+        var timeout = options.timeout || 60000;
+        var inputBalloonTimeout = null;
+
+        this.stop();
+
+        var balloonContent =
+            '<div class="clippy-input">' +
+            '<b>' + title + '</b>' +
+            '<textarea rows="2" placeholder="' + placeholder + '"></textarea>' +
+            '<div class="clippy-input-buttons">' +
+            '<button class="ask-button default">' + askButtonText + '</button>' +
+            '<button class="cancel-button">' + cancelButtonText + '</button>' +
+            '</div>' +
+            '</div>';
+
+        this._balloon.showHtml(balloonContent, true);
+
+        var balloon = this._balloon._balloon;
+        var input = balloon.find("textarea");
+        var askButton = balloon.find(".ask-button");
+        var cancelButton = balloon.find(".cancel-button");
+
+        input.focus();
+
+        // Reposition balloon after a delay to allow for rendering
+        setTimeout(function () {
+            self._balloon.reposition();
+        }, 0);
+
+        var resetBalloonTimeout = function () {
+            if (inputBalloonTimeout) {
+                clearTimeout(inputBalloonTimeout);
+            }
+            inputBalloonTimeout = setTimeout(function () {
+                self.closeBalloon();
+            }, timeout);
+        };
+
+        var clearBalloonTimeout = function () {
+            if (inputBalloonTimeout) {
+                clearTimeout(inputBalloonTimeout);
+            }
+        };
+
+        var askHandler = function () {
+            clearBalloonTimeout();
+            var question = input.val();
+            if (options.onAsk) options.onAsk(question);
+            self.closeBalloon();
+        };
+
+        input.on("keypress", function (e) {
+            resetBalloonTimeout();
+            if (e.which === 13) {
+                e.preventDefault();
+                askHandler();
+            }
+        });
+
+        askButton.on("click", askHandler);
+
+        cancelButton.on("click", function () {
+            clearBalloonTimeout();
+            if (options.onCancel) options.onCancel();
+            self.closeBalloon();
+        });
+
+        resetBalloonTimeout();
+    };
+
+    /**
+     * Automatically set a recommended voice based on language and name patterns
+     * @param {String} lang - Language code (default: 'en')
+     */
+    clippy.Agent.prototype.setRecommendedVoice = function (lang) {
+        lang = lang || 'en';
+        var self = this;
+
+        var doSetRecommendedVoice = function() {
+            var voices = self.getTTSVoices();
+            if (voices.length === 0) return false;
+
+            var englishVoices = voices.filter(function (v) { return v.lang.startsWith(lang); });
+            var maleNames = [
+                "male", "david", "alex", "fred", "daniel", "george",
+                "paul", "tom", "mark", "james", "michael"
+            ];
+
+            var defaultVoice = englishVoices.find(function (v) {
+                return maleNames.some(function (name) {
+                    return v.name.toLowerCase().includes(name);
+                });
+            });
+
+            if (!defaultVoice) {
+                var femaleNames = [
+                    "zira", "hazel", "samantha", "susan", "karen",
+                    "sara", "emma", "lucy", "anna"
+                ];
+                var nonFemaleVoices = englishVoices.filter(function (v) {
+                    return !femaleNames.some(function (name) {
+                        return v.name.toLowerCase().includes(name);
+                    }) && !v.name.toLowerCase().includes("female");
+                });
+
+                if (nonFemaleVoices.length > 0) {
+                    defaultVoice = nonFemaleVoices[0];
+                } else {
+                    defaultVoice = englishVoices[0];
+                }
+            }
+
+            self.setTTSOptions({
+                voice: defaultVoice,
+                rate: 0.9,
+                pitch: 0.9,
+                volume: 0.8,
+            });
+
+            return true;
+        };
+
+        if (this.getTTSVoices().length > 0) {
+            return doSetRecommendedVoice();
+        } else if (window.speechSynthesis) {
+            window.speechSynthesis.addEventListener('voiceschanged', doSetRecommendedVoice, { once: true });
+            return true;
+        }
+
+        return false;
+    };
+
     // =============================================================================
     // INITIAL POSITION OVERRIDE
     // =============================================================================
@@ -899,14 +1049,15 @@
 
     // Add version info
     clippy.extensions = {
-        version: '1.0.0',
+        version: '1.1.0',
         methods: [
             'speakAndAnimate', 'speakWithRepeatingAnimation', 'speakWithIdleAnimation',
             'randomAnimation', 'gestureDirection', 'animationSequence',
             'speakWithEmotion', 'whisper', 'announce',
             'setPersonality', 'greetWithPersonality', 'farewellWithPersonality',
             'contextualResponse', 'performSequence', 'getAnimationInfo', 'isBusy', 'getQueueLength',
-            'showError', 'showSuccess', 'showLoading', 'showWarning', 'getGoodbyeAnimation'
+            'showError', 'showSuccess', 'showLoading', 'showWarning', 'getGoodbyeAnimation',
+            'ask', 'setRecommendedVoice'
         ]
     };
 

@@ -12,7 +12,6 @@ import { appManager } from '../../system/app-manager.js';
 window.clippyAppInstance = null;
 let currentAgentName =
   getItem(LOCAL_STORAGE_KEYS.CLIPPY_AGENT_NAME) || "Clippy";
-let inputBalloonTimeout = null;
 
 function setCurrentAgentName(name) {
   currentAgentName = name;
@@ -23,71 +22,11 @@ function showClippyInputBalloon() {
   const agent = window.clippyAgent;
   if (!agent) return;
 
-  agent.stop();
-
-  const balloonContent = `
-    <div class="clippy-input" style="display: flex; flex-direction: column; align-items: center; padding: 5px;">
-      <b style="align-self: flex-start; margin-bottom: 5px;">What would you like to do?</b>
-      <textarea rows="2" placeholder="Ask me anything..." style="width: 100%; margin-bottom: 10px; background-color: white; border: 1px solid grey; box-shadow: none; resize: none; font-family: inherit; font-size: inherit;"></textarea>
-      <div style="display: flex; justify-content: space-between; width: 100%;">
-        <button class="ask-button default" style="margin-right: 5px; background-color: transparent; border: 1px solid grey; border-radius: 4px; width: 70px">Ask</button>
-        <button class="cancel-button" style="background-color: transparent; border: 1px solid grey; border-radius: 4px; width: 70px">Cancel</button>
-      </div>
-    </div>
-  `;
-
-  agent._balloon.showHtml(balloonContent, true);
-
-  const balloon = agent._balloon._balloon;
-  const input = balloon.find("textarea");
-  const askButton = balloon.find(".ask-button");
-  const cancelButton = balloon.find(".cancel-button");
-
-  input.focus();
-
-  // Reposition balloon after a delay to allow for rendering
-  setTimeout(() => {
-    agent._balloon.reposition();
-  }, 0);
-
-  const resetBalloonTimeout = () => {
-    if (inputBalloonTimeout) {
-      clearTimeout(inputBalloonTimeout);
-    }
-    inputBalloonTimeout = setTimeout(() => {
-      agent.closeBalloon();
-    }, 60000); // 1 minute
-  };
-
-  const clearBalloonTimeout = () => {
-    if (inputBalloonTimeout) {
-      clearTimeout(inputBalloonTimeout);
-    }
-  };
-
-  const askClippyHandler = () => {
-    clearBalloonTimeout();
-    const question = input.val();
-    askClippy(agent, question);
-    agent.closeBalloon();
-  };
-
-  input.on("keypress", (e) => {
-    resetBalloonTimeout();
-    if (e.which === 13) {
-      e.preventDefault();
-      askClippyHandler();
-    }
+  agent.ask({
+    onAsk: (question) => {
+      askClippy(agent, question);
+    },
   });
-
-  askButton.on("click", askClippyHandler);
-
-  cancelButton.on("click", () => {
-    clearBalloonTimeout();
-    agent.closeBalloon();
-  });
-
-  resetBalloonTimeout(); // Start the timer when the balloon is shown
 }
 
 async function askClippy(agent, question) {
@@ -238,61 +177,7 @@ export function launchClippyApp(app, agentName = currentAgentName) {
     const ttsEnabled = agent.isTTSEnabled();
     if (ttsEnabled) {
       const setDefaultVoice = () => {
-        const voices = agent.getTTSVoices();
-        if (voices.length > 0) {
-          // Improved voice selection logic
-          const englishVoices = voices.filter((v) => v.lang.startsWith("en"));
-
-          // Prioritize male-sounding voices by name patterns
-          let defaultVoice = englishVoices.find(
-            (v) =>
-              v.name.toLowerCase().includes("male") ||
-              v.name.toLowerCase().includes("david") ||
-              v.name.toLowerCase().includes("alex") ||
-              v.name.toLowerCase().includes("fred") ||
-              v.name.toLowerCase().includes("daniel") ||
-              v.name.toLowerCase().includes("george") ||
-              v.name.toLowerCase().includes("paul") ||
-              v.name.toLowerCase().includes("tom") ||
-              v.name.toLowerCase().includes("mark") ||
-              v.name.toLowerCase().includes("james") ||
-              v.name.toLowerCase().includes("michael"),
-          );
-
-          // If no male voice found, prefer voices that are NOT obviously female
-          if (!defaultVoice) {
-            const femaleNames = [
-              "zira",
-              "hazel",
-              "samantha",
-              "susan",
-              "karen",
-              "sara",
-              "emma",
-              "lucy",
-              "anna",
-            ];
-            const nonFemaleVoices = englishVoices.filter(
-              (v) =>
-                !femaleNames.some((name) =>
-                  v.name.toLowerCase().includes(name),
-                ) && !v.name.toLowerCase().includes("female"),
-            );
-
-            if (nonFemaleVoices.length > 0) {
-              defaultVoice = nonFemaleVoices[0]; // Take first non-female voice
-            } else {
-              defaultVoice = englishVoices[0]; // Fallback to any English voice
-            }
-          }
-
-          agent.setTTSOptions({
-            voice: defaultVoice,
-            rate: 0.9,
-            pitch: 0.9,
-            volume: 0.8,
-          });
-        }
+        agent.setRecommendedVoice();
       };
       if (window.speechSynthesis.getVoices().length) {
         setDefaultVoice();
