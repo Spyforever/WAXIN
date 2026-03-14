@@ -1,9 +1,28 @@
 import { ICONS } from './icons.js';
+import { getAgentMenuItems } from '../apps/agent/agent.js';
 import { getClippyMenuItems } from '../apps/clippy/clippy.js';
 import { getESheepMenuItems } from '../apps/esheep/esheep.js';
 import { getWebampMenuItems } from '../apps/webamp/webamp.js';
 
 export const appRegistry = {
+  "agent": {
+    config: {
+        id: "agent",
+        title: "Agent",
+        description: "A modern assistant powered by MSAgentJS.",
+        icon: ICONS.agent,
+        category: "Accessories",
+        hasTray: true,
+        isSingleton: true,
+        tray: {
+          contextMenu: getAgentMenuItems,
+        },
+        tips: [
+          "Try the new modern Agent!",
+        ],
+    },
+    importApp: () => import("../apps/agent/agent-app.js")
+  },
   "about": {
     config: {
     id: "about",

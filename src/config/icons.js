@@ -31,6 +31,10 @@ export const ICONS = {
     16: new URL("../assets/icons/msagent_file-1.png", import.meta.url).href,
     32: new URL("../assets/icons/msagent_file-1.png", import.meta.url).href,
   },
+  agent: {
+    16: new URL("../assets/icons/msagent_file-1.png", import.meta.url).href,
+    32: new URL("../assets/icons/msagent_file-1.png", import.meta.url).href,
+  },
   webamp: {
     16: new URL("../assets/icons/winamp.png", import.meta.url).href,
     32: new URL("../assets/icons/winamp.png", import.meta.url).href,
