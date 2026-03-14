@@ -1,7 +1,8 @@
 import { getItem, setItem } from '../../system/local-storage.js';
 import { appManager } from '../../system/app-manager.js';
-import { AGENT_NAMES } from '../../config/agents.js';
 import { requestBusyState, releaseBusyState } from '../../system/busy-state-manager.js';
+
+const MS_AGENT_SUPPORTED_CHARACTERS = ["Clippy", "Genius", "Rocky", "F1"];
 
 let currentAgentName = getItem('msAgentName') || "Clippy";
 
@@ -57,7 +58,7 @@ export function getAgentMenuItems(app) {
       label: "A&gent",
       submenu: [
         {
-          radioItems: AGENT_NAMES.map((name) => ({ label: name, value: name })),
+          radioItems: MS_AGENT_SUPPORTED_CHARACTERS.map((name) => ({ label: name, value: name })),
           getValue: () => currentAgentName,
           setValue: (value) => {
             if (currentAgentName !== value) {
