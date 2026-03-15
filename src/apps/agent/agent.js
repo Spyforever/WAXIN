@@ -138,6 +138,8 @@ export function showAgentContextMenu(event, app) {
 }
 
 export async function launchAgentApp(app, agentName = currentAgentName) {
+    const { Agent } = await import('https://unpkg.com/ms-agent-js@0.3.0/dist/ms-agent-js.es.js');
+
     if (window.msAgentInstance) {
         window.msAgentInstance.destroy();
     }
@@ -160,7 +162,7 @@ export async function launchAgentApp(app, agentName = currentAgentName) {
 
     const internalName = SUPPORTED_AGENTS[agentName] || SUPPORTED_AGENTS["Clippy"];
 
-    const agent = await window.MSAgentJS.Agent.load(internalName, {
+    const agent = await Agent.load(internalName, {
         baseUrl: `https://unpkg.com/ms-agent-js@0.3.0/dist/agents/${encodeURIComponent(internalName)}/`
     });
     window.msAgentInstance = agent;
