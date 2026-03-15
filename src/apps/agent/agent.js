@@ -2,17 +2,17 @@ import { getItem, setItem } from '../../system/local-storage.js';
 import { appManager } from '../../system/app-manager.js';
 import { requestBusyState, releaseBusyState } from '../../system/busy-state-manager.js';
 
-const MS_AGENT_SUPPORTED_CHARACTERS = [
-    "Clippy",
-    "DOT",
-    "F1",
-    "Genius",
-    "LOGO",
-    "MNATURE",
-    "Monkey King",
-    "OFFCAT",
-    "Rocky"
-];
+const SUPPORTED_AGENTS = {
+    "Clippy": "Clippit",
+    "DOT": "DOT",
+    "F1": "F1",
+    "Genius": "GENIUS",
+    "LOGO": "LOGO",
+    "MNATURE": "MNATURE",
+    "Monkey King": "Monkey King",
+    "OFFCAT": "OFFCAT",
+    "Rocky": "ROCKY"
+};
 
 let currentAgentName = getItem('msAgentName') || "Clippy";
 
@@ -68,7 +68,7 @@ export function getAgentMenuItems(app) {
       label: "A&gent",
       submenu: [
         {
-          radioItems: MS_AGENT_SUPPORTED_CHARACTERS.map((name) => ({ label: name, value: name })),
+          radioItems: Object.keys(SUPPORTED_AGENTS).map((name) => ({ label: name, value: name })),
           getValue: () => currentAgentName,
           setValue: (value) => {
             if (currentAgentName !== value) {
@@ -158,13 +158,7 @@ export async function launchAgentApp(app, agentName = currentAgentName) {
 
     const ttsUserPref = getItem('msAgentTTSEnabled') ?? true;
 
-    // Normalize agent name for CDN paths
-    const nameMap = {
-        'CLIPPY': 'Clippit',
-        'GENIUS': 'GENIUS',
-        'ROCKY': 'ROCKY'
-    };
-    const internalName = nameMap[agentName.toUpperCase()] || agentName;
+    const internalName = SUPPORTED_AGENTS[agentName] || SUPPORTED_AGENTS["Clippy"];
 
     const agent = await window.MSAgentJS.Agent.load(internalName, {
         baseUrl: `https://unpkg.com/ms-agent-js@0.3.0/dist/agents/${encodeURIComponent(internalName)}/`
