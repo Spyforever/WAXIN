@@ -2,7 +2,17 @@ import { getItem, setItem } from '../../system/local-storage.js';
 import { appManager } from '../../system/app-manager.js';
 import { requestBusyState, releaseBusyState } from '../../system/busy-state-manager.js';
 
-const MS_AGENT_SUPPORTED_CHARACTERS = ["Clippy", "Genius", "Rocky", "F1"];
+const MS_AGENT_SUPPORTED_CHARACTERS = [
+    "Clippy",
+    "DOT",
+    "F1",
+    "Genius",
+    "LOGO",
+    "MNATURE",
+    "Monkey King",
+    "OFFCAT",
+    "Rocky"
+];
 
 let currentAgentName = getItem('msAgentName') || "Clippy";
 
@@ -151,14 +161,13 @@ export async function launchAgentApp(app, agentName = currentAgentName) {
     // Normalize agent name for CDN paths
     const nameMap = {
         'CLIPPY': 'Clippit',
-        'GENIUS': 'Genius',
-        'ROCKY': 'Rocky',
-        'F1': 'F1'
+        'GENIUS': 'GENIUS',
+        'ROCKY': 'ROCKY'
     };
     const internalName = nameMap[agentName.toUpperCase()] || agentName;
 
     const agent = await window.MSAgentJS.Agent.load(internalName, {
-        baseUrl: `https://unpkg.com/ms-agent-js@0.3.0/dist/agents/${internalName}/`
+        baseUrl: `https://unpkg.com/ms-agent-js@0.3.0/dist/agents/${encodeURIComponent(internalName)}/`
     });
     window.msAgentInstance = agent;
 
