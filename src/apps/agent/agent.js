@@ -82,13 +82,10 @@ export function getAgentMenuItems(app) {
     "MENU_DIVIDER",
     {
       label: "&Close",
-      action: () => {
-        const speakReq = agent.speak("Goodbye! Just open me again if you need any help!", { useTTS: ttsEnabled });
-        speakReq.promise.then(() => {
-            agent.play('Goodbye').promise.then(() => {
-                appManager.closeApp(app.id);
-            });
-        });
+      action: async () => {
+        await agent.speak("Goodbye! Just open me again if you need any help!", { useTTS: ttsEnabled });
+        await agent.play('Goodbye');
+        appManager.closeApp(app.id);
       },
     },
   ];
@@ -138,7 +135,7 @@ export function showAgentContextMenu(event, app) {
 }
 
 export async function launchAgentApp(app, agentName = currentAgentName) {
-    const { Agent } = await import('https://unpkg.com/ms-agent-js@0.3.0/dist/ms-agent-js.es.js');
+    const { Agent } = await import('https://unpkg.com/ms-agent-js@0.4.1/dist/ms-agent-js.es.js');
 
     if (window.msAgentInstance) {
         window.msAgentInstance.destroy();
@@ -163,7 +160,7 @@ export async function launchAgentApp(app, agentName = currentAgentName) {
     const internalName = SUPPORTED_AGENTS[agentName] || SUPPORTED_AGENTS["Clippy"];
 
     const agent = await Agent.load(internalName, {
-        baseUrl: `https://unpkg.com/ms-agent-js@0.3.0/dist/agents/${encodeURIComponent(internalName)}/`
+        baseUrl: `https://unpkg.com/ms-agent-js@0.4.1/dist/agents/${encodeURIComponent(internalName)}/`
     });
     window.msAgentInstance = agent;
 
@@ -173,33 +170,36 @@ export async function launchAgentApp(app, agentName = currentAgentName) {
 
     // Set recommended voice for TTS
     if (ttsUserPref) {
-        const setDefaultVoice = () => {
-          agent.setRecommendedVoice();
+        const setRecommendedVoice = () => {
+            const voices = agent.getTTSVoices();
+            if (voices.length > 0) {
+                // Try to find a high-quality English voice
+                const preferredVoice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('David') || v.name.includes('Mark')))
+                    || voices.find(v => v.lang.startsWith('en'))
+                    || voices[0];
+
+                agent.setTTSOptions({ voice: preferredVoice });
+            }
         };
+
         if (window.speechSynthesis.getVoices().length) {
-          setDefaultVoice();
+            setRecommendedVoice();
         } else {
-          window.speechSynthesis.addEventListener(
-            "voiceschanged",
-            setDefaultVoice,
-            { once: true },
-          );
+            window.speechSynthesis.addEventListener(
+                "voiceschanged",
+                setRecommendedVoice,
+                { once: true },
+            );
         }
     }
 
-    // Wrap speak for busy state management
-    const originalSpeak = agent.speak;
-    agent.speak = function (text, options) {
-        const speakId = `speak-${Date.now()}`;
-        const hostEl = agent.container;
-        requestBusyState(speakId, hostEl);
-
-        const request = originalSpeak.call(this, text, options);
-        request.promise.then(() => {
-            releaseBusyState(speakId, hostEl);
-        });
-        return request;
-    };
+    // Busy state management using events
+    agent.on('speakStart', () => {
+        requestBusyState('agent-speaking', agent.container);
+    });
+    agent.on('speakEnd', () => {
+        releaseBusyState('agent-speaking', agent.container);
+    });
 
     await agent.speak("Hey, there. Want quick answers to your questions? Just click me.", {
         useTTS: ttsUserPref,
