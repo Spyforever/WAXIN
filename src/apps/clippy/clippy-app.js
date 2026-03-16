@@ -41,10 +41,6 @@ export class ClippyApp extends Application {
             agent.hide();
             $(".clippy, .clippy-balloon").remove();
             $(".os-menu").remove();
-            const trayIcon = document.querySelector("#tray-icon-clippy");
-            if (trayIcon) {
-                trayIcon.remove();
-            }
             window.clippyAgent = null;
         }
     }

@@ -85,10 +85,6 @@ function setupObserver() {
 export function closeAllESheep() {
   sheepInstances.forEach((sheep) => sheep.remove());
   sheepInstances = [];
-  const trayIcon = document.querySelector("#tray-icon-esheep");
-  if (trayIcon) {
-    trayIcon.remove();
-  }
   if (observer) {
     observer.disconnect();
     observer = null;
