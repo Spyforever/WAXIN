@@ -150,7 +150,12 @@ async function askAgent(agent, question) {
 
 export function showAgentContextMenu(event, app) {
   const menuItems = getAgentMenuItems(app);
+
+  // Create the context menu
   new window.ContextMenu(menuItems, event);
+
+  // Boost z-index to appear in front of the agent (which is at 900)
+  // This is handled by a global observer initialized in launchAgentApp
 }
 
 export async function launchAgentApp(app, agentName = currentAgentName) {
@@ -161,30 +166,29 @@ export async function launchAgentApp(app, agentName = currentAgentName) {
     window.msAgentInstance.destroy();
   }
 
-  let container = document.getElementById("ms-agent-container");
-  if (!container) {
-    container = document.createElement("div");
-    container.id = "ms-agent-container";
-    container.style.position = "absolute";
-    container.style.top = "0";
-    container.style.left = "0";
-    container.style.width = "100%";
-    container.style.height = "100%";
-    container.style.pointerEvents = "none";
-    container.style.zIndex = "999999";
-    document.getElementById("screen").appendChild(container);
-  }
-
   const ttsUserPref = getItem("msAgentTTSEnabled") ?? true;
 
   const internalName =
     SUPPORTED_AGENTS[agentName] || SUPPORTED_AGENTS["Clippy"];
 
   const agent = await Agent.load(internalName, {
+    fixed: false,
     baseUrl: `https://unpkg.com/ms-agent-js@0.4.1/dist/agents/${encodeURIComponent(internalName)}/`,
     initialAnimation: "Greeting",
   });
   window.msAgentInstance = agent;
+
+  // Stay on top of windows but below menus
+  // Note: the library may re-parent or create its own container.
+  // We ensure it stays in a lower stacking context than the context menu.
+  if (agent.container) {
+    agent.container.style.setProperty("z-index", "9000", "important");
+    // If it's not in the screen, move it there to ensure consistent stacking
+    const screen = document.getElementById("screen");
+    if (screen && agent.container.parentElement !== screen) {
+      screen.appendChild(agent.container);
+    }
+  }
 
   agent.balloon.setTTSEnabled(ttsUserPref);
 
@@ -234,16 +238,66 @@ export async function launchAgentApp(app, agentName = currentAgentName) {
     },
   );
 
-  agent.on("click", () => {
-    // Only if not already speaking or menu open
+  // Ensure the agent's canvas and balloon can receive pointer events
+  if (agent.renderer && agent.renderer.canvas) {
+    agent.renderer.canvas.style.pointerEvents = "auto";
+    agent.renderer.canvas.style.cursor = "pointer";
+    agent.renderer.canvas.setAttribute("data-agent-interaction", "true");
+  }
+  if (agent.balloon && agent.balloon._balloonEl) {
+    agent.balloon._balloonEl.style.pointerEvents = "auto";
+    agent.balloon._balloonEl.style.cursor = "pointer";
+    agent.balloon._balloonEl.setAttribute("data-agent-interaction", "true");
+  }
+
+  const onAgentClick = (e) => {
+    // Only if a context menu is not open
     if (document.querySelector(".menu-popup")) return;
+    // Check if we were dragging
+    if (agent.wasDragging) return;
+
+    if (agent.stop) agent.stop();
     showAgentInputBalloon();
+  };
+
+  agent.on("click", onAgentClick);
+
+  // Use the library's contextmenu event if available, otherwise fallback to canvas
+  agent.on("contextmenu", (e) => {
+    const originalEvent = e.originalEvent || e;
+    if (originalEvent.preventDefault) {
+      originalEvent.preventDefault();
+    }
+    showAgentContextMenu(originalEvent, app);
   });
 
-  agent.on("contextmenu", (e) => {
-    e.preventDefault();
-    showAgentContextMenu(e, app);
-  });
+  // Global Context Menu Booster to ensure Agent doesn't overlap menus
+  const boostZ = "1000000";
+  const boost = () => {
+    const wraps = document.querySelectorAll(".menu-popup-wrapper");
+    wraps.forEach((wrap) => {
+      if (wrap.style.zIndex !== boostZ) {
+        wrap.style.setProperty("z-index", boostZ, "important");
+        const menus = wrap.querySelectorAll(".menu-popup");
+        menus.forEach((menu) => {
+          menu.style.setProperty("z-index", boostZ, "important");
+        });
+      }
+    });
+  };
+
+  const observer = new MutationObserver(boost);
+  const screen = document.getElementById("screen");
+  if (screen) {
+    observer.observe(screen, { childList: true, subtree: true });
+  }
+
+  // Cleanup observer when agent is destroyed
+  const originalDestroy = agent.destroy.bind(agent);
+  agent.destroy = () => {
+    observer.disconnect();
+    originalDestroy();
+  };
 }
 
 function startTutorial(agent) {
