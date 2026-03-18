@@ -5,6 +5,22 @@ import { getESheepMenuItems } from '../apps/esheep/esheep.js';
 import { getWebampMenuItems } from '../apps/webamp/webamp.js';
 
 export const appRegistry = {
+  "about": {
+    config: {
+    id: "about",
+    title: "About",
+    description: "Displays information about this application.",
+    summary: "<b>azOS Second Edition</b><br>Copyright © 2024",
+    icon: ICONS.windowsUpdate,
+    width: 400,
+    height: 280,
+    resizable: false,
+    minimizeButton: false,
+    maximizeButton: false,
+    isSingleton: true,
+  },
+    importApp: () => import("../shell/about/about-app.js")
+  },
   "agent": {
     config: {
         id: "agent",
@@ -22,22 +38,6 @@ export const appRegistry = {
         ],
     },
     importApp: () => import("../apps/agent/agent-app.js")
-  },
-  "about": {
-    config: {
-    id: "about",
-    title: "About",
-    description: "Displays information about this application.",
-    summary: "<b>azOS Second Edition</b><br>Copyright © 2024",
-    icon: ICONS.windowsUpdate,
-    width: 400,
-    height: 280,
-    resizable: false,
-    minimizeButton: false,
-    maximizeButton: false,
-    isSingleton: true,
-  },
-    importApp: () => import("../shell/about/about-app.js")
   },
   "app-maker": {
     config: {
@@ -559,7 +559,8 @@ export const appRegistry = {
     id: "webamp",
     title: "Winamp",
     description: "A classic music player.",
-    icon: ICONS.webamp, category: "",
+    icon: ICONS.webamp,
+    category: "",
     hasTaskbarButton: true,
     isSingleton: true,
     tray: {

@@ -224,14 +224,27 @@ export function launchClippyApp(app, agentName = currentAgentName) {
       { useTTS: ttsEnabled },
     );
 
+    let startX, startY;
+    agent._el.on("mousedown", (e) => {
+      startX = e.clientX;
+      startY = e.clientY;
+    });
+
     agent._el.on("click", (e) => {
+      // Custom drag detection
+      const diffX = Math.abs(e.clientX - startX);
+      const diffY = Math.abs(e.clientY - startY);
+      if (diffX > 10 || diffY > 10) return;
+
       if (contextMenuOpened) {
         contextMenuOpened = false;
         return;
       }
-      if (agent.isSpeaking) return;
       // Also check if a context menu is open
-      if (document.querySelector(".menu-popup")) return;
+      if (document.querySelector(".menu-popup-wrapper.open")) return;
+
+      // Interrupt current speech/animation if clicking
+      if (agent.stop) agent.stop();
       showClippyInputBalloon();
     });
 
