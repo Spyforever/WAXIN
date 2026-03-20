@@ -250,17 +250,34 @@ export async function launchAgentApp(app, agentName = currentAgentName) {
     agent.balloon._balloonEl.setAttribute("data-agent-interaction", "true");
   }
 
+  let startX, startY;
   const onAgentClick = (e) => {
     // Only if a context menu is not open
-    if (document.querySelector(".menu-popup")) return;
-    // Check if we were dragging
-    if (agent.wasDragging) return;
+    if (document.querySelector(".menu-popup-wrapper.open")) return;
 
+    // Custom drag detection: if we moved more than 10 pixels, ignore the click
+    const diffX = Math.abs(e.clientX - startX);
+    const diffY = Math.abs(e.clientY - startY);
+    if (diffX > 10 || diffY > 10) return;
+
+    // If already speaking/busy, stop it first
     if (agent.stop) agent.stop();
     showAgentInputBalloon();
   };
 
-  agent.on("click", onAgentClick);
+  // The library's "click" event might not always fire as expected or might be blocked.
+  // We use direct DOM listeners on the canvas for better reliability.
+  if (agent.renderer && agent.renderer.canvas) {
+    agent.renderer.canvas.addEventListener("mousedown", (e) => {
+      startX = e.clientX;
+      startY = e.clientY;
+    });
+    agent.renderer.canvas.addEventListener("click", (e) => {
+      onAgentClick(e);
+    });
+  } else {
+    agent.on("click", onAgentClick);
+  }
 
   // Use the library's contextmenu event if available, otherwise fallback to canvas
   agent.on("contextmenu", (e) => {
