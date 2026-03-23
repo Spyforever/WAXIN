@@ -45,6 +45,7 @@ function generateRegistry() {
 
     let output = `import { ICONS } from './icons.js';
 import { getClippyMenuItems } from '../apps/clippy/clippy.js';
+import { getAgentMenuItems } from '../apps/agent/agent.js';
 import { getESheepMenuItems } from '../apps/esheep/esheep.js';
 import { getWebampMenuItems } from '../apps/webamp/webamp.js';
 
@@ -60,6 +61,7 @@ export const appRegistry = {
         // Ensure variable references are preserved
         config = config.replace(/ICONS/g, 'ICONS');
         config = config.replace(/getClippyMenuItems/g, 'getClippyMenuItems');
+        config = config.replace(/getAgentMenuItems/g, 'getAgentMenuItems');
         config = config.replace(/getESheepMenuItems/g, 'getESheepMenuItems');
         config = config.replace(/getWebampMenuItems/g, 'getWebampMenuItems');
 

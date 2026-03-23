@@ -1,6 +1,5 @@
 import { Application } from '../../system/application.js';
 import { launchAgentApp, getAgentMenuItems } from './agent.js';
-import { appManager } from '../../system/app-manager.js';
 import { ICONS } from '../../config/icons.js';
 
 export class AgentApp extends Application {
