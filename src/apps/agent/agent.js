@@ -106,13 +106,21 @@ async function showAgentInputBalloon() {
   if (!agent) return;
 
   // MSAgentJS has a built-in ask method that returns a promise
-  const question = await agent.ask({
+  // v0.5.0 uses a structured content array
+  const result = await agent.ask({
     title: "What would you like to do?",
-    placeholder: "Ask me anything...",
+    content: [
+      {
+        type: "input",
+        placeholder: "Ask me anything...",
+        rows: 2,
+      },
+    ],
+    buttons: ["Ask", "Cancel"],
   });
 
-  if (question) {
-    askAgent(agent, question);
+  if (result && result.text) {
+    askAgent(agent, result.text);
   }
 }
 
@@ -160,7 +168,7 @@ export function showAgentContextMenu(event, app) {
 
 export async function launchAgentApp(app, agentName = currentAgentName) {
   const { Agent } =
-    await import("https://unpkg.com/ms-agent-js@0.4.1/dist/ms-agent-js.es.js");
+    await import("https://unpkg.com/ms-agent-js@0.5.0/dist/ms-agent-js.es.js");
 
   if (window.msAgentInstance) {
     window.msAgentInstance.destroy();
@@ -173,7 +181,7 @@ export async function launchAgentApp(app, agentName = currentAgentName) {
 
   const agent = await Agent.load(internalName, {
     fixed: false,
-    baseUrl: `https://unpkg.com/ms-agent-js@0.4.1/dist/agents/${encodeURIComponent(internalName)}/`,
+    baseUrl: `https://unpkg.com/ms-agent-js@0.5.0/dist/agents/${encodeURIComponent(internalName)}/`,
     initialAnimation: "Greeting",
   });
   window.msAgentInstance = agent;
@@ -223,11 +231,13 @@ export async function launchAgentApp(app, agentName = currentAgentName) {
   }
 
   // Busy state management using events
-  agent.on("speakStart", () => {
+  agent.on("requestStart", () => {
     requestBusyState("agent-speaking", agent.container);
   });
-  agent.on("speakEnd", () => {
-    releaseBusyState("agent-speaking", agent.container);
+  agent.on("requestComplete", () => {
+    if (agent.requestQueue && agent.requestQueue.isEmpty) {
+      releaseBusyState("agent-speaking", agent.container);
+    }
   });
 
   await agent.speak(
@@ -238,48 +248,17 @@ export async function launchAgentApp(app, agentName = currentAgentName) {
     },
   );
 
-  // Ensure the agent's canvas and balloon can receive pointer events
-  if (agent.renderer && agent.renderer.canvas) {
-    agent.renderer.canvas.style.pointerEvents = "auto";
-    agent.renderer.canvas.style.cursor = "pointer";
-    agent.renderer.canvas.setAttribute("data-agent-interaction", "true");
-  }
-  if (agent.balloon && agent.balloon._balloonEl) {
-    agent.balloon._balloonEl.style.pointerEvents = "auto";
-    agent.balloon._balloonEl.style.cursor = "pointer";
-    agent.balloon._balloonEl.setAttribute("data-agent-interaction", "true");
-  }
-
-  let startX, startY;
-  const onAgentClick = (e) => {
+  // v0.5.0 handles interaction natively
+  agent.on("click", () => {
     // Only if a context menu is not open
     if (document.querySelector(".menu-popup-wrapper.open")) return;
 
-    // Custom drag detection: if we moved more than 10 pixels, ignore the click
-    const diffX = Math.abs(e.clientX - startX);
-    const diffY = Math.abs(e.clientY - startY);
-    if (diffX > 10 || diffY > 10) return;
-
     // If already speaking/busy, stop it first
-    if (agent.stop) agent.stop();
+    agent.stopCurrent();
     showAgentInputBalloon();
-  };
+  });
 
-  // The library's "click" event might not always fire as expected or might be blocked.
-  // We use direct DOM listeners on the canvas for better reliability.
-  if (agent.renderer && agent.renderer.canvas) {
-    agent.renderer.canvas.addEventListener("mousedown", (e) => {
-      startX = e.clientX;
-      startY = e.clientY;
-    });
-    agent.renderer.canvas.addEventListener("click", (e) => {
-      onAgentClick(e);
-    });
-  } else {
-    agent.on("click", onAgentClick);
-  }
-
-  // Use the library's contextmenu event if available, otherwise fallback to canvas
+  // Use the library's contextmenu event
   agent.on("contextmenu", (e) => {
     const originalEvent = e.originalEvent || e;
     if (originalEvent.preventDefault) {
