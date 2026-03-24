@@ -7,7 +7,6 @@
 import { ICONS } from "../../config/icons.js";
 import StartMenu from "../start-menu/start-menu.js";
 import { refreshPrograms } from "../start-menu/start-menu-utils.js";
-import { showClippyContextMenu } from "../../apps/clippy/clippy.js";
 import { launchApp } from "../../system/app-manager.js";
 import { getMuted } from "../../system/sound-manager.js";
 
@@ -674,18 +673,13 @@ export function createTrayIcon(app) {
     e.stopPropagation();
 
     if (app.tray?.contextMenu) {
-      // Use centralized function for clippy context menu
-      if (app.id === "clippy") {
-        showClippyContextMenu(e, app);
-      } else {
-        // Handle other tray icons normally
-        const menuItems =
-          typeof app.tray.contextMenu === "function"
-            ? app.tray.contextMenu(app)
-            : app.tray.contextMenu;
+      // Handle tray icons normally
+      const menuItems =
+        typeof app.tray.contextMenu === "function"
+          ? app.tray.contextMenu(app)
+          : app.tray.contextMenu;
 
-        new window.ContextMenu(menuItems, e);
-      }
+      new window.ContextMenu(menuItems, e);
     }
   });
 

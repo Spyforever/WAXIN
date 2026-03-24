@@ -3,8 +3,6 @@ export const LOCAL_STORAGE_KEYS = {
   CUSTOM_THEMES: 'customThemes',
   CUSTOM_APPS: 'customApps',
   SHOW_TIPS_AT_STARTUP: 'showTipsAtStartup',
-  CLIPPY_AGENT_NAME: 'clippyAgentName',
-  CLIPPY_TTS_ENABLED: 'clippyTTSEnabled',
   NOTEPAD_THEME: 'notepad-theme',
   NOTEPAD_WORD_WRAP: 'notepad-word-wrap',
   WALLPAPER: 'wallpaper',

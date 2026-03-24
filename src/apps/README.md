@@ -30,7 +30,7 @@ This guide provides instructions on how to add new applications to Windows 98 We
 | :--- | :--- |
 | [App Maker](./app-maker/README.md) | A tool to create custom, windowed applications using HTML. |
 | [Calculator](./calculator/README.md) | A fully functional Standard and Scientific calculator. |
-| [Clippy](./clippy/README.md) | An interactive AI assistant. |
+| [Agent](./agent/README.md) | An interactive AI assistant. |
 | [Flash Player](./flash-player/README.md) | Play classic Adobe Flash (.swf) files. |
 | [Image Resizer](./image-resizer/README.md) | A utility to enlarge images using nearest-neighbor scaling. |
 | [Image Viewer](./image-viewer/README.md) | A simple application for viewing and editing image files. |
