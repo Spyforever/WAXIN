@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.9.0](https://github.com/azayrahmad/win98-web/compare/win98-web-v0.8.1...win98-web-v0.9.0) (2026-03-24)
+
+
+### Features
+
+* add agent app and restrict to CDN-supported characters ([dab8417](https://github.com/azayrahmad/win98-web/commit/dab84175630175a621eddc04c5a92b069879443a))
+* add all available agents to the new agent app ([6e3fb82](https://github.com/azayrahmad/win98-web/commit/6e3fb82091a7442dac8f48d6ad8fbe0c765396f8))
+* add new agent app powered by ms-agent-js ([6c1f0a3](https://github.com/azayrahmad/win98-web/commit/6c1f0a31abf0e04e0e798c5451b243bb65cc8e31))
+* **agent:** implement context menu, fix layering and maintain position ([15b0f64](https://github.com/azayrahmad/win98-web/commit/15b0f64ee1698c28169b921f976ff329c8e8e193))
+* **agent:** update ms-agent-js to v0.4.1 and refactor to native APIs ([6e4db31](https://github.com/azayrahmad/win98-web/commit/6e4db31f6c83318e6bca0315fafe9d7849803b0c))
+* finalize agent app with 9 characters and ESM loading ([a41fe69](https://github.com/azayrahmad/win98-web/commit/a41fe699c43ef237ca05617553c14110554ee4fd))
+* finalize agent app with full character set and ESM loading ([9390cbe](https://github.com/azayrahmad/win98-web/commit/9390cbe78d5bee5247fb109b815c4ed29bc94381))
+* simplify agent mapping and expand character list ([c5c0f8d](https://github.com/azayrahmad/win98-web/commit/c5c0f8d8af70c0461a26a048d93cb306ed6813e7))
+
+
+### Bug Fixes
+
+* add missing music-metadata-browser dependency ([c9c8687](https://github.com/azayrahmad/win98-web/commit/c9c8687318e33c6bd6e6714771413513fd877202))
+* **agent:** fix agent names and apply greeting and goodby animations ([defee71](https://github.com/azayrahmad/win98-web/commit/defee71e89fe7ebee124ea9cb396d02f3db907a5))
+* enable 'Ask Agent' on single click for Agent and Clippy apps ([247709c](https://github.com/azayrahmad/win98-web/commit/247709c1879ac57499bd40616f073e25704943c8))
+* **shell:** ensure tray icons are correctly managed on app closure ([e4cc525](https://github.com/azayrahmad/win98-web/commit/e4cc52520ac52b5f24a266970f7b07da685335db))
+
 ## [0.8.1](https://github.com/azayrahmad/win98-web/compare/win98-web-v0.8.0...win98-web-v0.8.1) (2026-03-03)
 
 
