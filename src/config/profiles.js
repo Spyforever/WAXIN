@@ -3,7 +3,7 @@ export const profiles = {
     theme: "default",
     colorScheme: "peggys-pastels",
     startup: [
-      "clippy",
+      "agent",
       {
         appId: "pdfviewer",
         data: "files/Resume.pdf",

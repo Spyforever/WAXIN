@@ -7,7 +7,6 @@
 import { ICONS } from "../../config/icons.js";
 import StartMenu from "../start-menu/start-menu.js";
 import { refreshPrograms } from "../start-menu/start-menu-utils.js";
-import { showClippyContextMenu } from "../../apps/clippy/clippy.js";
 import { launchApp } from "../../system/app-manager.js";
 import { getMuted } from "../../system/sound-manager.js";
 
@@ -168,6 +167,17 @@ class Taskbar {
     this.bindExternalLinkEvents();
     this.bindTaskbarAppAreaEvents();
     this.bindTrayEvents();
+    this.bindGlobalEvents();
+  }
+
+  /**
+   * Bind global document events
+   */
+  bindGlobalEvents() {
+    document.addEventListener("app-closed", (e) => {
+      const { appId } = e.detail;
+      this.removeTrayIcon(appId);
+    });
   }
 
   /**
@@ -422,6 +432,19 @@ class Taskbar {
   }
 
   /**
+   * Remove tray icon
+   */
+  removeTrayIcon(appId) {
+    const trayArea = document.querySelector(SELECTORS.SYSTEM_TRAY);
+    if (!trayArea) return;
+
+    const trayIcon = trayArea.querySelector(`#tray-icon-${appId}`);
+    if (trayIcon) {
+      trayIcon.remove();
+    }
+  }
+
+  /**
    * Update taskbar button state
    */
   updateTaskbarButton(windowId, isActive = false, isMinimized = false) {
@@ -618,6 +641,10 @@ export function removeTaskbarButton(windowId) {
   return taskbar.removeTaskbarButton(windowId);
 }
 
+export function removeTrayIcon(appId) {
+  return taskbar.removeTrayIcon(appId);
+}
+
 export function updateTaskbarButton(windowId, isActive, isMinimized) {
   return taskbar.updateTaskbarButton(windowId, isActive, isMinimized);
 }
@@ -646,18 +673,13 @@ export function createTrayIcon(app) {
     e.stopPropagation();
 
     if (app.tray?.contextMenu) {
-      // Use centralized function for clippy context menu
-      if (app.id === "clippy") {
-        showClippyContextMenu(e);
-      } else {
-        // Handle other tray icons normally
-        const menuItems =
-          typeof app.tray.contextMenu === "function"
-            ? app.tray.contextMenu()
-            : app.tray.contextMenu;
+      // Handle tray icons normally
+      const menuItems =
+        typeof app.tray.contextMenu === "function"
+          ? app.tray.contextMenu(app)
+          : app.tray.contextMenu;
 
-        new window.ContextMenu(menuItems, e);
-      }
+      new window.ContextMenu(menuItems, e);
     }
   });
 

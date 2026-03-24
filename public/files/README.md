@@ -36,7 +36,7 @@ Experience Windows 98 Web Edition live: **[Windows 98 Web Edition](https://azayr
 
 ## Featured Applications
 
-- **Assistant**: Clippy the Office Assistant has been resurrected, now powered with AI. Ask any question about Windows 98. Can even give you a short tour of the OS. For more details, see the [Clippy App README](./src/apps/clippy/README.md).
+- **Assistant**: A modern interactive AI assistant powered by MSAgentJS. Ask any question about Windows 98. Can even give you a short tour of the OS. For more details, see the [Agent App README](./src/apps/agent/README.md).
 - **Notepad**: Your basic text editor, now with added syntax highlighting, code formatting, and Markdown preview. For more details, see the [Notepad App README](./src/apps/notepad/README.md).
 - **Winamp**: Play your favorite songs and playlists here. Customize with your own skins. A faithful recreation of the classic Winamp music player that runs directly on the desktop. For more details, see the [Webamp App README](./src/apps/webamp/README.md).
 - **Internet Explorer**: Surf the Internet like it was 1998. With Retro Mode enabled, you will be brought to 1998 archived version of your favorite websites.
@@ -53,7 +53,7 @@ For a full list of applications and instructions on how to create your own, refe
   - [os-gui](https://os-gui.js.org/): A library for building retro desktop GUI components.
     Note that both libraries have been heavily modified to combine their features and fit the needs of this project.
 - **AI Assistant**:
-  - [Clippy.js](https://github.com/pi0/clippyjs): The frontend library for the Clippy agent. This also has been heavily modified with TTS and Ask functionality.
+  - [MSAgentJS](https://github.com/azayrahmad/ms-agent-js): A modern assistant library. This is used for the Agent app with TTS and Ask functionality.
   - **Resume Chat API**: A custom API for processing natural language questions. This has its own repository at [resume-chat-api](https://github.com/azayrahmad/resume-chat-api). I made this specifically to manage LLM feature for the assistant.
 - **External Libraries**:
   - [Webamp](https://webamp.org/): The web-based Winamp player.
