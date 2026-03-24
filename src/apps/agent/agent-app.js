@@ -15,7 +15,9 @@ export class AgentApp extends Application {
           contextMenu: getAgentMenuItems,
         },
         tips: [
-          "Try the new modern Agent!",
+          "Need help? Try the <a href='#' class='tip-link' data-app='agent'>Agent</a> for assistance with azOS features.",
+          "You can ask Agent about Aziz's resume by clicking on it.",
+          "Right-click on Agent to see more options, like changing the agent or making it animate.",
         ],
     };
 

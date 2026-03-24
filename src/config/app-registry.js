@@ -1,5 +1,4 @@
 import { ICONS } from './icons.js';
-import { getClippyMenuItems } from '../apps/clippy/clippy.js';
 import { getAgentMenuItems } from '../apps/agent/agent.js';
 import { getESheepMenuItems } from '../apps/esheep/esheep.js';
 import { getWebampMenuItems } from '../apps/webamp/webamp.js';
@@ -34,7 +33,9 @@ export const appRegistry = {
           contextMenu: getAgentMenuItems,
         },
         tips: [
-          "Try the new modern Agent!",
+          "Need help? Try the <a href='#' class='tip-link' data-app='agent'>Agent</a> for assistance with azOS features.",
+          "You can ask Agent about Aziz's resume by clicking on it.",
+          "Right-click on Agent to see more options, like changing the agent or making it animate.",
         ],
     },
     importApp: () => import("../apps/agent/agent-app.js")
@@ -91,25 +92,6 @@ export const appRegistry = {
     resizable: false,
   },
     importApp: () => import("../apps/calculator/calculator-app.js")
-  },
-  "clippy": {
-    config: {
-        id: "clippy",
-        title: "Assistant",
-        description: "Your friendly assistant.",
-        icon: ICONS.clippy, category: "Accessories",
-        hasTray: true,
-        isSingleton: true,
-        tray: {
-          contextMenu: getClippyMenuItems,
-        },
-        tips: [
-          "Need help? Try the <a href='#' class='tip-link' data-app='clippy'>Assistant</a> for assistance with azOS features.",
-          "You can ask Clippy about Aziz's resume by clicking on it.",
-          "Right-click on Clippy to see more options, like changing the agent or making it animate.",
-        ],
-    },
-    importApp: () => import("../apps/clippy/clippy-app.js")
   },
   "command-prompt": {
     config: {
