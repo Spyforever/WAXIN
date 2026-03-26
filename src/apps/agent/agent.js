@@ -1,9 +1,59 @@
 import { getItem, setItem } from "../../system/local-storage.js";
-import { appManager } from "../../system/app-manager.js";
+import { appManager, launchApp } from "../../system/app-manager.js";
 import {
   requestBusyState,
   releaseBusyState,
 } from "../../system/busy-state-manager.js";
+
+const TUTORIAL_STEPS = [
+  {
+    id: "welcome",
+    text: "Hi! I'm your new modern assistant. Let me give you a quick tour of Windows 98.",
+    animation: "Greeting",
+  },
+  {
+    id: "games",
+    appId: "explorer",
+    label: "Games",
+    text: "This is your Games folder. It contains classic games like Minesweeper and Solitaire.",
+    animation: "Explain",
+    args: "/C:/WINDOWS/Desktop/Games",
+  },
+  {
+    id: "desktop-themes",
+    appId: "desktop-themes",
+    label: "Desktop Themes",
+    text: "You can customize your desktop's appearance using Desktop Themes. Try a different look!",
+    animation: "Explain",
+  },
+  {
+    id: "notepad",
+    appId: "notepad",
+    label: "Notepad",
+    text: "Notepad is a simple text editor. Perfect for quick notes and even writing code!",
+    animation: "Explain",
+  },
+  {
+    id: "webamp",
+    appId: "webamp",
+    label: "Winamp",
+    text: "Winamp is the ultimate media player for your music collection.",
+    animation: "Explain",
+  },
+  {
+    id: "agent",
+    appId: "agent",
+    label: "Agent",
+    text: "And that's me! I'm here to help. You can right-click me to change my character or ask me questions.",
+    animation: "Wave",
+    noOpen: true,
+  },
+  {
+    id: "conclusion",
+    text: "That's the tour! Feel free to play around. Just click me if you need anything!",
+    animation: "Wave",
+  },
+];
 
 const SUPPORTED_AGENTS = {
   Clippy: "Clippit",
@@ -296,57 +346,139 @@ export async function launchAgentApp(app, agentName = currentAgentName) {
   };
 }
 
-function startTutorial(agent) {
-  const ttsEnabled = getItem("msAgentTTSEnabled") ?? true;
+const getElementCenter = (el) => {
+  if (!el) return null;
+  const rect = el.getBoundingClientRect();
+  return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+};
 
-  const getElementCenter = (selector) => {
-    const el = document.querySelector(selector);
-    if (!el) return null;
-    const rect = el.getBoundingClientRect();
-    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-  };
+const findIcon = (label) => {
+  const icons = document.querySelectorAll(".explorer-icon");
+  for (const icon of icons) {
+    const iconLabel = icon.querySelector(".icon-label");
+    if (iconLabel && iconLabel.textContent.trim() === label) {
+      return icon;
+    }
+  }
+  return null;
+};
 
-  const startButton = getElementCenter(".start-button");
+const findWindowCloseButton = (instance) => {
+  if (instance && instance.win && instance.win.element) {
+    return (
+      instance.win.element.querySelector(".title-bar-controls .close") ||
+      instance.win.element.querySelector(".close")
+    );
+  }
+  return null;
+};
 
-  const sequence = async () => {
-    // 1. Welcome
-    await agent.speak(
-      "Hi! I'm your new modern assistant. Let me give you a quick tour of Windows 98.",
-      { useTTS: ttsEnabled, animation: "Explain" },
+async function findAndOpenFromStartMenu(agent, label, appId, args) {
+  const startButton = document.querySelector(".start-button");
+  if (startButton) {
+    const center = getElementCenter(startButton);
+    await agent.moveTo(center.x + 40, center.y - 40);
+    await agent.gestureAt(center.x, center.y);
+    startButton.click();
+    await new Promise((r) => setTimeout(r, 500));
+
+    const menuItems = document.querySelectorAll(".menu-popup .menu-item");
+    let programsItem = Array.from(menuItems).find((i) =>
+      i.textContent.includes("Programs"),
     );
 
-    // 2. Start Menu
-    if (startButton) {
-      await agent.moveTo(startButton.x + 80, startButton.y - 80);
-      await agent.gestureAt(startButton.x, startButton.y);
-      const startButtonEl = document.querySelector(".start-button");
-      if (startButtonEl) {
-        startButtonEl.classList.add("active");
-        startButtonEl.click();
-      }
-      await agent.speak(
-        "The Start button gives you access to all your programs.",
-        { useTTS: ttsEnabled, animation: "Explain" },
+    if (programsItem) {
+      const pCenter = getElementCenter(programsItem);
+      await agent.moveTo(pCenter.x + 40, pCenter.y);
+      programsItem.dispatchEvent(
+        new MouseEvent("mouseenter", { bubbles: true }),
       );
-      if (startButtonEl) {
-        startButtonEl.click();
-        startButtonEl.classList.remove("active");
+      await new Promise((r) => setTimeout(r, 500));
+    }
+  }
+
+  // Close start menu by clicking elsewhere or just launch the app
+  document.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+
+  return launchApp(appId, args);
+}
+
+async function startTutorial(agent) {
+  const ttsEnabled = getItem("msAgentTTSEnabled") ?? true;
+  let openedApps = [];
+
+  const cleanup = async () => {
+    for (const entry of openedApps) {
+      appManager.closeApp(entry.instance.instanceKey);
+    }
+    openedApps = [];
+  };
+
+  for (let i = 0; i < TUTORIAL_STEPS.length; i++) {
+    const step = TUTORIAL_STEPS[i];
+    const isLast = i === TUTORIAL_STEPS.length - 1;
+
+    let instance = null;
+
+    // 1. Move to app and open if needed
+    if (step.appId && !step.noOpen) {
+      const icon = findIcon(step.label);
+      if (icon) {
+        const center = getElementCenter(icon);
+        await agent.moveTo(center.x + 40, center.y - 40);
+        await agent.gestureAt(center.x, center.y);
+        instance = await launchApp(step.appId, step.args);
+      } else {
+        instance = await findAndOpenFromStartMenu(
+          agent,
+          step.label,
+          step.appId,
+          step.args,
+        );
+      }
+      if (instance) openedApps.push({ appId: step.appId, instance });
+      await new Promise((r) => setTimeout(r, 1000));
+    } else if (step.id === "agent") {
+      const center = getElementCenter(agent.container);
+      if (center) {
+        await agent.moveTo(center.x + 80, center.y);
+        await agent.gestureAt(center.x, center.y);
       }
     }
 
-    // 3. Desktop Icons
-    await agent.moveTo(140, 100);
-    await agent.gestureAt(40, 100);
-    await agent.speak(
-      "On the left, you'll find desktop icons. Double-click them to launch any program.",
-      { useTTS: ttsEnabled, animation: "Explain" },
-    );
+    // 2. Ask
+    if (step.animation) {
+      agent.play(step.animation);
+    }
 
-    await agent.speak(
-      "That's the tour! Feel free to play around. Just click me if you need anything!",
-      { useTTS: ttsEnabled, animation: "Wave" },
-    );
-  };
+    const result = await agent.ask({
+      content: [{ type: "text", text: step.text }],
+      buttons: [isLast ? "Finish" : "Next", "Skip Tutorial"],
+    });
 
-  sequence();
+    const buttonLabel =
+      typeof result === "string" ? result : result?.button || result?.text;
+
+    if (buttonLabel === "Skip Tutorial" || !result) {
+      await agent.speak("Feel free to restart the tutorial anytime!", {
+        useTTS: ttsEnabled,
+        animation: "Wave",
+      });
+      await cleanup();
+      return;
+    }
+
+    // 3. Close app before next step
+    if (instance) {
+      const closeButton = findWindowCloseButton(instance);
+      if (closeButton) {
+        const center = getElementCenter(closeButton);
+        await agent.moveTo(center.x + 40, center.y + 40);
+        await agent.gestureAt(center.x, center.y);
+      }
+      appManager.closeApp(instance.instanceKey);
+      openedApps = openedApps.filter((e) => e.instance !== instance);
+      await new Promise((r) => setTimeout(r, 500));
+    }
+  }
 }
