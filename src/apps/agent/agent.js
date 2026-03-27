@@ -448,11 +448,11 @@ async function startTutorial(agent) {
 
     // 2. Ask
     if (step.animation) {
-      agent.play(step.animation);
+      await agent.play(step.animation);
     }
 
     const result = await agent.ask({
-      content: [{ type: "text", text: step.text }],
+      title: step.text,
       buttons: [isLast ? "Finish" : "Next", "Skip Tutorial"],
     });
 
