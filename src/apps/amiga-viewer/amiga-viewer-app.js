@@ -138,7 +138,7 @@ export class AmigaViewerApp extends Application {
       fileTypes: [
         {
           label: "Amiga Images",
-          extensions: ["iff", "ilbm", "lbm", "ham", "ham8"],
+          extensions: ["iff", "ilbm", "lbm", "pbm", "ham", "ham8"],
         },
         { label: "All Files", extensions: ["*"] },
       ],
@@ -223,7 +223,7 @@ export class AmigaViewerApp extends Application {
 
   toggleOSFullScreen() {
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(err => console.warn(err));
+      this.container.requestFullscreen().catch(err => console.warn(err));
     } else if (document.exitFullscreen) {
       document.exitFullscreen();
     }
