@@ -124,6 +124,9 @@ export async function initFileSystem(onProgress) {
       { name: "buggyprogram.exe.lnk.json", appId: "buggy-program" },
       { name: "sheep.lnk.json", appId: "esheep" },
       { name: "Winamp.lnk.json", appId: "webamp" },
+      { name: "Desktop Themes.lnk.json", appId: "desktop-themes" },
+      { name: "Notepad.lnk.json", appId: "notepad" },
+      { name: "Agent.lnk.json", appId: "agent" },
     ];
 
     for (const shortcut of defaultShortcuts) {
