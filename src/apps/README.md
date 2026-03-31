@@ -1,6 +1,6 @@
 # Application Development Guide
 
-This guide provides instructions on how to add new applications to Windows 98 Web Edition.
+This guide provides instructions on how to add new applications to AqualisOS.
 
 ## Applications
 

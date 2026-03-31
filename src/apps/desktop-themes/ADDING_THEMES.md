@@ -24,7 +24,7 @@ Before you begin, you will need to have the following assets ready:
 
 The first step is to convert your `.theme` or `.ini` file into a CSS file that Windows 98 can use.
 
-1.  Launch Windows 98 Web Edition.
+1.  Launch AqualisOS.
 2.  Open the **Start Menu** and go to **Programs > Accessories > Theme to CSS**.
 3.  In the "Theme to CSS" application, click the **Open .theme file** button.
 4.  Select your `.theme` or `.ini` file.
@@ -200,9 +200,9 @@ Here's an example of how to add a custom font to your theme's CSS file:
 
 You're all done! To see your new theme in action:
 
-1.  Launch Windows 98 Web Edition.
+1.  Launch AqualisOS.
 2.  Right-click on the desktop and select **Properties**.
 3.  Go to the **Themes** tab.
 4.  You should see your new theme in the list of available themes. Select it to apply it.
 
-Congratulations, you've successfully added a new theme to Windows 98 Web Edition!
+Congratulations, you've successfully added a new theme to AqualisOS!

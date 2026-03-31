@@ -24,7 +24,7 @@ Once verified, you should submit your sitemap to speed up indexing:
 ## 3. Social Media Sharing
 
 The app is now configured with OpenGraph and Twitter Card tags. When you share the URL on platforms like Twitter/X, Facebook, or LinkedIn, it will display a rich preview with:
-*   **Title**: Windows 98 Web Edition
+*   **Title**: AqualisOS
 *   **Description**: A nostalgic, fully functional Windows 98 simulation...
 *   **Image**: A high-quality screenshot of the desktop.
 

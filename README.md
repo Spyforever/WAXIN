@@ -33,11 +33,11 @@ Experience it directly in your browser:
 *(Desktop browser recommended for the best experience. Works best on Chrome, Firefox, and Edge.)*
 
 ![Applications Demo](./public/docs/images/screenshot-apps.png)
-*Running multiple applications in Windows 98 Web Edition*
+*Running multiple applications in AqualisOS*
 
 ## Quick Start Guide
 
-New to Windows 98 Web Edition? Here's how to get started:
+New to AqualisOS? Here's how to get started:
 
 1. **Launch the Demo**: Click the live demo link above.
 2. **Open the Start Menu**: Click the **Start** button in the bottom-left corner.
@@ -74,7 +74,7 @@ Over time, it became a challenge: to push how far a **vanilla JavaScript applica
 
 ## Applications Included
 
-Windows 98 Web Edition includes a growing collection of built-in applications. These range from games and media players to productivity tools and system utilities.
+AqualisOS includes a growing collection of built-in applications. These range from games and media players to productivity tools and system utilities.
 
 ### Games & Entertainment
 * **Windows Games**: Solitaire, FreeCell, Minesweeper, Spider Solitaire, remade from scratch. There's also Pinball Emscripten port available.
