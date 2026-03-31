@@ -4,10 +4,10 @@
   "version": "0.9.0",
   "type": "module",
   "scripts": {
-    "dev": "bun --bun vite",
-    "build": "bun run build:registry && bun --bun vite build",
+    "dev": "vite",
+    "build": "bun run build:registry && vite build",
     "build:registry": "bun scripts/generate_registry.js",
-    "preview": "bun --bun vite preview",
+    "preview": "vite preview",
     "test": "bun x playwright test"
   },
   "devDependencies": {

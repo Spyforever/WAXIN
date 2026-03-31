@@ -1,15 +1,12 @@
 import { getItem, setItem } from "../../system/local-storage.js";
 import { appManager, launchApp } from "../../system/app-manager.js";
-import {
-  requestBusyState,
-  releaseBusyState,
-} from "../../system/busy-state-manager.js";
+import { requestBusyState, releaseBusyState } from "../../system/busy-state-manager.js";
 
 const TUTORIAL_STEPS = [
   {
     id: "welcome",
     text: "Hi! I'm your new modern assistant. Let me give you a quick tour of Windows 98.",
-    animation: "Greeting",
+    animation: "Wave",
   },
   {
     id: "games",
@@ -88,8 +85,7 @@ export function getAgentMenuItems(app) {
       action: () => {
         const animations = agent.animations();
         if (animations && animations.length > 0) {
-          const randomAnim =
-            animations[Math.floor(Math.random() * animations.length)];
+          const randomAnim = animations[Math.floor(Math.random() * animations.length)];
           agent.play(randomAnim);
         }
       },
@@ -185,9 +181,7 @@ async function askAgent(agent, question) {
 
   try {
     const encodedQuestion = encodeURIComponent(question.trim());
-    const response = await fetch(
-      `https://resume-chat-api-nine.vercel.app/api/clippy-helper?query=${encodedQuestion}`,
-    );
+    const response = await fetch(`https://resume-chat-api-nine.vercel.app/api/clippy-helper?query=${encodedQuestion}`);
     const data = await response.json();
 
     for (const fragment of data) {
@@ -198,10 +192,10 @@ async function askAgent(agent, question) {
       });
     }
   } catch (error) {
-    await agent.speak(
-      "Sorry, I couldn't get an answer for that at this time!",
-      { useTTS: ttsEnabled, animation: "Wave" },
-    );
+    await agent.speak("Sorry, I couldn't get an answer for that at this time!", {
+      useTTS: ttsEnabled,
+      animation: "Wave",
+    });
     console.error("API Error:", error);
   }
 }
@@ -217,8 +211,7 @@ export function showAgentContextMenu(event, app) {
 }
 
 export async function launchAgentApp(app, agentName = currentAgentName) {
-  const { Agent } =
-    await import("https://unpkg.com/ms-agent-js@0.5.0/dist/ms-agent-js.es.js");
+  const { Agent } = await import("https://unpkg.com/ms-agent-js@0.5.0/dist/ms-agent-js.es.js");
 
   if (window.msAgentInstance) {
     window.msAgentInstance.destroy();
@@ -226,8 +219,7 @@ export async function launchAgentApp(app, agentName = currentAgentName) {
 
   const ttsUserPref = getItem("msAgentTTSEnabled") ?? true;
 
-  const internalName =
-    SUPPORTED_AGENTS[agentName] || SUPPORTED_AGENTS["Clippy"];
+  const internalName = SUPPORTED_AGENTS[agentName] || SUPPORTED_AGENTS["Clippy"];
 
   const agent = await Agent.load(internalName, {
     fixed: false,
@@ -257,11 +249,7 @@ export async function launchAgentApp(app, agentName = currentAgentName) {
       if (voices.length > 0) {
         // Try to find a high-quality English voice
         const preferredVoice =
-          voices.find(
-            (v) =>
-              v.lang.startsWith("en") &&
-              (v.name.includes("David") || v.name.includes("Mark")),
-          ) ||
+          voices.find((v) => v.lang.startsWith("en") && (v.name.includes("David") || v.name.includes("Mark"))) ||
           voices.find((v) => v.lang.startsWith("en")) ||
           voices[0];
 
@@ -272,11 +260,7 @@ export async function launchAgentApp(app, agentName = currentAgentName) {
     if (window.speechSynthesis.getVoices().length) {
       setRecommendedVoice();
     } else {
-      window.speechSynthesis.addEventListener(
-        "voiceschanged",
-        setRecommendedVoice,
-        { once: true },
-      );
+      window.speechSynthesis.addEventListener("voiceschanged", setRecommendedVoice, { once: true });
     }
   }
 
@@ -290,13 +274,10 @@ export async function launchAgentApp(app, agentName = currentAgentName) {
     }
   });
 
-  await agent.speak(
-    "Hey, there. Want quick answers to your questions? Just click me.",
-    {
-      useTTS: ttsUserPref,
-      animation: "Explain",
-    },
-  );
+  await agent.speak("Hey, there. Want quick answers to your questions? Just click me.", {
+    useTTS: ttsUserPref,
+    animation: "Explain",
+  });
 
   // v0.5.0 handles interaction natively
   agent.on("click", () => {
@@ -366,8 +347,7 @@ const findIcon = (label) => {
 const findWindowCloseButton = (instance) => {
   if (instance && instance.win && instance.win.element) {
     return (
-      instance.win.element.querySelector(".title-bar-controls .close") ||
-      instance.win.element.querySelector(".close")
+      instance.win.element.querySelector(".title-bar-controls .close") || instance.win.element.querySelector(".close")
     );
   }
   return null;
@@ -383,16 +363,12 @@ async function findAndOpenFromStartMenu(agent, label, appId, args) {
     await new Promise((r) => setTimeout(r, 500));
 
     const menuItems = document.querySelectorAll(".menu-popup .menu-item");
-    let programsItem = Array.from(menuItems).find((i) =>
-      i.textContent.includes("Programs"),
-    );
+    let programsItem = Array.from(menuItems).find((i) => i.textContent.includes("Programs"));
 
     if (programsItem) {
       const pCenter = getElementCenter(programsItem);
       await agent.moveTo(pCenter.x + 40, pCenter.y);
-      programsItem.dispatchEvent(
-        new MouseEvent("mouseenter", { bubbles: true }),
-      );
+      programsItem.dispatchEvent(new MouseEvent("mouseenter", { bubbles: true }));
       await new Promise((r) => setTimeout(r, 800));
 
       // Try to find the specific app in the Programs sub-menu
@@ -442,12 +418,7 @@ async function startTutorial(agent) {
         await agent.gestureAt(center.x, center.y);
         instance = await launchApp(step.appId, step.args);
       } else {
-        instance = await findAndOpenFromStartMenu(
-          agent,
-          step.label,
-          step.appId,
-          step.args,
-        );
+        instance = await findAndOpenFromStartMenu(agent, step.label, step.appId, step.args);
       }
       if (instance) openedApps.push({ appId: step.appId, instance });
       await new Promise((r) => setTimeout(r, 1000));
@@ -460,20 +431,14 @@ async function startTutorial(agent) {
     }
 
     // 2. Ask
-    if (step.animation) {
-      await agent.play(step.animation);
-    }
-
-    // Speak the text first for TTS and typing effect
-    await agent.speak(step.text, { useTTS: ttsEnabled });
 
     const result = await agent.ask({
-      title: step.text,
+      content: [step.text],
       buttons: [isLast ? "Finish" : "Next", "Skip Tutorial"],
+      animation: step.animation,
     });
 
-    const buttonLabel =
-      typeof result === "string" ? result : result?.button || result?.text;
+    const buttonLabel = typeof result === "string" ? result : result?.value;
 
     if (buttonLabel === "Skip Tutorial" || !result) {
       await agent.speak("Feel free to restart the tutorial anytime!", {
