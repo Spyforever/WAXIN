@@ -107,13 +107,10 @@ export class AmigaViewerApp extends Application {
     this._setupDragAndDrop();
     this.win.$content.on('dblclick', () => this.toggleOSFullScreen());
 
-    // Listen for Escape key to exit fullscreen
-    this._handleKeyDown = (e) => {
-        if (e.key === "Escape" && this.isFullscreen) {
-            this.toggleOSFullScreen();
-        }
+    this._handleFullscreenChange = () => {
+      this.isFullscreen = !!document.fullscreenElement;
     };
-    window.addEventListener('keydown', this._handleKeyDown);
+    document.addEventListener('fullscreenchange', this._handleFullscreenChange);
   }
 
   _setupDragAndDrop() {
@@ -230,23 +227,12 @@ export class AmigaViewerApp extends Application {
   }
 
   toggleOSFullScreen() {
-    this.isFullscreen = !this.isFullscreen;
-
-    if (this.isFullscreen) {
-      this.container.classList.add('os-fullscreen');
-      this.win.element.querySelector(".window-titlebar").style.display = 'none';
-      const menuBar = this.win.element.querySelector(".menus");
-      if (menuBar) menuBar.style.display = 'none';
-      this.win.element.style.border = 'none';
-      this.win.element.style.padding = '0';
+    if (!document.fullscreenElement) {
+      this.container.requestFullscreen().catch(err => {
+        console.warn(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+      });
     } else {
-      this.container.classList.remove('os-fullscreen');
-      this.win.element.querySelector(".window-titlebar").style.display = 'flex';
-      const menuBar = this.win.element.querySelector(".menus");
-      if (menuBar) menuBar.style.display = 'block';
-      this.win.element.style.border = '';
-      this.win.element.style.padding = '';
-      this._adjustWindowSize();
+      document.exitFullscreen();
     }
   }
 
@@ -259,6 +245,6 @@ export class AmigaViewerApp extends Application {
     if (this.currentIff && typeof this.currentIff.stopColorCycling === 'function') {
       this.currentIff.stopColorCycling();
     }
-    window.removeEventListener('keydown', this._handleKeyDown);
+    document.removeEventListener('fullscreenchange', this._handleFullscreenChange);
   }
 }
