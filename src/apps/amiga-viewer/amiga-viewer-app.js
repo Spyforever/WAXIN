@@ -106,6 +106,14 @@ export class AmigaViewerApp extends Application {
 
     this._setupDragAndDrop();
     this.win.$content.on('dblclick', () => this.toggleOSFullScreen());
+
+    // Listen for Escape key to exit fullscreen
+    this._handleKeyDown = (e) => {
+        if (e.key === "Escape" && this.isFullscreen) {
+            this.toggleOSFullScreen();
+        }
+    };
+    window.addEventListener('keydown', this._handleKeyDown);
   }
 
   _setupDragAndDrop() {
@@ -138,7 +146,7 @@ export class AmigaViewerApp extends Application {
       fileTypes: [
         {
           label: "Amiga Images",
-          extensions: ["iff", "ilbm", "lbm", "ham", "ham8"],
+          extensions: ["iff", "ilbm", "lbm", "pbm", "ham", "ham8"],
         },
         { label: "All Files", extensions: ["*"] },
       ],
@@ -222,15 +230,35 @@ export class AmigaViewerApp extends Application {
   }
 
   toggleOSFullScreen() {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(err => console.warn(err));
-    } else if (document.exitFullscreen) {
-      document.exitFullscreen();
+    this.isFullscreen = !this.isFullscreen;
+
+    if (this.isFullscreen) {
+      this.container.classList.add('os-fullscreen');
+      this.win.element.querySelector(".window-titlebar").style.display = 'none';
+      const menuBar = this.win.element.querySelector(".menus");
+      if (menuBar) menuBar.style.display = 'none';
+      this.win.element.style.border = 'none';
+      this.win.element.style.padding = '0';
+    } else {
+      this.container.classList.remove('os-fullscreen');
+      this.win.element.querySelector(".window-titlebar").style.display = 'flex';
+      const menuBar = this.win.element.querySelector(".menus");
+      if (menuBar) menuBar.style.display = 'block';
+      this.win.element.style.border = '';
+      this.win.element.style.padding = '';
+      this._adjustWindowSize();
     }
   }
 
   toggleDebugOutput() {
     this.isDebugVisible = !this.isDebugVisible;
     this.debugElem.classList.toggle('visible', this.isDebugVisible);
+  }
+
+  _onClose() {
+    if (this.currentIff && typeof this.currentIff.stopColorCycling === 'function') {
+      this.currentIff.stopColorCycling();
+    }
+    window.removeEventListener('keydown', this._handleKeyDown);
   }
 }

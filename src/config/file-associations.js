@@ -143,6 +143,16 @@ export const fileAssociations = {
     appId: "amiga-viewer",
     icon: ICONS.amigaViewer,
   },
+  lbm: {
+    name: "Amiga LBM Image",
+    appId: "amiga-viewer",
+    icon: ICONS.amigaViewer,
+  },
+  pbm: {
+    name: "Amiga PBM Image",
+    appId: "amiga-viewer",
+    icon: ICONS.amigaViewer,
+  },
   ilbm: {
     name: "Amiga ILBM Image",
     appId: "amiga-viewer",
