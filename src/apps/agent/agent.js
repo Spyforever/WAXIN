@@ -393,11 +393,24 @@ async function findAndOpenFromStartMenu(agent, label, appId, args) {
       programsItem.dispatchEvent(
         new MouseEvent("mouseenter", { bubbles: true }),
       );
-      await new Promise((r) => setTimeout(r, 500));
+      await new Promise((r) => setTimeout(r, 800));
+
+      // Try to find the specific app in the Programs sub-menu
+      const subMenuItems = document.querySelectorAll(".menu-popup .menu-item");
+      const appItem = Array.from(subMenuItems).find(
+        (i) => i.textContent.includes(label) || i.textContent.includes(appId),
+      );
+
+      if (appItem) {
+        const aCenter = getElementCenter(appItem);
+        await agent.moveTo(aCenter.x + 40, aCenter.y);
+        await agent.gestureAt(aCenter.x, aCenter.y);
+        await new Promise((r) => setTimeout(r, 500));
+      }
     }
   }
 
-  // Close start menu by clicking elsewhere or just launch the app
+  // Close start menu by clicking elsewhere
   document.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
 
   return launchApp(appId, args);
@@ -450,6 +463,9 @@ async function startTutorial(agent) {
     if (step.animation) {
       await agent.play(step.animation);
     }
+
+    // Speak the text first for TTS and typing effect
+    await agent.speak(step.text, { useTTS: ttsEnabled });
 
     const result = await agent.ask({
       title: step.text,
