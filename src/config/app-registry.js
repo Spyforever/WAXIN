@@ -20,20 +20,6 @@ export const appRegistry = {
   },
     importApp: () => import("../shell/about/about-app.js")
   },
-  "amiga-viewer": {
-    config: {
-        id: "amiga-viewer",
-        title: "Amiga Image Viewer",
-        description: "View Amiga IFF/ILBM images.",
-        icon: ICONS.amigaViewer,
-        category: "Accessories",
-        width: 640,
-        height: 480,
-        resizable: true,
-        isSingleton: false,
-    },
-    importApp: () => import("../apps/amiga-viewer/amiga-viewer-app.js")
-  },
   "agent": {
     config: {
         id: "agent",
@@ -53,6 +39,20 @@ export const appRegistry = {
         ],
     },
     importApp: () => import("../apps/agent/agent-app.js")
+  },
+  "amiga-viewer": {
+    config: {
+    id: "amiga-viewer",
+    title: "Amiga Image Viewer",
+    description: "View Amiga IFF/ILBM images.",
+    icon: ICONS.amigaViewer,
+    category: "Accessories",
+    width: 640,
+    height: 480,
+    resizable: true,
+    isSingleton: false,
+  },
+    importApp: () => import("../apps/amiga-viewer/amiga-viewer-app.js")
   },
   "app-maker": {
     config: {
