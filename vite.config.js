@@ -47,8 +47,8 @@ export default defineConfig({
         "robots.txt",
       ],
       manifest: {
-        name: "Windows 98 Web Edition",
-        short_name: "Win98Web",
+        name: "AqualisOS",
+        short_name: "AqualisOS",
         description: "A nostalgic, fully functional Windows 98 simulation in your browser.",
         theme_color: "#008080",
         icons: [

@@ -263,7 +263,7 @@ export class MinesweeperApp extends Application {
   showAboutDialog() {
     ShowDialogWindow({
       title: "About Minesweeper",
-      text: "Minesweeper clone for azOS.",
+      text: "Minesweeper clone for AqualisOS.",
     });
   }
 

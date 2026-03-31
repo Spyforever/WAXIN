@@ -28,7 +28,7 @@ A web-based recreation of the classic Windows 98 desktop experience, built using
 
 Experience it directly in your browser:
 
-👉 **[AqualisOS](https://azayrahmad.github.io/win98-web/)**
+👉 **[AqualisOS](https://aqualisos.netlify.app/)**
 
 *(Desktop browser recommended for the best experience. Works best on Chrome, Firefox, and Edge.)*
 
@@ -225,6 +225,6 @@ For a full list of third-party libraries and resources, see **[CREDITS.md](./CRE
 
 <div align="center">
 
-[Live Demo](https://azayrahmad.github.io/win98-web/) • [Report Bug](https://github.com/azayrahmad/win98-web/issues)
+[Live Demo](https://aqualisos.netlify.app/) • [Report Bug](https://github.com/Spyforever/WAXIN)
 
 </div>

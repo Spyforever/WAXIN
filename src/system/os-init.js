@@ -358,7 +358,7 @@ export async function initializeOS() {
     }
 
     await executeBootStep(async () => {
-      startBootProcessStep("azOS Ready!");
+      startBootProcessStep("AqualisOS Ready!");
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
@@ -389,7 +389,7 @@ export async function initializeOS() {
     window.RecycleBinManager = RecycleBinManager;
     window.System.launchApp = launchApp;
     window.System.appManager = appManager;
-    console.log("azOS initialized");
+    console.log("AqualisOS initialized");
 
     let inactivityTimer;
 

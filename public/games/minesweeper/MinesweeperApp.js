@@ -274,7 +274,7 @@ class MinesweeperApp {
   showAboutDialog() {
     ShowDialogWindow({
       title: "About Minesweeper",
-      text: "Minesweeper clone for azOS.",
+      text: "Minesweeper clone for AqualisOS.",
     });
   }
 

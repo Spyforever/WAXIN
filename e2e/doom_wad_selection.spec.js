@@ -2,9 +2,9 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Doom WAD Selection', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('http://localhost:5173/win98-web/');
+    await page.goto('http://localhost:5173/AqualisOS/');
     // Wait for the OS to initialize
-    await page.waitForSelector('text=azOS Ready!', { timeout: 60000 });
+    await page.waitForSelector('text=AqualisOS Ready!', { timeout: 60000 });
     // Wait for splash screen to hide
     await page.waitForSelector('#splash-screen', { state: 'hidden' });
   });

@@ -88,7 +88,7 @@ export class PinballApp extends IFrameApplication {
           action: () => {
             ShowDialogWindow({
               title: "About Pinball",
-              text: "3D Pinball for Windows - Space Cadet<br>Emscripten port by alula<br><br>Integrated into azOS by Jules.",
+              text: "3D Pinball for Windows - Space Cadet<br>Emscripten port by alula<br><br>Integrated into AqualisOS by Jules.",
               buttons: [{ label: "OK", isDefault: true }],
             });
           },

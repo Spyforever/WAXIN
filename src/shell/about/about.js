@@ -5,12 +5,12 @@ import ballAnimation from "../../assets/img/BALL_ANI.GIF";
 export const aboutContent = `
   <div class="about-content" style="display: flex; gap: 16px; padding: 16px; align-items: top;">
     <div style="flex-shrink: 0;">
-      <img src="${ballAnimation}" alt="Windows 98 Splash">
+      <img src="${ballAnimation}" alt="AqualisOS Splash">
     </div>
     <div>
-      <h1>Windows 98 Web Edition version ${version}</h1>
+      <h1>AqualisOS ${version}</h1>
       <p>A web-based operating system based on Windows 98, with some quirks.</p>
-      <p>Copyright (C) 1997-2025 Microsoft Corp. All rights reserved.</p>
+      <p>Copyright (C) 1997-2026 Axinity Corp. All rights reserved.</p>
       <div class="version-status" style="margin-top: 16px; font-style: italic;">Checking for updates...</div>
     </div>
   </div>

@@ -4,7 +4,7 @@ test('Verify Recycle Bin Icons and Properties', async ({ page }, testInfo) => {
     page.on('console', msg => console.log('PAGE LOG:', msg.text()));
 
     await page.goto('/');
-    await page.waitForSelector('text=azOS Ready!', { timeout: 60000 });
+    await page.waitForSelector('text=AqualisOS Ready!', { timeout: 60000 });
     await page.waitForSelector('#splash-screen', { state: 'hidden' });
 
     // Create a text file and move it to recycle bin

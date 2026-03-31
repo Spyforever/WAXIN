@@ -1,10 +1,10 @@
-# Windows 98 Web Edition
+# AqualisOS
 
 A web-based JavaScript remake of Windows 98 desktop experience, focusing on desktop themes customization.
 
 ## Live Demo
 
-Experience Windows 98 Web Edition live: **[Windows 98 Web Edition](https://azayrahmad.github.io/win98-web/)**
+Experience Aqualis live: **[AqualisOS](https://aqualisos.netlify.app/)**
 
 ## Screenshots
 
@@ -78,7 +78,7 @@ To run this project locally, follow these steps:
 
 ## Asset Sources
 
-Windows 98 Web Edition uses a mixture of:
+Aqualis uses a mixture of:
 
 - original assets created specifically for this project,
 - third-party open-source recreations

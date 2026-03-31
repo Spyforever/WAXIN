@@ -129,16 +129,9 @@ class Taskbar {
           <img src="${ICONS.desktop_old[16]}" alt="Show Desktop" loading="lazy">
         </button>
         <button class="taskbar-icon lightweight"
-                title="LinkedIn Profile"
-                aria-label="Open LinkedIn Profile"
-                data-url="https://www.linkedin.com/in/aziz-rahmad">
-          <img src="https://www.google.com/s2/favicons?domain=linkedin.com"
-               alt="LinkedIn" loading="lazy">
-        </button>
-        <button class="taskbar-icon lightweight"
                 title="GitHub Profile"
                 aria-label="Open GitHub Profile"
-                data-url="https://www.github.com/azayrahmad">
+                data-url="https://www.github.com/spyforever/WAXIN">
           <img src="https://www.google.com/s2/favicons?domain=github.com"
                alt="GitHub" loading="lazy">
         </button>

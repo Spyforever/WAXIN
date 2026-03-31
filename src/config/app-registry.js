@@ -9,7 +9,7 @@ export const appRegistry = {
     id: "about",
     title: "About",
     description: "Displays information about this application.",
-    summary: "<b>azOS Second Edition</b><br>Copyright © 2024",
+    summary: "<b>AqualisOS</b><br>Copyright © 2026",
     icon: ICONS.windowsUpdate,
     width: 400,
     height: 280,
@@ -33,7 +33,7 @@ export const appRegistry = {
           contextMenu: getAgentMenuItems,
         },
         tips: [
-          "Need help? Try the <a href='#' class='tip-link' data-app='agent'>Agent</a> for assistance with azOS features.",
+          "Need help? Try the <a href='#' class='tip-link' data-app='agent'>Agent</a> for assistance with AqualisOS features.",
           "You can ask Agent about Aziz's resume by clicking on it.",
           "Right-click on Agent to see more options, like changing the agent or making it animate.",
         ],

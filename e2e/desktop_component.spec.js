@@ -2,9 +2,9 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Desktop Component', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('http://localhost:5173/win98-web/');
-    // Wait for the OS to initialize (azOS Ready!)
-    await page.waitForSelector('text=azOS Ready!', { timeout: 30000 });
+    await page.goto('http://localhost:5173/aqualisos/');
+    // Wait for the OS to initialize (AqualisOS Ready!)
+    await page.waitForSelector('text=AqualisOS Ready!', { timeout: 30000 });
     // Wait for splash screen to hide
     await page.waitForSelector('#splash-screen', { state: 'hidden' });
   });

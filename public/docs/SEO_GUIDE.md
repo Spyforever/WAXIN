@@ -1,13 +1,13 @@
 # SEO and Search Discovery Guide
 
-This guide outlines the steps to ensure that **Windows 98 Web Edition** is correctly indexed and discoverable by Google and other search engines.
+This guide outlines the steps to ensure that **AqualisOS** is correctly indexed and discoverable by Google and other search engines.
 
 ## 1. Google Search Console Registration
 
 To officially tell Google about your site, you should register it in Google Search Console.
 
 1.  Go to [Google Search Console](https://search.google.com/search-console/about).
-2.  Add a new property using the URL: `https://azayrahmad.github.io/win98-web/`.
+2.  Add a new property using the URL: `https://aqualisos.netlify.app/`.
 3.  **Verification**: Google will ask you to verify ownership. Since you are using GitHub Pages, the easiest way is the **HTML tag** method:
     *   Copy the meta tag provided by Google (e.g., `<meta name="google-site-verification" content="..." />`).
     *   Add it to the `<head>` section of `index.html`.

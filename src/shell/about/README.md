@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The **About** app is a simple utility that displays essential information about **azOS Second Edition**. It serves as a quick reference for users to learn about the system's identity, versioning, and legal information.
+The **About** app is a simple utility that displays essential information about **AqualisOS**. It serves as a quick reference for users to learn about the system's identity, versioning, and legal information.
 
 ## Key Features
 

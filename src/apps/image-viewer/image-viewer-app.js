@@ -119,7 +119,7 @@ export class ImageViewerApp extends Application {
       "&Help": [
         {
           label: "&About Image Viewer",
-          action: () => alert("A simple image viewer built for azOS."),
+          action: () => alert("A simple image viewer built for AqualisOS."),
         },
       ],
     });
