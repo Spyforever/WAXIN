@@ -12,7 +12,7 @@ export class AboutApp extends Application {
     id: "about",
     title: "About",
     description: "Displays information about this application.",
-    summary: "<b>azOS Second Edition</b><br>Copyright © 2024",
+    summary: "<b>AqualisOS</b><br>Copyright © 2026",
     icon: ICONS.windowsUpdate,
     width: 400,
     height: 280,
