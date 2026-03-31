@@ -1,11 +1,11 @@
-# Windows 98 Web Edition
+# AqualisOS
 
 > An ultimate pixel-perfect browser‑based recreation attempt of Windows 98.
 
 A web-based recreation of the classic Windows 98 desktop experience, built using vanilla JavaScript, HTML, and CSS. Experience the familiar interface of Windows 98 directly in your modern browser, complete with working applications and games, customizable themes, and an AI-powered Clippy.
 
-![Windows 98 Web Edition Desktop](./public/docs/images/screenshot-desktop.png)
-*Windows 98 Web Edition Desktop*
+![AqualisOS Desktop](./public/docs/images/screenshot-desktop.png)
+*AqualisOS Desktop*
 
 ## Table of Contents
 
@@ -28,7 +28,7 @@ A web-based recreation of the classic Windows 98 desktop experience, built using
 
 Experience it directly in your browser:
 
-👉 **[Windows 98 Web Edition](https://azayrahmad.github.io/win98-web/)**
+👉 **[AqualisOS](https://azayrahmad.github.io/win98-web/)**
 
 *(Desktop browser recommended for the best experience. Works best on Chrome, Firefox, and Edge.)*
 
@@ -195,8 +195,8 @@ Clippy is reintroduced as an optional, AI-powered assistant that provides contex
 
 ```bash
 # Clone the repository
-git clone https://github.com/azayrahmad/win98-web.git
-cd win98-web
+git clone https://github.com/Spyforever/WAXIN.git
+cd WAXIN
 
 # Install dependencies
 bun install
