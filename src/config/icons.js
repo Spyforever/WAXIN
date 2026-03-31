@@ -43,6 +43,10 @@ export const ICONS = {
     16: new URL("../assets/icons/image_viewer-0.png", import.meta.url).href,
     32: new URL("../assets/icons/image_viewer-0.png", import.meta.url).href,
   },
+  amigaViewer: {
+    16: new URL("../assets/icons/kodak_imaging-0.png", import.meta.url).href,
+    32: new URL("../assets/icons/kodak_imaging-0.png", import.meta.url).href,
+  },
   computer: {
     16: new URL("../assets/icons/computer_explorer-0.png", import.meta.url)
       .href,

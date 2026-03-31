@@ -1,0 +1,86 @@
+.amiga-viewer-container {
+    background-color: #000;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    position: relative;
+}
+
+.amiga-viewer-container canvas {
+    image-rendering: pixelated;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.amiga-viewer-container canvas.fill-screen {
+    object-fit: cover;
+}
+
+.amiga-viewer-debug {
+    display: none;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 5px;
+    z-index: 20;
+    border-top: 1px solid #333;
+    max-height: 100px;
+    overflow-y: auto;
+    font-size: 10px;
+    font-family: monospace;
+}
+
+.amiga-viewer-debug.visible {
+    display: block;
+}
+
+.debugLoc {
+    display: inline-block;
+    width: 8em;
+    color: #ffeb3b;
+}
+
+.debugMsg {
+    display: inline-block;
+    color: #fff;
+}
+
+.drop-zone-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 4px dashed transparent;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    pointer-events: none;
+}
+
+.drop-zone-overlay.drag-active {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: #4CAF50;
+}
+
+.drop-message {
+    font-size: 18px;
+    font-weight: bold;
+    color: #888;
+    text-align: center;
+}
+
+.has-image .drop-message {
+    display: none;
+}

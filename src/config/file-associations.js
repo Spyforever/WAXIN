@@ -138,6 +138,16 @@ export const fileAssociations = {
     appId: "image-viewer",
     icon: ICONS.imageGifFile,
   },
+  iff: {
+    name: "Amiga IFF Image",
+    appId: "amiga-viewer",
+    icon: ICONS.amigaViewer,
+  },
+  ilbm: {
+    name: "Amiga ILBM Image",
+    appId: "amiga-viewer",
+    icon: ICONS.amigaViewer,
+  },
   // Cursor files
   cur: {
     name: "Cursor",
